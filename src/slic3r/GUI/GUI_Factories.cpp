@@ -17,6 +17,7 @@
 #include "PartPlate.hpp"
 
 #include "Gizmos/GLGizmoSVG.hpp"
+#include "Gizmos/GLGizmoText.hpp"
 #include "Gizmos/GLGizmoAlignment.hpp"
 
 #include <boost/algorithm/string.hpp>
@@ -584,6 +585,7 @@ wxMenu* MenuFactory::append_submenu_add_generic(wxMenu* menu, ModelVolumeType ty
         }
     }
     append_menu_item_add_svg(sub_menu, type);
+    append_menu_item_add_text(sub_menu, type);
     return sub_menu;
 }
 
@@ -600,16 +602,16 @@ static void append_menu_itemm_add_(const wxString &name, GLGizmosManager::EType 
             volume_type = ModelVolumeType::MODEL_PART;
 
         auto screen_position = canvas->get_popup_menu_position();
-       /* if (gizmo_type == GLGizmosManager::Emboss) {//todo
-            auto emboss = dynamic_cast<GLGizmoEmboss *>(gizmo_base);
-            assert(emboss != nullptr);
-            if (emboss == nullptr) return;
+        if (gizmo_type == GLGizmosManager::Text) {
+            auto text = dynamic_cast<GLGizmoText *>(gizmo_base);
+            assert(text != nullptr);
+            if (text == nullptr) return;
             if (screen_position.has_value()) {
-                emboss->create_volume(volume_type, *screen_position);
+                text->create_volume(volume_type, *screen_position);
             } else {
-                emboss->create_volume(volume_type);
+                text->create_volume(volume_type);
             }
-        } else*/ if (gizmo_type == GLGizmosManager::Svg) {
+        } else if (gizmo_type == GLGizmosManager::Svg) {
             auto svg = dynamic_cast<GLGizmoSVG *>(gizmo_base);
             assert(svg != nullptr);
             if (svg == nullptr) return;
@@ -635,6 +637,11 @@ static void append_menu_itemm_add_(const wxString &name, GLGizmosManager::EType 
 void MenuFactory::append_menu_item_add_svg(wxMenu *menu, ModelVolumeType type, bool is_submenu_item /* = true*/)
 {
     append_menu_itemm_add_(_L("SVG"), GLGizmosManager::Svg, menu, type, is_submenu_item);
+}
+
+void MenuFactory::append_menu_item_add_text(wxMenu *menu, ModelVolumeType type, bool is_submenu_item /* = true*/)
+{
+    append_menu_itemm_add_(_L("Text"), GLGizmosManager::Text, menu, type, is_submenu_item);
 }
 
 void MenuFactory::append_menu_items_add_volume(wxMenu* menu)

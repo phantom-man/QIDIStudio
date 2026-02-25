@@ -170,6 +170,8 @@ public:
     static EmbossStyles create_default_styles();
     bool                select_facename(const wxString &facename,bool update_text );
     bool                on_shortcut_key();
+    bool                create_volume(ModelVolumeType volume_type, const Vec2d &mouse_pos);
+    bool                create_volume(ModelVolumeType volume_type);
     bool                is_only_text_case() const;
     void                close();
 

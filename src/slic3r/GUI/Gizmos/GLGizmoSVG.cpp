@@ -1288,6 +1288,33 @@ bool GLGizmoSVG::process_job(bool make_snapshot)
     m_job_cancel = std::make_shared<std::atomic<bool>>(false);
 
     EmbossShape shape = m_volume_shape; // copy
+
+    // Tiling: replicate the single-tile polygons in an NxM grid before meshing
+    if (m_tile_x > 1 || m_tile_y > 1) {
+        const ExPolygonsWithIds &single = m_volume_shape.shapes_with_ids;
+        BoundingBox              tile_bb = get_extents(single);
+        // step in integer polygon coords (scale converts coords → mm)
+        coord_t step_x = tile_bb.size().x() + (coord_t)(m_tile_gap / m_volume_shape.scale);
+        coord_t step_y = tile_bb.size().y() + (coord_t)(m_tile_gap / m_volume_shape.scale);
+        if (step_x < 1) step_x = 1; // avoid degenerate zero-step
+        if (step_y < 1) step_y = 1;
+        ExPolygonsWithIds tiled;
+        tiled.reserve(single.size() * (size_t)m_tile_x * (size_t)m_tile_y);
+        for (int tj = 0; tj < m_tile_y; ++tj) {
+            for (int ti = 0; ti < m_tile_x; ++ti) {
+                Point offset(step_x * ti, step_y * tj);
+                for (const ExPolygonsWithId &s : single) {
+                    ExPolygonsWithId copy = s;
+                    for (ExPolygon &ep : copy.expoly)
+                        ep.translate(offset);
+                    tiled.push_back(std::move(copy));
+                }
+            }
+        }
+        shape.shapes_with_ids = std::move(tiled);
+        shape.final_shape     = {}; // invalidate mesh cache
+    }
+
     auto        base  = std::make_unique<Emboss::DataBase>(m_volume->name, m_job_cancel, std::move(shape));
     base->is_outside  = m_volume->type() == ModelVolumeType::MODEL_PART;
     Emboss::DataUpdate data{std::move(base), m_volume_id, make_snapshot};
@@ -1338,6 +1365,7 @@ void GLGizmoSVG::draw_window()
     ImGui::Indent(m_gui_cfg->icon_width);
     draw_depth();
     draw_size();
+    draw_tiling();
 
     m_can_use_surface = (m_volume->emboss_shape->projection.use_surface) ? true : // already used surface must have option to uncheck
                                                                               !m_volume->is_the_only_one_part();
@@ -1786,6 +1814,62 @@ void GLGizmoSVG::draw_size()
     }
     if (make_snap)
         process_job(); // make undo/redo snap-shot}
+}
+
+void GLGizmoSVG::draw_tiling()
+{
+    bool use_inch = wxGetApp().app_config->get_bool("use_inches");
+    bool changed  = false;
+
+    // --- Tile count row: X columns, Y rows ---
+    ImGui::AlignTextToFramePadding();
+    ImGuiWrapper::text(_u8L("Tile"));
+    if (ImGui::IsItemHovered())
+        m_imgui->tooltip(_u8L("Repeat the SVG pattern in a grid.\nX = columns, Y = rows."), m_gui_cfg->max_tooltip_width);
+
+    float half_w = m_gui_cfg->input_width / 2.f - 2.f;
+
+    ImGui::SameLine(m_gui_cfg->input_offset);
+    ImGui::SetNextItemWidth(half_w);
+    int prev_tx = m_tile_x;
+    if (ImGui::InputInt("##tile_x", &m_tile_x, 1, 5)) {
+        m_tile_x = std::max(1, std::min(m_tile_x, 50));
+        changed  = (m_tile_x != prev_tx);
+    }
+    if (ImGui::IsItemHovered())
+        m_imgui->tooltip(_u8L("Tile columns (X direction)."), m_gui_cfg->max_tooltip_width);
+
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(half_w);
+    int prev_ty = m_tile_y;
+    if (ImGui::InputInt("##tile_y", &m_tile_y, 1, 5)) {
+        m_tile_y = std::max(1, std::min(m_tile_y, 50));
+        changed |= (m_tile_y != prev_ty);
+    }
+    if (ImGui::IsItemHovered())
+        m_imgui->tooltip(_u8L("Tile rows (Y direction)."), m_gui_cfg->max_tooltip_width);
+
+    // --- Gap row (only when tiling is active) ---
+    if (m_tile_x > 1 || m_tile_y > 1) {
+        ImGui::AlignTextToFramePadding();
+        ImGuiWrapper::text(_u8L("Gap"));
+        if (ImGui::IsItemHovered())
+            m_imgui->tooltip(_u8L("Gap between tiles in mm.\nNegative values overlap adjacent tiles."), m_gui_cfg->max_tooltip_width);
+
+        float       gap_display = use_inch ? m_tile_gap * GizmoObjectManipulation::mm_to_in : m_tile_gap;
+        const char *fmt         = use_inch ? "%.3f in" : "%.2f mm";
+        ImGui::SameLine(m_gui_cfg->input_offset);
+        ImGui::SetNextItemWidth(m_gui_cfg->input_width);
+        float prev_gap = gap_display;
+        if (ImGui::InputFloat("##tile_gap", &gap_display, 0.f, 0.f, fmt)) {
+            m_tile_gap = use_inch ? gap_display / GizmoObjectManipulation::mm_to_in : gap_display;
+            m_tile_gap = std::max(-50.f, std::min(m_tile_gap, 200.f));
+            changed   |= (std::abs(gap_display - prev_gap) > 1e-4f);
+        }
+    }
+
+    if (changed)
+        process_job();
 }
 
 void GLGizmoSVG::draw_use_surface()

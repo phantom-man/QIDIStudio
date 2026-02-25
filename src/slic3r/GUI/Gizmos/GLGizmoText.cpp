@@ -1438,18 +1438,30 @@ void GLGizmoText::generate_text_tran_in_world(const Vec3d &text_normal_in_world,
 }
 
 bool GLGizmoText::on_shortcut_key() {
+    auto mv = get_selected_model_volume(m_parent);
+    if (mv && mv->is_text()) { //not need to generate text, to edit text
+        Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Edit existed text");
+        return false;
+    }
+    return create_volume(ModelVolumeType::MODEL_PART);
+}
+
+bool GLGizmoText::create_volume(ModelVolumeType volume_type, const Vec2d &mouse_pos)
+{
+    m_mouse_position = mouse_pos;
+    return create_volume(volume_type);
+}
+
+bool GLGizmoText::create_volume(ModelVolumeType volume_type)
+{
     reset_text_info();
     Selection &selection = m_parent.get_selection();
     m_text     = "Text";
     m_is_direct_create_text = selection.is_empty();
-    auto mv              = get_selected_model_volume(m_parent);
-    if (mv && mv->is_text()) {//not need to generate text,to edit text
-        Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Edit existed text");
-        return false;
-    }
+    ModelVolume *mv = nullptr; // reused in surface placement path
     if (process(false, std::nullopt, false)) {
         CreateTextInput temp_input_info;
-        DataBasePtr     base      = create_emboss_data_base(m_text, m_style_manager, selection, ModelVolumeType::MODEL_PART, m_job_cancel);
+        DataBasePtr     base      = create_emboss_data_base(m_text, m_style_manager, selection, volume_type, m_job_cancel);
         temp_input_info.base      = std::move(base);
         temp_input_info.text_info = get_text_info();
         if (m_is_direct_create_text) {
@@ -1490,14 +1502,13 @@ bool GLGizmoText::on_shortcut_key() {
                         }
                     }
                 } else {
-                    ModelObject * mo = objects[object_idx];
+                    ModelObject * mo_obj = objects[object_idx];
                     BoundingBoxf3 instance_bb;
                     size_t        instance_index = selection.get_instance_idx();
-                    instance_bb                  = mo->instance_bounding_box(instance_index);
-                    // Vec3d volume_size            = volume->mesh().bounding_box().size();
+                    instance_bb                  = mo_obj->instance_bounding_box(instance_index);
                     // Translate the new modifier to be pickable: move to the left front corner of the instance's bounding box, lift to print bed.
                     Vec3d       offset_tr(0, -instance_bb.size().y() / 2.f - 2.f, -instance_bb.size().z() / 2.f + 0.015f); // lay on bed// 0.015f is from SAFE_SURFACE_OFFSET
-                    auto  mo_tran = mo->instances[instance_index]->get_transformation();
+                    auto  mo_tran = mo_obj->instances[instance_index]->get_transformation();
                     Transform3d inv_tr      = mo_tran.get_matrix_no_offset().inverse();
 
                     m_text_tran_in_object.reset();
@@ -1506,7 +1517,7 @@ bool GLGizmoText::on_shortcut_key() {
                     m_text_normal_in_world   = Vec3f::UnitZ();
                     m_need_update_text       = true;
                     m_volume_idx             = -1;
-                    m_surface_type           = TextInfo::TextType ::HORIZONAL;
+                    m_surface_type           = TextInfo::TextType::HORIZONAL;
                     if (generate_text_volume()) { // first on surface
                         return true;
                     }

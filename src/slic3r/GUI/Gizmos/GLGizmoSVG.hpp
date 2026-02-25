@@ -104,6 +104,7 @@ private:
     void   draw_filename();
     void   draw_depth();
     void   draw_size();
+    void   draw_tiling();
     void   draw_use_surface();
     void   draw_distance();
     void   draw_rotation();
@@ -158,6 +159,11 @@ private:
     std::optional<float> m_scale_width;
     std::optional<float> m_scale_height;
     std::optional<float> m_scale_depth;
+
+    // Tiling — repeat SVG in a grid over the surface
+    int   m_tile_x   = 1;     // repeat count in X (columns)
+    int   m_tile_y   = 1;     // repeat count in Y (rows)
+    float m_tile_gap = 0.f;   // gap between tiles in mm (negative = overlap)
 
     // keep SVG data rendered on GPU
     Emboss::Texture m_texture;
