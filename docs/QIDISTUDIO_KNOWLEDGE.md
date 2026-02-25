@@ -590,7 +590,7 @@ All changes relative to `QIDITECH/QIDIStudio` main branch:
 
 ### Feature: "Add Part > SVG" Tiling
 
-Adds **Tile X** (columns) and **Tile Y** (rows) spinners plus a **Gap** field to the SVG gizmo panel. Setting X/Y > 1 replicates the single-tile polygon grid before meshing, creating a repeating surface pattern.
+Adds a **Tile size** (mm) box, **Auto Tile** button, **Tile X / Tile Y** spinners, and a **Gap** field to the SVG gizmo panel. Setting X/Y > 1 replicates the single-tile polygon grid before meshing, creating a repeating surface pattern.
 
 **Architecture:**
 - Tiling happens entirely in `process_job()` — gizmo state always stores a single tile (`m_volume_shape`); replicated grid exists only in the temporary `EmbossShape shape` passed to the background mesh job.
@@ -598,6 +598,8 @@ Adds **Tile X** (columns) and **Tile Y** (rows) spinners plus a **Gap** field to
 - Step formula: `step_x = tile_bb.size().x() + (coord_t)(m_tile_gap / m_volume_shape.scale)`
 - Translation: `ep.translate(Point(step_x * ti, step_y * tj))` for each `ExPolygon` in each tile.
 - `shape.final_shape = {}` discards the mesh cache so the background job rebuilds cleanly.
+- `apply_tile_size()` — private helper; resizes SVG to `m_pixel_size × m_pixel_size` mm using the same `selection.scale()` path as `draw_size()` manual resize
+- `apply_auto_tile()` — private helper; reads host object BB, computes tile counts, adjusts size for even fit, enables Use Surface, calls `apply_tile_size()`
 
 **Key types:**
 - `EmbossShape.shapes_with_ids` → `ExPolygonsWithIds` = `std::vector<ExPolygonsWithId>`
@@ -605,9 +607,20 @@ Adds **Tile X** (columns) and **Tile Y** (rows) spinners plus a **Gap** field to
 - `ExPolygon::translate(Point offset)` — single-argument form; do NOT use `translate(coord_t, coord_t)`
 - `m_volume_shape.scale` — converts polygon integer coords → mm
 
-**Limits:** X and Y clamped to `[1, 50]`; gap clamped to `[-50, 200]` mm. Gap row only shown when X > 1 or Y > 1.
+**Workflow:**
+1. Right-click object → Add Part > SVG → pick SVG file
+2. Set **Tile size** (mm) — the SVG is resized to a square of that size
+3. Press **Auto Tile** → computes exact tile count for the object surface, enables Use Surface, adjusts size for even fit
+4. Fine-tune **Tile X / Tile Y** manually if needed; **Gap** appears when X or Y > 1
 
-**Workflow:** Right-click object → Add Part > SVG → set Size + Depth + Use Surface → set Tile X/Y → mesh regenerates immediately.
+**Auto Tile algorithm:**
+- Gets bounding box of all `MODEL_PART` volumes on the host (excludes SVG volume itself); falls back to `ModelObject::raw_bounding_box()`
+- Sorts the 3 BB dimensions; uses the two largest as `canvas_w × canvas_h`
+- `tile_x = round(canvas_w / pixel_size)`, `tile_y = round(canvas_h / pixel_size)`
+- Adjusts `pixel_size = canvas_w / tile_x` so tiles fit canvas_w exactly
+- Sets `m_volume_shape.projection.use_surface = true` automatically
+
+**Limits:** X and Y clamped to `[1, 50]`; gap clamped to `[-50, 200]` mm; tile size `[0.1, 500]` mm. Gap row only shown when X > 1 or Y > 1.
 
 ### Planned Improvements
 

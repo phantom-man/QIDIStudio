@@ -1816,10 +1816,142 @@ void GLGizmoSVG::draw_size()
         process_job(); // make undo/redo snap-shot}
 }
 
+// ---------------------------------------------------------------------------
+// Helper: resize SVG to a square of m_pixel_size × m_pixel_size (mm)
+// Mirrors the selection.scale() dance from draw_size().
+// ---------------------------------------------------------------------------
+bool GLGizmoSVG::apply_tile_size()
+{
+    if (m_pixel_size <= 0.f) return false;
+    if (!m_volume_shape.svg_file) return false;
+
+    Point  sz     = m_shape_bb.size();
+    double curr_w = sz.x() * m_volume_shape.scale * m_scale_width.value_or(1.f);
+    double curr_h = sz.y() * m_volume_shape.scale * m_scale_height.value_or(1.f);
+    if (curr_w < 1e-6 || curr_h < 1e-6) return false;
+
+    double ratio_w = (double)m_pixel_size / curr_w;
+    double ratio_h = (double)m_pixel_size / curr_h;
+    if (ratio_w < 1e-4 || ratio_w > 1e4 || ratio_h < 1e-4 || ratio_h > 1e4) return false;
+
+    m_scale_width  = m_scale_width.value_or(1.f)  * (float)ratio_w;
+    m_scale_height = m_scale_height.value_or(1.f) * (float)ratio_h;
+
+    Selection &sel = m_parent.get_selection();
+    sel.setup_cache();
+    selection_transform(sel, [&sel, ratio_w, ratio_h]() {
+        sel.scale(Vec3d(ratio_w, ratio_h, 1.), get_drag_transformation_type(sel));
+    });
+    m_parent.do_scale(std::string{});
+    wxGetApp().obj_manipul()->set_dirty();
+    calculate_scale();
+
+    const NSVGimage *img = m_volume_shape.svg_file->image.get();
+    if (img != nullptr) {
+        NSVGLineParams params{get_scale_for_tolerance()};
+        m_volume_shape.shapes_with_ids = create_shape_with_ids(*img, params);
+        m_volume_shape.final_shape     = {};
+    }
+    process_job();
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// Helper: compute tile grid from the host object's bounding box, adjust
+// m_pixel_size for even fit, enable Use Surface, then call apply_tile_size().
+// ---------------------------------------------------------------------------
+void GLGizmoSVG::apply_auto_tile()
+{
+    if (!m_volume || !m_volume->get_object()) return;
+
+    // Build bounding box from MODEL_PART volumes of the host object,
+    // excluding the SVG volume we are editing.
+    const ModelObject *obj = m_volume->get_object();
+    BoundingBoxf3      body_bb;
+    for (const ModelVolume *v : obj->volumes) {
+        if (v == m_volume) continue;
+        if (v->type() != ModelVolumeType::MODEL_PART) continue;
+        body_bb.merge(v->mesh().bounding_box());
+    }
+    if (!body_bb.defined)
+        body_bb = obj->raw_bounding_box();
+    if (!body_bb.defined) return;
+
+    // Use the two largest bounding-box dimensions as the tiling canvas.
+    Vec3d  sz      = body_bb.size();
+    double dims[3] = {sz.x(), sz.y(), sz.z()};
+    std::sort(dims, dims + 3, std::greater<double>());
+    double canvas_w = dims[0];
+    double canvas_h = dims[1];
+    if (canvas_w < 0.1 || canvas_h < 0.1) return;
+
+    // If pixel size not yet set, default to 1/8 of the smaller canvas dimension.
+    if (m_pixel_size <= 0.f)
+        m_pixel_size = static_cast<float>(std::min(canvas_w, canvas_h) * 0.125);
+
+    // Round to nearest whole-number tile count.
+    int tx = std::max(1, (int)std::round(canvas_w / m_pixel_size));
+    int ty = std::max(1, (int)std::round(canvas_h / m_pixel_size));
+
+    // Adjust pixel size so tiles fit canvas_w exactly.
+    m_pixel_size = static_cast<float>(canvas_w / tx);
+    m_tile_x     = tx;
+    m_tile_y     = ty;
+
+    // Enable Use Surface so the tiles follow the object surface.
+    m_volume_shape.projection.use_surface = true;
+
+    apply_tile_size(); // resize + process_job
+}
+
 void GLGizmoSVG::draw_tiling()
 {
     bool use_inch = wxGetApp().app_config->get_bool("use_inches");
     bool changed  = false;
+
+    // --- Tile size row: square pixel size + Auto Tile button ---
+    ImGui::AlignTextToFramePadding();
+    ImGuiWrapper::text(_u8L("Tile size"));
+    if (ImGui::IsItemHovered())
+        m_imgui->tooltip(_u8L("Square size for each tile (mm).\nSets equal width and height for the SVG.\nPress Auto Tile to fill the whole object surface automatically."),
+                         m_gui_cfg->max_tooltip_width);
+
+    // Seed m_pixel_size from the current SVG width the first time.
+    if (m_pixel_size <= 0.f) {
+        Point sz      = m_shape_bb.size();
+        float curr_mm = static_cast<float>(sz.x() * m_volume_shape.scale * m_scale_width.value_or(1.f));
+        m_pixel_size  = (curr_mm > 0.f) ? curr_mm : 10.f;
+    }
+
+    // Shrink the input width to leave room for the Auto Tile button.
+    float auto_btn_w = ImGui::CalcTextSize(_u8L("Auto Tile").c_str()).x
+                       + 2.f * ImGui::GetStyle().FramePadding.x;
+    float gap        = ImGui::GetStyle().ItemSpacing.x;
+    float ps_w       = m_gui_cfg->input_width - auto_btn_w - gap;
+
+    float       ps_display = use_inch ? m_pixel_size * GizmoObjectManipulation::mm_to_in : m_pixel_size;
+    const char *ps_fmt     = use_inch ? "%.3f in" : "%.2f mm";
+
+    ImGui::SameLine(m_gui_cfg->input_offset);
+    ImGui::SetNextItemWidth(ps_w);
+    float prev_ps = ps_display;
+    if (ImGui::InputFloat("##tile_ps", &ps_display, 0.f, 0.f, ps_fmt)) {
+        float ps_mm = use_inch ? ps_display / GizmoObjectManipulation::mm_to_in : ps_display;
+        if (ps_mm > 0.1f && ps_mm < 500.f && std::abs(ps_mm - m_pixel_size) > 1e-3f) {
+            m_pixel_size = ps_mm;
+            apply_tile_size();
+        }
+    }
+    if (ImGui::IsItemHovered())
+        m_imgui->tooltip(_u8L("Square tile size in mm.\nSets both SVG width and height to this value."),
+                         m_gui_cfg->max_tooltip_width);
+
+    ImGui::SameLine();
+    if (ImGui::Button(_u8L("Auto Tile").c_str()))
+        apply_auto_tile();
+    if (ImGui::IsItemHovered())
+        m_imgui->tooltip(_u8L("Calculates exact tile count to cover the host object surface.\nEnables Use Surface and adjusts tile size for even fit."),
+                         m_gui_cfg->max_tooltip_width);
 
     // --- Tile count row: X columns, Y rows ---
     ImGui::AlignTextToFramePadding();
