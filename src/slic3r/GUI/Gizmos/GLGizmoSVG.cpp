@@ -748,6 +748,14 @@ void GLGizmoSVG::set_volume_by_selection()
     }
     reset_volume(); // clear cached data
 
+    // Reset tiling state so a freshly-opened SVG starts at 1x1 tiles, not
+    // whatever was left from the previously-edited volume.  This prevents the
+    // "can't add SVGs after tiling" crash (new SVG + m_tile_x=23 -> 390 tiles
+    // on first process_job -> degenerate mesh or memory exhaustion).
+    m_tile_x     = 1;
+    m_tile_y     = 1;
+    m_pixel_size = 0.f;
+
     m_svg_volume     = gl_volume;
     m_volume         = volume;
     m_volume_id      = volume->id();
@@ -1292,27 +1300,52 @@ bool GLGizmoSVG::process_job(bool make_snapshot)
     // Tiling: replicate the single-tile polygons in an NxM grid before meshing
     if (m_tile_x > 1 || m_tile_y > 1) {
         const ExPolygonsWithIds &single = m_volume_shape.shapes_with_ids;
-        BoundingBox              tile_bb = get_extents(single);
-        // step in integer polygon coords (scale converts coords → mm)
-        coord_t step_x = tile_bb.size().x() + (coord_t)(m_tile_gap / m_volume_shape.scale);
-        coord_t step_y = tile_bb.size().y() + (coord_t)(m_tile_gap / m_volume_shape.scale);
-        if (step_x < 1) step_x = 1; // avoid degenerate zero-step
-        if (step_y < 1) step_y = 1;
-        ExPolygonsWithIds tiled;
-        tiled.reserve(single.size() * (size_t)m_tile_x * (size_t)m_tile_y);
-        for (int tj = 0; tj < m_tile_y; ++tj) {
-            for (int ti = 0; ti < m_tile_x; ++ti) {
-                Point offset(step_x * ti, step_y * tj);
-                for (const ExPolygonsWithId &s : single) {
-                    ExPolygonsWithId copy = s;
-                    for (ExPolygon &ep : copy.expoly)
-                        ep.translate(offset);
-                    tiled.push_back(std::move(copy));
+        if (!single.empty()) {
+            BoundingBox tile_bb = get_extents(single);
+            // Cell pitch in integer polygon coords.
+            // When m_pixel_size is set, use it as the uniform pitch so all tiles
+            // are equally spaced at the user's chosen size.  Polygon content is
+            // centered within each cell so any SVG internal margins are distributed
+            // evenly rather than accumulating as a visible "white border" on one side.
+            // Fall back to the tight polygon bbox when m_pixel_size is unset.
+            coord_t pitch_x, pitch_y;
+            if (m_pixel_size > 0.f) {
+                pitch_x = std::max((coord_t)1, (coord_t)(m_pixel_size / m_volume_shape.scale));
+                pitch_y = pitch_x;
+            } else {
+                pitch_x = std::max((coord_t)1, tile_bb.size().x());
+                pitch_y = std::max((coord_t)1, tile_bb.size().y());
+            }
+            coord_t gap_c  = (coord_t)(m_tile_gap / m_volume_shape.scale);
+            coord_t step_x = pitch_x + gap_c;
+            coord_t step_y = pitch_y + gap_c;
+            if (step_x < 1) step_x = 1;
+            if (step_y < 1) step_y = 1;
+            // Center the NxM grid so the anchor tile sits at the midpoint.
+            coord_t origin_x = -(coord_t)((int64_t)step_x * (m_tile_x - 1) / 2);
+            coord_t origin_y = -(coord_t)((int64_t)step_y * (m_tile_y - 1) / 2);
+            // Content centroid of the single tile in polygon coords.
+            coord_t content_cx = (tile_bb.min.x() + tile_bb.max.x()) / 2;
+            coord_t content_cy = (tile_bb.min.y() + tile_bb.max.y()) / 2;
+            ExPolygonsWithIds tiled;
+            tiled.reserve(single.size() * (size_t)m_tile_x * (size_t)m_tile_y);
+            for (int tj = 0; tj < m_tile_y; ++tj) {
+                for (int ti = 0; ti < m_tile_x; ++ti) {
+                    // Place polygon centroid at the center of each cell
+                    coord_t cell_cx = origin_x + step_x * ti + step_x / 2;
+                    coord_t cell_cy = origin_y + step_y * tj + step_y / 2;
+                    Point   offset(cell_cx - content_cx, cell_cy - content_cy);
+                    for (const ExPolygonsWithId &s : single) {
+                        ExPolygonsWithId copy = s;
+                        for (ExPolygon &ep : copy.expoly)
+                            ep.translate(offset);
+                        tiled.push_back(std::move(copy));
+                    }
                 }
             }
+            shape.shapes_with_ids = std::move(tiled);
+            shape.final_shape     = {};
         }
-        shape.shapes_with_ids = std::move(tiled);
-        shape.final_shape     = {}; // invalidate mesh cache
     }
 
     auto        base  = std::make_unique<Emboss::DataBase>(m_volume->name, m_job_cancel, std::move(shape));
@@ -1857,15 +1890,28 @@ bool GLGizmoSVG::apply_tile_size()
 }
 
 // ---------------------------------------------------------------------------
-// Helper: compute tile grid from the host object's bounding box, adjust
-// m_pixel_size for even fit, enable Use Surface, then call apply_tile_size().
+// Auto Tile: covers the entire host object skin with one click.
+//
+//   1. Caps tile pitch at 25 mm (prevents accidentally huge tiles)
+//   2. Uses ceil(canvas/pitch)+2 so edge tiles always overshoot object BB
+//   3. Sets tile counts BEFORE apply_tile_size() so the single remesh job
+//      it fires already sees the full NxM grid — no double-job
+//   4. Enables Use Surface automatically
 // ---------------------------------------------------------------------------
 void GLGizmoSVG::apply_auto_tile()
 {
     if (!m_volume || !m_volume->get_object()) return;
 
-    // Build bounding box from MODEL_PART volumes of the host object,
-    // excluding the SVG volume we are editing.
+    // Cancel any in-flight job before starting a new path
+    if (m_job_cancel != nullptr)
+        m_job_cancel->store(true);
+
+    // ---- 1. Target tile pitch (mm) ----
+    // Use whatever is in the Tile size field; cap at 25 mm.
+    if (m_pixel_size <= 0.f || m_pixel_size > 25.f)
+        m_pixel_size = 25.f;
+
+    // ---- 2. Object bounding box (MODEL_PART volumes, excl. this SVG) ----
     const ModelObject *obj = m_volume->get_object();
     BoundingBoxf3      body_bb;
     for (const ModelVolume *v : obj->volumes) {
@@ -1877,7 +1923,6 @@ void GLGizmoSVG::apply_auto_tile()
         body_bb = obj->raw_bounding_box();
     if (!body_bb.defined) return;
 
-    // Use the two largest bounding-box dimensions as the tiling canvas.
     Vec3d  sz      = body_bb.size();
     double dims[3] = {sz.x(), sz.y(), sz.z()};
     std::sort(dims, dims + 3, std::greater<double>());
@@ -1885,23 +1930,25 @@ void GLGizmoSVG::apply_auto_tile()
     double canvas_h = dims[1];
     if (canvas_w < 0.1 || canvas_h < 0.1) return;
 
-    // If pixel size not yet set, default to 1/8 of the smaller canvas dimension.
-    if (m_pixel_size <= 0.f)
-        m_pixel_size = static_cast<float>(std::min(canvas_w, canvas_h) * 0.125);
+    // ---- 3. Tile counts: ceil to guarantee full coverage + 2 for overshoot ----
+    int tx = std::min(50, (int)std::ceil(canvas_w / m_pixel_size) + 2);
+    int ty = std::min(50, (int)std::ceil(canvas_h / m_pixel_size) + 2);
+    m_tile_x = std::max(1, tx);
+    m_tile_y = std::max(1, ty);
 
-    // Round to nearest whole-number tile count.
-    int tx = std::max(1, (int)std::round(canvas_w / m_pixel_size));
-    int ty = std::max(1, (int)std::round(canvas_h / m_pixel_size));
-
-    // Adjust pixel size so tiles fit canvas_w exactly.
-    m_pixel_size = static_cast<float>(canvas_w / tx);
-    m_tile_x     = tx;
-    m_tile_y     = ty;
-
-    // Enable Use Surface so the tiles follow the object surface.
+    // ---- 4. Enable Use Surface ----
     m_volume_shape.projection.use_surface = true;
+    if (m_volume->emboss_shape.has_value())
+        m_volume->emboss_shape->projection.use_surface = true;
 
-    apply_tile_size(); // resize + process_job
+    // ---- 5. Resize SVG to m_pixel_size and fire ONE remesh ----
+    // m_tile_x/m_tile_y are already set, so the single process_job call inside
+    // apply_tile_size() will emit the complete NxM tiled grid in one shot.
+    if (!apply_tile_size()) {
+        // Fallback in case apply_tile_size couldn't compute scale (e.g.,
+        // shape_bb not yet populated for a brand-new SVG).
+        process_job();
+    }
 }
 
 void GLGizmoSVG::draw_tiling()
@@ -1935,15 +1982,26 @@ void GLGizmoSVG::draw_tiling()
     ImGui::SameLine(m_gui_cfg->input_offset);
     ImGui::SetNextItemWidth(ps_w);
     float prev_ps = ps_display;
-    if (ImGui::InputFloat("##tile_ps", &ps_display, 0.f, 0.f, ps_fmt)) {
+    ImGui::InputFloat("##tile_ps", &ps_display, 0.f, 0.f, ps_fmt);
+    // Update stored value on every edit so the field stays in sync with
+    // m_pixel_size -- but do NOT call apply_tile_size() on every keystroke
+    // (that launches a full backend remesh for each character typed).
+    if (ImGui::IsItemEdited()) {
         float ps_mm = use_inch ? ps_display / GizmoObjectManipulation::mm_to_in : ps_display;
-        if (ps_mm > 0.1f && ps_mm < 500.f && std::abs(ps_mm - m_pixel_size) > 1e-3f) {
+        if (ps_mm > 0.1f && ps_mm < 500.f)
+            m_pixel_size = ps_mm;
+    }
+    // Fire the expensive resize+remesh only when the user commits (Enter or
+    // clicks away), not on each intermediate keypress.
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        float ps_mm = use_inch ? ps_display / GizmoObjectManipulation::mm_to_in : ps_display;
+        if (ps_mm > 0.1f && ps_mm < 500.f) {
             m_pixel_size = ps_mm;
             apply_tile_size();
         }
     }
     if (ImGui::IsItemHovered())
-        m_imgui->tooltip(_u8L("Square tile size in mm.\nSets both SVG width and height to this value."),
+        m_imgui->tooltip(_u8L("Square tile size in mm.\nSets both SVG width and height to this value.\nPress Enter or click Auto Tile to apply."),
                          m_gui_cfg->max_tooltip_width);
 
     ImGui::SameLine();
