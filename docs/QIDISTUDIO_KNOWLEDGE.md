@@ -40,6 +40,7 @@ PrusaSlicer (Prusa Research, open-source)
 ```
 
 **Key facts:**
+
 - Target printers: QIDI Q2 Pro, X-Series, Plus4, and other QIDI machines
 - Core slicer engine: **libslic3r** (shared lineage with PrusaSlicer/OrcaSlicer)
 - UI framework: **wxWidgets** (cross-platform, not Qt)
@@ -48,6 +49,7 @@ PrusaSlicer (Prusa Research, open-source)
 - Private module: `qidi_networking.dll` — QIDI's closed-source cloud/remote-print module, NOT in the public repo
 
 **Why it "sucks":**
+
 1. Mode switcher buttons (Simple/Advanced/Developer) are entirely commented out — users are stuck in Simple mode with no way to access advanced parameters
 2. First-run defaults to Simple mode + staging cloud environment (`iot_environment = "2"`)
 3. `qidi_networking.dll` absent from public build → Host Setting cannot save
@@ -59,41 +61,46 @@ PrusaSlicer (Prusa Research, open-source)
 ## 2. Key Websites & References
 
 ### Primary Sources
+
 | URL | Purpose |
 |-----|---------|
-| https://github.com/QIDITECH/QIDIStudio | QIDI's official public source repo |
-| https://github.com/phantom-man/QIDIStudio | **Our fork — primary working repo** |
-| https://github.com/SoftFever/OrcaSlicer | OrcaSlicer upstream (most relevant reference for shared code) |
-| https://github.com/bambulab/BambuStudio | Bambu Studio (OrcaSlicer's parent) |
-| https://github.com/prusa3d/PrusaSlicer | Ultimate upstream for libslic3r |
+| <https://github.com/QIDITECH/QIDIStudio> | QIDI's official public source repo |
+| <https://github.com/phantom-man/QIDIStudio> | **Our fork — primary working repo** |
+| <https://github.com/SoftFever/OrcaSlicer> | OrcaSlicer upstream (most relevant reference for shared code) |
+| <https://github.com/bambulab/BambuStudio> | Bambu Studio (OrcaSlicer's parent) |
+| <https://github.com/prusa3d/PrusaSlicer> | Ultimate upstream for libslic3r |
 
 ### Build & Dependencies
+
 | URL | Purpose |
 |-----|---------|
-| https://github.com/QIDITECH/QIDIStudio/blob/main/doc/How_to_build.md | Official build guide (Windows/Mac/Linux) |
-| https://cmake.org/download/ | CMake — use **3.29.x**, NOT 4.x (see build gotchas) |
-| https://strawberryperl.com/ | Strawberry Perl — required for OpenSSL build step |
-| https://github.com/nicowillis/pkg-config-lite | pkg-config-lite for Windows |
+| <https://github.com/QIDITECH/QIDIStudio/blob/main/doc/How_to_build.md> | Official build guide (Windows/Mac/Linux) |
+| <https://cmake.org/download/> | CMake — use **3.29.x**, NOT 4.x (see build gotchas) |
+| <https://strawberryperl.com/> | Strawberry Perl — required for OpenSSL build step |
+| <https://github.com/nicowillis/pkg-config-lite> | pkg-config-lite for Windows |
 
 ### OrcaSlicer Configuration Reference (applies to QIDIStudio)
+
 | URL | Purpose |
 |-----|---------|
-| https://github.com/SoftFever/OrcaSlicer/wiki | OrcaSlicer wiki — most settings docs apply to QIDIStudio |
-| https://github.com/SoftFever/OrcaSlicer/blob/main/src/libslic3r/PrintConfig.cpp | **Config key definitions + enums** — authoritative source for `sparse_infill_pattern` values, etc. |
-| https://github.com/SoftFever/OrcaSlicer/blob/main/src/libslic3r/Config.hpp | `ConfigOptionMode` enum definition |
+| <https://github.com/SoftFever/OrcaSlicer/wiki> | OrcaSlicer wiki — most settings docs apply to QIDIStudio |
+| <https://github.com/SoftFever/OrcaSlicer/blob/main/src/libslic3r/PrintConfig.cpp> | **Config key definitions + enums** — authoritative source for `sparse_infill_pattern` values, etc. |
+| <https://github.com/SoftFever/OrcaSlicer/blob/main/src/libslic3r/Config.hpp> | `ConfigOptionMode` enum definition |
 
 ### 3MF Format
+
 | URL | Purpose |
 |-----|---------|
-| https://3mf.io/specification/ | Official 3MF consortium specification |
-| https://github.com/3MFConsortium/spec_core | 3MF core spec source |
+| <https://3mf.io/specification/> | Official 3MF consortium specification |
+| <https://github.com/3MFConsortium/spec_core> | 3MF core spec source |
 
 ### Community & Support
+
 | URL | Purpose |
 |-----|---------|
-| https://www.reddit.com/r/QIDI/ | QIDI user community — known issues, firmware gotchas |
-| https://github.com/QIDITECH/QIDIStudio/issues | Official bug tracker |
-| https://github.com/QIDITECH/QIDIStudio/discussions | Community Q&A |
+| <https://www.reddit.com/r/QIDI/> | QIDI user community — known issues, firmware gotchas |
+| <https://github.com/QIDITECH/QIDIStudio/issues> | Official bug tracker |
+| <https://github.com/QIDITECH/QIDIStudio/discussions> | Community Q&A |
 
 ---
 
@@ -125,6 +132,7 @@ QIDIStudio/
 ```
 
 **User data (runtime, not in source repo):**
+
 ```
 C:\Users\<user>\AppData\Roaming\QIDIStudio\
 ├── QIDIStudio.conf              # App config JSON (created on first run)
@@ -142,16 +150,19 @@ C:\Users\<user>\AppData\Roaming\QIDIStudio\
 ## 4. Build System
 
 ### Prerequisites (Windows)
+
 | Tool | Version | Install | Notes |
 |------|---------|---------|-------|
-| CMake | **3.29.8** | https://cmake.org/download/ | Install to `C:\CMake329\`. Do NOT use CMake 4.x — policy break |
+| CMake | **3.29.8** | <https://cmake.org/download/> | Install to `C:\CMake329\`. Do NOT use CMake 4.x — policy break |
 | Visual Studio | 2022 Community | winget / manual | C++ workload required |
-| Strawberry Perl | 5.42+ | https://strawberryperl.com/ | Required for OpenSSL configure step |
+| Strawberry Perl | 5.42+ | <https://strawberryperl.com/> | Required for OpenSSL configure step |
 | pkg-config-lite | 0.28 | `winget install bloodrock.pkg-config-lite` | Required — libav deps use .pc files |
 | Ninja | 1.13+ | optional | Not needed if using VS generator |
 
 ### Build Script
+
 The orchestrator script `_build_qidi.py` (in `C:\Users\User\Downloads\`) handles the full build:
+
 - Configures deps build (Sequential: `/m:1` — parallel breaks ExternalProject)
 - Patches `src/slic3r/CMakeLists.txt` for the QIDINetwork.cpp issue (see §5)
 - Configures app build
@@ -187,7 +198,9 @@ $env:PKG_CONFIG_PATH = "C:\QIDIDeps\usr\local\lib\pkgconfig"
 ```
 
 ### REQUIRED Source Patch Before App Configure
+
 Before running app cmake configure, patch line ~638 of `src/slic3r/CMakeLists.txt`:
+
 ```cmake
 # BEFORE — cmake old-policy bug makes this always TRUE when QIDINetwork.cpp is absent:
 if(QDT_RELEASE_TO_PUBLIC)
@@ -214,6 +227,7 @@ The most important feature flag. Controls whether the app behaves as a "producti
 **Workaround for production host:** Change the `#else` branch default in `AppConfig.cpp` from `"2"` to `"3"` (already done in our fork).
 
 ### Other Notable Flags
+
 - `SUPPORT_DARK_MODE` — defined in `AppConfig.hpp`, enables dark mode support
 - `_MSW_DARK_MODE` — commented out in `AppConfig.hpp`, Windows-specific dark mode path
 
@@ -222,6 +236,7 @@ The most important feature flag. Controls whether the app behaves as a "producti
 ## 6. Mode System
 
 ### Overview
+
 QIDIStudio has 3 UI complexity modes that control which settings are visible:
 
 | Enum value | String | Config key value | What it shows |
@@ -233,13 +248,16 @@ QIDIStudio has 3 UI complexity modes that control which settings are visible:
 The mode is stored in `QIDIStudio.conf` under key `"user_mode"`.
 
 ### Key Source Files
+
 - **`src/libslic3r/Config.hpp:203-207`** — `ConfigOptionMode` enum definition
 - **`src/slic3r/GUI/wxExtensions.cpp:1040-1075`** — `ModeSizer` class — the 3-button row in the toolbar
 - **`src/slic3r/GUI/GUI_App.cpp:6448-6467`** — `get_mode()` / `save_mode()` — reads/writes `user_mode` to config
 - **`src/slic3r/GUI/MainFrame.cpp:196-201`** — First-run defaults
 
 ### The Bug (Upstream QIDIStudio)
+
 In the official QIDI source, **all three mode buttons are commented out** in `wxExtensions.cpp`:
+
 ```cpp
 // UPSTREAM BUG — buttons vector is empty, no mode switcher appears:
 std::vector < std::pair < wxString, std::string >> buttons = {
@@ -250,7 +268,9 @@ std::vector < std::pair < wxString, std::string >> buttons = {
 ```
 
 ### Our Fix (phantom-man/QIDIStudio)
+
 Three buttons restored + Developer added:
+
 ```cpp
 std::vector < std::pair < wxString, std::string >> buttons = {
     {_(L("Simple")),    "mode_simple"},
@@ -260,6 +280,7 @@ std::vector < std::pair < wxString, std::string >> buttons = {
 ```
 
 Additionally, first-run default changed in `MainFrame.cpp`:
+
 ```cpp
 // OUR DEFAULT: start in Developer mode
 wxGetApp().app_config->set("user_mode", "develop");
@@ -267,7 +288,9 @@ wxGetApp().app_config->set_bool("developer_mode", true);
 ```
 
 ### Resetting Mode Manually (if app was already run with old binary)
+
 Edit `C:\Users\<user>\AppData\Roaming\QIDIStudio\QIDIStudio.conf`:
+
 ```json
 {
     "user_mode": "develop",
@@ -280,6 +303,7 @@ Edit `C:\Users\<user>\AppData\Roaming\QIDIStudio\QIDIStudio.conf`:
 ## 7. Configuration File
 
 ### Location & Format
+
 - **Path:** `C:\Users\<user>\AppData\Roaming\QIDIStudio\QIDIStudio.conf`
 - **Format:** JSON (defined by `USE_JSON_CONFIG` macro)
 - **Written by:** `AppConfig::save()` in `src/libslic3r/AppConfig.cpp`
@@ -300,6 +324,7 @@ Edit `C:\Users\<user>\AppData\Roaming\QIDIStudio\QIDIStudio.conf`:
 | `max_recent_count` | int string e.g. `"18"` | Recent projects count |
 
 ### `iot_environment` Default Bug
+
 In upstream `AppConfig.cpp`, the `#else` branch (`QDT_RELEASE_TO_PUBLIC=0`) defaults
 `iot_environment` to `"2"` (PRE/staging). Our fix changes it to `"3"` (production).
 
@@ -320,6 +345,7 @@ QIDIStudio requires a very specific 3MF structure. This section documents exactl
 is needed for a 3MF to load successfully with all slicer settings intact.
 
 ### Golden Reference
+
 `AxisMounts/_ref_settings.json` in the 3DPrinting repo contains all 519 keys from a
 3MF exported directly by QIDIStudio v02.04.01.11. Always use this as the base.
 
@@ -369,6 +395,7 @@ replaced with `"cubic"`, which then fails at 100% infill density.
 `"octagram spiral"`, `"hilbert curve"`, `"aligned rectilinear"`
 
 **100% infill recipe (no silent-swap bug):**
+
 ```python
 "sparse_infill_density": "100%",
 "sparse_infill_pattern": "concentric",       # safe for 100%
@@ -386,12 +413,15 @@ Do NOT use `"rectilinear"` for this key.
 ## 9. Networking & HMS System
 
 ### HMS Host Architecture
+
 QIDIStudio connects to QIDI's cloud (HMS = Hardware Management System) for:
+
 - Remote print monitoring
 - Device binding / account
 - OTA updates
 
 ### `get_hms_host()` in `AppConfig.cpp`
+
 Gated by `#if !QDT_RELEASE_TO_PUBLIC`. Returns host URL based on `iot_environment`:
 
 | `iot_environment` | Enum | Host |
@@ -406,8 +436,10 @@ to select the host. With `=1`, the function returns production unconditionally (
 build requires the private networking module).
 
 ### `qidi_networking.dll`
+
 QIDI's closed-source networking module. NOT in the public source repo. Load failure logged as
 `load dll failed` in `debug_*.log`. With this DLL absent:
+
 - Host Setting dialog opens but **cannot save**
 - Device binding / cloud pairing fail
 - Remote print monitoring unavailable
@@ -450,6 +482,7 @@ settings_override = {
 ```
 
 ### Custom Filament Preset Location
+
 ```
 C:\Users\<user>\AppData\Roaming\QIDIStudio\user\default\filament\
     Siraya Tech Fibreheart ASA-GF @Qidi Q2 0.4 nozzle.json
@@ -460,6 +493,7 @@ The preset must include `nozzle_temperature` and `nozzle_temperature_initial_lay
 (not just range keys) for template variables to resolve correctly in gcode.
 
 ### `filament_settings_id` Template Variable Resolution
+
 Template variables like `[nozzle_temperature_initial_layer]` in start/end gcode resolve
 from the **filament preset** identified by `filament_settings_id`, NOT from
 `project_settings.config` overrides. If the preset name doesn't exist on the machine,
@@ -470,47 +504,57 @@ variables resolve to empty strings → 0°C in Klipper.
 ## 11. Known Bugs & Workarounds
 
 ### Bug 1: Mode Switcher Completely Missing
+
 - **Cause:** `wxExtensions.cpp` ModeSizer buttons vector is empty (all commented out)  
 - **Fix:** Restore buttons + add Developer (see §6)
 
 ### Bug 2: `iot_environment` Defaults to Staging
+
 - **Cause:** `AppConfig.cpp` `#else` branch (QDT_RELEASE_TO_PUBLIC=0) sets `"2"` (PRE)
 - **Fix:** Change default from `"2"` to `"3"` in AppConfig.cpp (see §7)
 
 ### Bug 3: QIDINetwork.cpp Missing from Public Source
+
 - **Cause:** `src/slic3r/CMakeLists.txt` line ~638 has `if(QDT_RELEASE_TO_PUBLIC)` which
   evaluates TRUE on some CMake policy versions even when the variable is undefined
 - **Fix:** Change to `if("${QDT_RELEASE_TO_PUBLIC}" STREQUAL "1")` AND pass
   `-DQDT_RELEASE_TO_PUBLIC=0` to cmake. Both changes required.
 
 ### Bug 4: CMake 4.x Policy Break
+
 - **Cause:** CMake 4.x removed backward compat with `cmake_minimum_required < 3.5`
 - **Fix:** Use CMake 3.29.8 at `C:\CMake329\` OR pass `-DCMAKE_POLICY_VERSION_MINIMUM=3.5`
 
 ### Bug 5: `sparse_infill_pattern "rectilinear"` Silent Swap
+
 - **Cause:** OrcaSlicer/QIDIStudio replaces invalid sparse patterns with `"cubic"` on load
 - **Fix:** Use `"concentric"` for 100% infill, `"zigzag"` for standard fractional infill
 - **Invalid values:** `"rectilinear"`, `"zig zag"` (with space), `"zig-zag"` for sparse
 
 ### Bug 6: 100% Infill + Cubic Pattern Circular Dialog
+
 - **Cause:** `"rectilinear"` → swapped to `"cubic"` → cubic doesn't support 100% → dialog asks to switch to `"rectilinear"` → repeat
 - **Fix:** Use `"concentric"` as sparse pattern when density is 100%
 
 ### Bug 7: OrcaSlicer Rogue M191 Macro Injection (Klipper)
+
 - **Cause:** OrcaSlicer injects a broken `[gcode_macro M191]` referencing `chamber_heater` instead of Qidi's `chamber`
 - **Symptom:** Chamber shows 0% power, hot end at 0°C
 - **Fix:** Check `printer.cfg` for rogue macro overrides; restore from backup
 
 ### Bug 8: Stale VS Project Files Lock CMake Flags
+
 - **Cause:** After cmake configure, `.vcxproj` files embed the command-line flags. Deleting
   only `CMakeCache.txt` doesn't clear them.
 - **Fix:** Wipe the **entire build directory** (`cmd /c rd /s /q <build_dir>`), not just cache
 
 ### Bug 9: `cmd /c rd /s /q` Fails on Locked Build Dir
+
 - **Cause:** If any terminal's CWD is inside the build directory, Windows locks it
 - **Fix:** Run `cd C:\` in ALL open terminals before deleting
 
 ### Bug 10: OpenSSL Fails with MSB8066 Exit 9009
+
 - **Cause:** Either (a) perl not on PATH or (b) parallel build (`/m:N > 1`) causes ExternalProject race
 - **Fix:** Pass `-DPERL_EXECUTABLE=C:\Strawberry\perl\bin\perl.exe` to deps cmake; use `/m:1` for deps build
 
@@ -524,6 +568,7 @@ QIDIStudio supports post-processing scripts via:
 The script receives the gcode file path as its last argument. Modifies in-place.
 
 ### GCodeRefiner (our custom post-processor)
+
 See `GCodeRefiner/` directory in this repo.
 
 ```
@@ -538,6 +583,7 @@ GCodeRefiner/
 ```
 
 **Quick add to QIDIStudio:**
+
 ```
 "C:\...\python.exe" "C:\...\GCodeRefiner\refiner.py" --rules m2_gear --verbose
 ```
@@ -547,6 +593,7 @@ GCodeRefiner/
 `SKIRT_BRIM`, `PRIME_TOWER`
 
 **M2 gear settings (key overrides):**
+
 | Feature | Speed | Temp | Fan |
 |---------|-------|------|-----|
 | Outer wall | 20mm/s | 275°C | 0% |
@@ -579,6 +626,7 @@ All changes relative to `QIDITECH/QIDIStudio` main branch:
 **Root cause:** `GUI_Factories.cpp` had the text/emboss branch commented out with `/* ... */`, and the code inside used OrcaSlicer class names (`GLGizmoEmboss`, `GLGizmosManager::Emboss`) instead of QIDI's names (`GLGizmoText`, `GLGizmosManager::Text`).
 
 **QIDI naming vs OrcaSlicer naming:**
+
 | Concept | OrcaSlicer | QIDI |
 |---------|-----------|------|
 | Text emboss gizmo class | `GLGizmoEmboss` | `GLGizmoText` |
@@ -593,6 +641,7 @@ All changes relative to `QIDITECH/QIDIStudio` main branch:
 Adds a **Tile size** (mm) box, **Auto Tile** button, **Tile X / Tile Y** spinners, and a **Gap** field to the SVG gizmo panel. Setting X/Y > 1 replicates the single-tile polygon grid before meshing, creating a repeating surface pattern.
 
 **Architecture:**
+
 - Tiling happens entirely in `process_job()` — gizmo state always stores a single tile (`m_volume_shape`); replicated grid exists only in the temporary `EmbossShape shape` passed to the background mesh job.
 - `BoundingBox tile_bb = get_extents(m_volume_shape.shapes_with_ids)` gives the single-tile extent in integer polygon coords.
 - Step formula: `step_x = tile_bb.size().x() + (coord_t)(m_tile_gap / m_volume_shape.scale)`
@@ -601,19 +650,28 @@ Adds a **Tile size** (mm) box, **Auto Tile** button, **Tile X / Tile Y** spinner
 - `apply_tile_size()` — private helper; resizes SVG to `m_pixel_size × m_pixel_size` mm using the same `selection.scale()` path as `draw_size()` manual resize
 - `apply_auto_tile()` — private helper; reads host object BB, computes tile counts, adjusts size for even fit, enables Use Surface, calls `apply_tile_size()`
 
+**Known bug (FIXED 2026-02-25): Auto Tile reverts to 1×1 after completion**
+
+Root cause: `process_job()` creates a NEW `ModelVolume` for the same SVG each run. The resulting selection change fires `set_volume_by_selection()` which was unconditionally resetting `m_tile_x=1, m_tile_y=1, m_pixel_size=0`. The next draw frame seeded `m_pixel_size` from the SVG bbox width, making it look like Auto Tile "changed the tile size back" and produced a single blank tile block.
+
+Fix: `set_volume_by_selection()` now compares `svg_file->path` between the incoming volume and the current `m_volume`. If paths match (`same_svg=true`), tile state is preserved. Reset only happens when a genuinely different SVG is loaded.
+
 **Key types:**
+
 - `EmbossShape.shapes_with_ids` → `ExPolygonsWithIds` = `std::vector<ExPolygonsWithId>`
 - `ExPolygonsWithId` has `.id`, `.expoly` (ExPolygons), `.is_healed`
 - `ExPolygon::translate(Point offset)` — single-argument form; do NOT use `translate(coord_t, coord_t)`
 - `m_volume_shape.scale` — converts polygon integer coords → mm
 
 **Workflow:**
+
 1. Right-click object → Add Part > SVG → pick SVG file
 2. Set **Tile size** (mm) — the SVG is resized to a square of that size
 3. Press **Auto Tile** → computes exact tile count for the object surface, enables Use Surface, adjusts size for even fit
 4. Fine-tune **Tile X / Tile Y** manually if needed; **Gap** appears when X or Y > 1
 
 **Auto Tile algorithm:**
+
 - Gets bounding box of all `MODEL_PART` volumes on the host (excludes SVG volume itself); falls back to `ModelObject::raw_bounding_box()`
 - Sorts the 3 BB dimensions; uses the two largest as `canvas_w × canvas_h`
 - `tile_x = round(canvas_w / pixel_size)`, `tile_y = round(canvas_h / pixel_size)`
@@ -636,6 +694,7 @@ Adds a **Tile size** (mm) box, **Auto Tile** button, **Tile X / Tile Y** spinner
 ## Appendix A: Windows Registration (Post-Build)
 
 After building, register with Windows (no installer needed):
+
 ```powershell
 # Run: powershell -ExecutionPolicy Bypass -File _register_qidi.ps1
 # File: C:\Users\User\Downloads\_register_qidi.ps1

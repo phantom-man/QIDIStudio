@@ -33,3 +33,6 @@ test.js
 /.cache/
 .clangd
 /src/slic3r/QIDI/
+# API keys and local secrets
+.env
+

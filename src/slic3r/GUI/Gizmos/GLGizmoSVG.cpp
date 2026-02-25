@@ -748,13 +748,27 @@ void GLGizmoSVG::set_volume_by_selection()
     }
     reset_volume(); // clear cached data
 
-    // Reset tiling state so a freshly-opened SVG starts at 1x1 tiles, not
-    // whatever was left from the previously-edited volume.  This prevents the
-    // "can't add SVGs after tiling" crash (new SVG + m_tile_x=23 -> 390 tiles
-    // on first process_job -> degenerate mesh or memory exhaustion).
-    m_tile_x     = 1;
-    m_tile_y     = 1;
-    m_pixel_size = 0.f;
+    // Reset tiling state ONLY when a genuinely different SVG file is opened.
+    // When a remesh job completes it creates a new ModelVolume for the SAME
+    // svg path → selection change → set_volume_by_selection() fires again.
+    // If we reset unconditionally here, every job completion wipes the user's
+    // tile settings (m_tile_x, m_tile_y, m_pixel_size), which is why
+    // Auto Tile always reverted to 1×1 / original SVG size after running.
+    {
+        bool same_svg = false;
+        if (m_volume != nullptr &&
+            m_volume->emboss_shape.has_value() &&
+            m_volume->emboss_shape->svg_file &&
+            volume->emboss_shape->svg_file) {
+            same_svg = (m_volume->emboss_shape->svg_file->path ==
+                        volume->emboss_shape->svg_file->path);
+        }
+        if (!same_svg) {
+            m_tile_x     = 1;
+            m_tile_y     = 1;
+            m_pixel_size = 0.f;
+        }
+    }
 
     m_svg_volume     = gl_volume;
     m_volume         = volume;
