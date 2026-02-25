@@ -1,0 +1,34 @@
+## QIDIStudio Python dependencies
+## Covers: scripts/ (AI texturing, skin displacement), GCodeRefiner/ (stdlib only)
+## Install with: pip install -r requirements.txt
+## Tested with: Python 3.13, Windows 11
+
+# ── 3D mesh + displacement ────────────────────────────────────────────────────
+pyvista>=0.44.0
+trimesh>=4.0.0
+numpy>=1.26.0
+
+# ── SVG / raster heightmap generation ────────────────────────────────────────
+cairosvg>=2.7.0
+Pillow>=10.0.0
+vtracer>=0.6.0
+svgpathtools>=1.6.0
+
+# ── AI image generation ───────────────────────────────────────────────────────
+# Vertex AI Imagen 3 (primary backend — uses ADC, best quality)
+google-cloud-aiplatform>=1.60.0
+# Google Generative AI (API-key fallback)
+google-generativeai>=0.8.0
+# Replicate / Flux Schnell (fast fallback)
+replicate>=0.30.0
+# Loads .env for API keys
+python-dotenv>=1.0.0
+
+# ── Optional: faster boolean ops / water-tight repair ────────────────────────
+# manifold3d>=2.4.0
+
+# ── Optional: Laplacian smoothing for scale-tip topology ─────────────────────
+# open3d>=0.18.0
+
+# ── GCodeRefiner ─────────────────────────────────────────────────────────────
+# No pip dependencies — pure Python stdlib (argparse, re, pathlib, dataclasses)
