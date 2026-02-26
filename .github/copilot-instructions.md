@@ -317,7 +317,7 @@ Right-click menu items that apply a PNG displacement texture to the skin of a se
 | bpy_env junction created | ✅ `install_dir\bpy_env` → workspace `bpy_env` |
 | Script produces `SKIN_OUTPUT:` + valid STL | ✅ Confirmed manually (56KB, 1.5s) |
 | Committed | ✅ `ef2ec27` |
-| **Full UX test (texture volume loads in 3D view)** | 🔄 Pending |
+| **Full UX test (texture volume loads in 3D view)** | ✅ Crash fixed (`f5c3436`) — pending live test |
 | **"Adjust Texture Depth..." item appears on child** | 🔄 Pending |
 | **Depth ±0.2/±0.5 buttons work without compounding** | 🔄 Pending |
 
@@ -392,7 +392,9 @@ void MenuFactory::append_menu_item_add_texture(wxMenu* menu, ModelVolumeType typ
 }
 ```
 
-- **`bpy.ops.import_mesh.stl` REMOVED in bpy 5.0** — use `bpy.ops.wm.stl_import(filepath=path)` with try/except fallback. Script already has this — just keep workspace and `install_dir/resources/scripts/` in sync.
+- **`ShowModal()` clears the 3D canvas Selection before returning** — On Windows, a dialog's `WM_DESTROY` fires a focus event on the 3D canvas that clears `Selection` BEFORE `ShowModal()` returns control. Any code reading `scene_selection()` or `get_selection()` after a `ShowModal()` call will see an empty selection set and crash. **Fix pattern:** capture `instance_idx`, `inst_transform`, `instance_offset` into local variables from the live `Selection` BEFORE `ShowModal()`. Never call `ObjectList::load_from_files()` or `ObjectList::load_generic_subobject()` after a dialog close — they both dereference `selection.get_instance_idxs().begin()` without an empty check. Do the `Model::read_from_file` + `mo->add_volume()` + transform setup directly instead.
+
+- **`wxWindowDisabler` during `wxEXEC_SYNC` blocks stdout pipe** — `wxWindowDisabler` blocks the Win32 message pump; `wxEXEC_SYNC` drains the child's stdout via the message pump. Together they deadlock. Fix: use `--log <tmpfile>` IPC instead of stdout, and don't use `wxWindowDisabler` during `wxExecute`.
 
 - **`apply_texture_bpy.py` sync** — CMake installs it from `C:\QIDISrc\QIDIStudio\resources\scripts\` at build time, NOT from the workspace. After editing in workspace, copy to BOTH:
   ```powershell
