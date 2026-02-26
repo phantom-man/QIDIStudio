@@ -20788,6 +20788,31 @@ void Plater::apply_texture(ModelVolumeType type)
     const int    obj_idx = p->get_selected_object_idx();
     ModelObject* mo      = p->model.objects[obj_idx];
 
+    // Capture 3D-canvas selection data BEFORE showing the dialog.
+    // ShowModal() returns only after the dialog window is destroyed; its
+    // WM_DESTROY triggers a focus event on the 3D canvas which clears the
+    // Selection object.  By the time ShowModal() returns the Selection is
+    // already empty, so any code that reads it afterwards will crash.
+    int instance_idx = -1;  // kept for adjust_texture_depth pattern parity
+    BoundingBoxf3 instance_bb;
+    Geometry::Transformation inst_transform;
+    Vec3d instance_offset = Vec3d::Zero();
+    {
+        const Selection& sel = get_selection();
+        const auto& inst_idxs = sel.get_instance_idxs();
+        const auto& vol_idxs  = sel.get_volume_idxs();
+        if (inst_idxs.empty() || vol_idxs.empty()) {
+            show_error(this, _L("Please select an object before applying a texture."));
+            return;
+        }
+        instance_idx    = *inst_idxs.begin();
+        instance_bb     = mo->instance_bounding_box(instance_idx);
+        const GLVolume* gv = sel.get_volume(*vol_idxs.begin());
+        inst_transform  = gv->get_instance_transformation();
+        instance_offset = gv->get_instance_offset();
+    }
+    (void)instance_idx; // used only to compute instance_bb above
+
     // Show parameters dialog
     TextureParamsDialog dlg(wxGetApp().mainframe, TextureDialogMode::Apply);
     if (dlg.ShowModal() != wxID_OK) return;
@@ -20802,7 +20827,6 @@ void Plater::apply_texture(ModelVolumeType type)
     }
 
     // Export the parent object's combined mesh to a temp STL so bpy can read it.
-    // Do this BEFORE wxWindowDisabler (store_stl may show its own dialogs).
     namespace fs = boost::filesystem;
     const std::string src_stl = (fs::temp_directory_path() /
         fs::unique_path("qidi_tex_src_%%%%-%%%%-%%%%-%%%%.stl")).string();
@@ -20819,12 +20843,8 @@ void Plater::apply_texture(ModelVolumeType type)
     const std::string script   = (fs::path(Slic3r::resources_dir()) / "scripts" / "apply_texture_bpy.py").string();
 
     // Use a temp log file as the reliable IPC channel for SKIN_OUTPUT.
-    // The bpy script writes only ~500 bytes to stdout (well under the 4KB
-    // Windows pipe buffer), so there is no deadlock risk even with windows
-    // disabled.  We use wxWindowDisabler here to freeze the 3D-view Selection
-    // during the ~2s bpy execution: without it, the focus event fired when the
-    // TextureParamsDialog closes clears the 3D selection, and the subsequent
-    // call to load_from_files dereferences an empty volume set → crash.
+    // bpy writes ~500 bytes to stdout (well under the 4 KB Windows pipe buffer)
+    // so no deadlock risk, but the log file is more robust across OS buffering.
     const std::string log_path = (fs::temp_directory_path() /
         fs::unique_path("qidi_tex_log_%%%%-%%%%-%%%%-%%%%.txt")).string();
 
@@ -20839,7 +20859,6 @@ void Plater::apply_texture(ModelVolumeType type)
         wxString::FromUTF8(log_path));
 
     wxBusyCursor    busy;
-    wxWindowDisabler disabler;   // freeze selection state while bpy runs
     wxArrayString stdout_output;
     ::wxExecute(cmd, stdout_output, wxEXEC_SYNC);
 
@@ -20866,17 +20885,65 @@ void Plater::apply_texture(ModelVolumeType type)
         return;
     }
 
-    // Load the displaced STL as a new child volume of the requested type
-    wxArrayString             input_files;
-    std::vector<ModelVolume*> volumes;
-    input_files.Add(wxString::FromUTF8(result_stl));
-    wxGetApp().obj_list()->load_from_files(input_files, *mo, volumes, type, false);
+    // Load the displaced STL and add it directly as a child volume.
+    // We bypass ObjectList::load_from_files() because that function re-reads
+    // scene_selection() at call time.  The 3D canvas Selection is already
+    // cleared at this point (the TextureParamsDialog's WM_DESTROY fired a
+    // focus event before ShowModal() returned), so load_from_files would
+    // crash dereferencing an empty instance/volume index set.
+    // Instead we use the selection data captured before the dialog opened.
+    Model result_model;
+    try {
+        result_model = Model::read_from_file(result_stl, nullptr, nullptr, LoadStrategy::LoadModel);
+    } catch (std::exception& e) {
+        show_error(this, _L("Failed to read texture mesh: ") + e.what());
+        return;
+    }
 
-    if (!volumes.empty()) {
-        volumes.front()->name =
-            "Texture (" + mode_str + ") - " + fs::path(png_path).filename().string();
+    bool has_instance = false;
+    bool has_origin_translation = mo->origin_translation != Vec3d::Zero();
+    for (auto obj : result_model.objects)
+        if (!obj->instances.empty()) { has_instance = true; break; }
 
-        // Write sidecar so this volume can be depth-adjusted later
+    if (!has_origin_translation) {
+        for (auto obj : result_model.objects) {
+            obj->center_around_origin();
+            Vec3d delta = instance_offset - obj->origin_translation;
+            for (auto vol : obj->volumes) vol->translate(delta);
+        }
+    }
+
+    result_model.add_default_instances();
+    TriangleMesh mesh = result_model.mesh();
+
+    ModelVolume* new_vol = mo->add_volume(std::move(mesh), type);
+    new_vol->name =
+        "Texture (" + mode_str + ") - " + fs::path(png_path).filename().string();
+    new_vol->config.set_key_value("extruder", new ConfigOptionInt(0));
+    new_vol->source.input_file  = result_stl;
+    new_vol->source.object_idx  = obj_idx;
+    new_vol->source.volume_idx  = int(mo->volumes.size()) - 1;
+
+    // Set volume transformation using the data captured before the dialog
+    {
+        const BoundingBoxf3 mesh_bb = new_vol->mesh().bounding_box();
+        if (has_instance || !has_origin_translation) {
+            new_vol->set_transformation(
+                Geometry::Transformation::volume_to_bed_transformation(inst_transform, mesh_bb));
+            const Vec3d offset =
+                Vec3d(instance_bb.max.x(), instance_bb.min.y(), instance_bb.min.z())
+                + 0.5 * mesh_bb.size() - instance_offset;
+            new_vol->set_offset(inst_transform.get_matrix_no_offset().inverse() * offset);
+        } else {
+            Vec3d off = new_vol->source.mesh_offset - mo->volumes.front()->source.mesh_offset;
+            if (mo->volumes.size() > 1)
+                off += mo->volumes.front()->get_offset();
+            new_vol->set_offset(off);
+        }
+    }
+
+    // Write sidecar so this volume can be depth-adjusted later
+    {
         json j;
         j["png"]     = png_path;
         j["src_stl"] = src_stl;
@@ -20886,6 +20953,15 @@ void Plater::apply_texture(ModelVolumeType type)
         std::ofstream fout(result_stl + ".texture.json");
         if (fout.is_open()) fout << j.dump(4);
     }
+
+    // Refresh UI — mirrors the post-add sequence in load_generic_subobject
+    const auto items = wxGetApp().obj_list()->reorder_volumes_and_get_selection(
+        obj_idx, [new_vol](const ModelVolume* v) { return v == new_vol; });
+    if (type == ModelVolumeType::MODEL_PART)
+        get_view3D_canvas3D()->update_instance_printable_state_for_object((size_t)obj_idx);
+    wxGetApp().obj_list()->select_items(items);
+    wxGetApp().obj_list()->selection_changed();
+    wxGetApp().obj_list()->notify_instance_updated(obj_idx);
 }
 
 void Plater::adjust_texture_depth()
@@ -20933,8 +21009,33 @@ void Plater::adjust_texture_depth()
         return;
     }
 
+    // Capture canvas selection data BEFORE the dialog. Same issue as in
+    // apply_texture(): the dialog's WM_DESTROY clears the 3D canvas Selection,
+    // so anything that reads sel after ShowModal() returns will see stale data.
+    const int             obj_idx  = sel.get_object_idx();
+    const ModelVolumeType vol_type = vol->type();
+    const std::string     vol_name = vol->name;
+    {
+        const auto& inst_idxs = sel.get_instance_idxs();
+        const auto& vol_idxs  = sel.get_volume_idxs();
+        if (obj_idx < 0 || inst_idxs.empty() || vol_idxs.empty()) {
+            show_error(this, _L("Please select a texture volume before adjusting."));
+            return;
+        }
+    }
+    const int   instance_idx   = *sel.get_instance_idxs().begin();
+    const GLVolume* gv          = sel.get_volume(*sel.get_volume_idxs().begin());
+    const Geometry::Transformation inst_transform  = gv->get_instance_transformation();
+    const Vec3d                    instance_offset = gv->get_instance_offset();
+
+    ModelObject* mo = p->model.objects[obj_idx];
+
+    // Find the volume index in the model (still valid before delete)
+    int model_vol_idx = -1;
+    for (int i = 0; i < (int)mo->volumes.size(); ++i)
+        if (mo->volumes[i] == vol) { model_vol_idx = i; break; }
+
     // Show adjust dialog pre-filled with current depth values
-    // The ±0.2 / ±0.5 quick-adjust buttons let the user nudge depth additively
     TextureParamsDialog dlg(wxGetApp().mainframe, TextureDialogMode::Adjust,
                             png_path, tile_mm, relief);
     if (dlg.ShowModal() != wxID_OK) return;
@@ -20958,8 +21059,7 @@ void Plater::adjust_texture_depth()
         new_tile, new_rel,
         wxString::FromUTF8(log_path2));
 
-    wxBusyCursor    busy;
-    wxWindowDisabler disabler2;  // freeze selection state while bpy runs
+    wxBusyCursor  busy;
     wxArrayString stdout_output;
     ::wxExecute(cmd, stdout_output, wxEXEC_SYNC);
 
@@ -20984,28 +21084,64 @@ void Plater::adjust_texture_depth()
         return;
     }
 
-    // Snapshot what we need from the old volume before removing it
-    const int             obj_idx  = sel.get_object_idx();
-    ModelObject*          mo       = p->model.objects[obj_idx];
-    const ModelVolumeType vol_type = vol->type();
-    const std::string     vol_name = vol->name;
-
-    int model_vol_idx = -1;
-    for (int i = 0; i < (int)mo->volumes.size(); ++i)
-        if (mo->volumes[i] == vol) { model_vol_idx = i; break; }
-
+    // Remove the old texture volume
     if (model_vol_idx >= 0)
-        mo->delete_volume(model_vol_idx);      // vol pointer is now dangling
+        mo->delete_volume(model_vol_idx);   // vol pointer is now dangling
 
-    // Load the freshly displaced mesh back in
-    wxArrayString             input_files;
-    std::vector<ModelVolume*> volumes;
-    input_files.Add(wxString::FromUTF8(result_stl));
-    wxGetApp().obj_list()->load_from_files(input_files, *mo, volumes, vol_type, false);
+    // Load the freshly displaced mesh directly (bypassing load_from_files for
+    // the same reason as apply_texture — canvas selection is stale by now).
+    Model result_model;
+    try {
+        result_model = Model::read_from_file(result_stl, nullptr, nullptr, LoadStrategy::LoadModel);
+    } catch (std::exception& e) {
+        show_error(this, _L("Failed to read texture mesh: ") + e.what());
+        return;
+    }
 
-    if (!volumes.empty()) {
-        volumes.front()->name = vol_name;
+    bool has_instance = false;
+    bool has_origin_translation = mo->origin_translation != Vec3d::Zero();
+    for (auto obj : result_model.objects)
+        if (!obj->instances.empty()) { has_instance = true; break; }
 
+    if (!has_origin_translation) {
+        for (auto obj : result_model.objects) {
+            obj->center_around_origin();
+            Vec3d delta = instance_offset - obj->origin_translation;
+            for (auto v2 : obj->volumes) v2->translate(delta);
+        }
+    }
+
+    result_model.add_default_instances();
+    TriangleMesh mesh = result_model.mesh();
+
+    ModelVolume* new_vol = mo->add_volume(std::move(mesh), vol_type);
+    new_vol->name = vol_name;
+    new_vol->config.set_key_value("extruder", new ConfigOptionInt(0));
+    new_vol->source.input_file  = result_stl;
+    new_vol->source.object_idx  = obj_idx;
+    new_vol->source.volume_idx  = int(mo->volumes.size()) - 1;
+
+    // Recompute instance_bb from the model after delete (texture volume gone)
+    const BoundingBoxf3 instance_bb = mo->instance_bounding_box(instance_idx);
+    {
+        const BoundingBoxf3 mesh_bb = new_vol->mesh().bounding_box();
+        if (has_instance || !has_origin_translation) {
+            new_vol->set_transformation(
+                Geometry::Transformation::volume_to_bed_transformation(inst_transform, mesh_bb));
+            const Vec3d offset =
+                Vec3d(instance_bb.max.x(), instance_bb.min.y(), instance_bb.min.z())
+                + 0.5 * mesh_bb.size() - instance_offset;
+            new_vol->set_offset(inst_transform.get_matrix_no_offset().inverse() * offset);
+        } else {
+            Vec3d off = new_vol->source.mesh_offset - mo->volumes.front()->source.mesh_offset;
+            if (mo->volumes.size() > 1)
+                off += mo->volumes.front()->get_offset();
+            new_vol->set_offset(off);
+        }
+    }
+
+    // Update sidecar with new depth values
+    {
         json j;
         j["png"]     = png_path;
         j["src_stl"] = src_stl;
@@ -21015,6 +21151,15 @@ void Plater::adjust_texture_depth()
         std::ofstream fout(result_stl + ".texture.json");
         if (fout.is_open()) fout << j.dump(4);
     }
+
+    // Refresh UI
+    const auto items = wxGetApp().obj_list()->reorder_volumes_and_get_selection(
+        obj_idx, [new_vol](const ModelVolume* v2) { return v2 == new_vol; });
+    if (vol_type == ModelVolumeType::MODEL_PART)
+        get_view3D_canvas3D()->update_instance_printable_state_for_object((size_t)obj_idx);
+    wxGetApp().obj_list()->select_items(items);
+    wxGetApp().obj_list()->selection_changed();
+    wxGetApp().obj_list()->notify_instance_updated(obj_idx);
 
     update();
 }
