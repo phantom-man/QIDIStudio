@@ -737,6 +737,10 @@ public:
     //QDS:
     void edit_text();
     bool can_edit_text() const;
+    void apply_texture(ModelVolumeType type);
+    void adjust_texture_depth();
+    bool can_apply_texture() const;
+    bool can_adjust_texture_depth() const;
     std::string get_3mf_filename() { return m_3mf_path; };
     bool can_delete() const;
     bool can_delete_all() const;

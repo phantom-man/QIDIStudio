@@ -1,6 +1,7 @@
 #include "Plater.hpp"
 #include <cstddef>
 #include <algorithm>
+#include <fstream>
 #include <numeric>
 #include <vector>
 #include <string>
@@ -71,6 +72,7 @@
 #include "GUI_ObjectList.hpp"
 #include "GUI_Utils.hpp"
 #include "GUI_Factories.hpp"
+#include "TextureParamsDialog.hpp"
 #include "wxExtensions.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
@@ -20713,4 +20715,273 @@ wxArrayString get_all_camera_view_type() {
     }
     return all_types;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Texture displacement helpers
+// "Add part / Add negative part > Texture..." right-click menu integration.
+//
+// Metadata sidecar convention:
+//   <result_stl_path>.texture.json  →  { png, src_stl, tile_mm, relief, mode }
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Locate the bpy_env Python interpreter used for displacement texturing.
+/// Search order:
+///   1. QIDI_BPY_PYTHON env var (full path to python.exe / python binary)
+///   2. <resources_dir>/../bpy_env/Scripts/python.exe  (production layout)
+static std::string find_bpy_python()
+{
+    namespace fs = boost::filesystem;
+
+    // Override via environment variable
+    const char* env_py = std::getenv("QIDI_BPY_PYTHON");
+    if (env_py && *env_py && fs::exists(env_py))
+        return env_py;
+
+    // Standard layout: bpy_env/ next to resources/
+    const fs::path res = fs::path(Slic3r::resources_dir());
+#ifdef _WIN32
+    const fs::path bpy = res.parent_path() / "bpy_env" / "Scripts" / "python.exe";
+#else
+    const fs::path bpy = res.parent_path() / "bpy_env" / "bin" / "python";
+#endif
+    if (fs::exists(bpy)) return bpy.string();
+    return "";
+}
+
+/// Return true if the volume was created by the texture pipeline
+/// (i.e. it has a sidecar .texture.json metadata file alongside its source STL).
+static bool volume_is_texture(const ModelVolume* vol)
+{
+    if (!vol || vol->source.input_file.empty()) return false;
+    return boost::filesystem::exists(vol->source.input_file + ".texture.json");
+}
+
+bool Plater::can_apply_texture() const
+{
+    return p->get_selected_object_idx() >= 0;
+}
+
+bool Plater::can_adjust_texture_depth() const
+{
+    const Selection& sel = get_selection();
+    if (sel.volumes_count() != 1) return false;
+    const GLVolume* gl = sel.get_first_volume();
+    if (!gl) return false;
+    const ModelVolume* vol = get_model_volume(*gl, sel.get_model()->objects);
+    return volume_is_texture(vol);
+}
+
+void Plater::apply_texture(ModelVolumeType type)
+{
+    if (!can_apply_texture()) return;
+
+    const std::string bpy_python = find_bpy_python();
+    if (bpy_python.empty()) {
+        show_error(this,
+            _L("bpy_env not found.\n\n"
+               "Place bpy_env/ next to the resources/ folder, or set the\n"
+               "QIDI_BPY_PYTHON environment variable to the full path of\n"
+               "bpy_env/Scripts/python.exe (Windows) or bpy_env/bin/python."));
+        return;
+    }
+
+    const int    obj_idx = p->get_selected_object_idx();
+    ModelObject* mo      = p->model.objects[obj_idx];
+
+    // Show parameters dialog
+    TextureParamsDialog dlg(wxGetApp().mainframe, TextureDialogMode::Apply);
+    if (dlg.ShowModal() != wxID_OK) return;
+
+    const std::string png_path = dlg.get_png_path();
+    const double      tile_mm  = dlg.get_tile_mm();
+    const double      relief   = dlg.get_relief();
+
+    if (png_path.empty() || !boost::filesystem::exists(png_path)) {
+        show_error(this, _L("Please select a valid texture image file."));
+        return;
+    }
+
+    // Export the parent object's combined mesh to a temp STL so bpy can read it
+    namespace fs = boost::filesystem;
+    const std::string src_stl = (fs::temp_directory_path() /
+        fs::unique_path("qidi_tex_src_%%%%-%%%%-%%%%-%%%%.stl")).string();
+    {
+        TriangleMesh mesh = mo->mesh();
+        if (!Slic3r::store_stl(src_stl.c_str(), &mesh, true)) {
+            show_error(this, _L("Failed to export mesh for texture processing."));
+            return;
+        }
+    }
+
+    const std::string mode_str = (type == ModelVolumeType::NEGATIVE_VOLUME) ? "negative" :
+                                 (type == ModelVolumeType::MODEL_PART)       ? "part"     : "modifier";
+    const std::string script   = (fs::path(Slic3r::resources_dir()) / "scripts" / "apply_texture_bpy.py").string();
+
+    const wxString cmd = wxString::Format(
+        "\"%s\" \"%s\" \"%s\" \"%s\" --mode %s --tile-size %.1f --relief %.2f",
+        wxString::FromUTF8(bpy_python),
+        wxString::FromUTF8(script),
+        wxString::FromUTF8(src_stl),
+        wxString::FromUTF8(png_path),
+        wxString::FromUTF8(mode_str),
+        tile_mm, relief);
+
+    // Run bpy synchronously; capture stdout to parse SKIN_OUTPUT: line
+    wxArrayString        stdout_output;
+    wxBusyCursor         busy;
+    wxWindowDisabler     disabler;
+    ::wxExecute(cmd, stdout_output, wxEXEC_SYNC | wxEXEC_NODISABLE);
+
+    std::string result_stl;
+    for (const auto& line : stdout_output)
+        if (line.StartsWith("SKIN_OUTPUT:")) {
+            result_stl = line.Mid(12).Strip().ToStdString();
+            break;
+        }
+
+    if (result_stl.empty() || !boost::filesystem::exists(result_stl)) {
+        show_error(this, _L("Texture generation failed.\nCheck that bpy_env is installed correctly."));
+        return;
+    }
+
+    // Load the displaced STL as a new child volume of the requested type
+    wxArrayString             input_files;
+    std::vector<ModelVolume*> volumes;
+    input_files.Add(wxString::FromUTF8(result_stl));
+    wxGetApp().obj_list()->load_from_files(input_files, *mo, volumes, type, false);
+
+    if (!volumes.empty()) {
+        volumes.front()->name =
+            "Texture (" + mode_str + ") - " + fs::path(png_path).filename().string();
+
+        // Write sidecar so this volume can be depth-adjusted later
+        json j;
+        j["png"]     = png_path;
+        j["src_stl"] = src_stl;
+        j["tile_mm"] = tile_mm;
+        j["relief"]  = relief;
+        j["mode"]    = mode_str;
+        std::ofstream fout(result_stl + ".texture.json");
+        if (fout.is_open()) fout << j.dump(4);
+    }
+}
+
+void Plater::adjust_texture_depth()
+{
+    if (!can_adjust_texture_depth()) return;
+
+    const Selection&   sel = get_selection();
+    const GLVolume*    gl  = sel.get_first_volume();
+    const ModelVolume* vol = get_model_volume(*gl, sel.get_model()->objects);
+    if (!vol) return;
+
+    // Read sidecar metadata
+    const std::string sidecar_path = vol->source.input_file + ".texture.json";
+    json meta;
+    try {
+        std::ifstream fin(sidecar_path);
+        if (!fin.is_open()) throw std::runtime_error("cannot open sidecar");
+        fin >> meta;
+    } catch (...) {
+        show_error(this, _L("Failed to read texture metadata.\nTry re-applying the texture."));
+        return;
+    }
+
+    const std::string png_path = meta.value("png",     "");
+    const std::string src_stl  = meta.value("src_stl", "");
+    const std::string mode_str = meta.value("mode",   "negative");
+    const double      tile_mm  = meta.value("tile_mm", 15.0);
+    const double      relief   = meta.value("relief",   1.2);
+
+    if (png_path.empty() || src_stl.empty()) {
+        show_error(this, _L("Texture metadata is incomplete.\nTry re-applying the texture."));
+        return;
+    }
+    if (!boost::filesystem::exists(src_stl)) {
+        show_error(this,
+            _L("The original source mesh for this texture no longer exists.\n"
+               "Please re-apply the texture from scratch."));
+        return;
+    }
+
+    const std::string bpy_python = find_bpy_python();
+    if (bpy_python.empty()) {
+        show_error(this,
+            _L("bpy_env not found. Set QIDI_BPY_PYTHON environment variable."));
+        return;
+    }
+
+    // Show adjust dialog pre-filled with current depth values
+    // The ±0.2 / ±0.5 quick-adjust buttons let the user nudge depth additively
+    TextureParamsDialog dlg(wxGetApp().mainframe, TextureDialogMode::Adjust,
+                            png_path, tile_mm, relief);
+    if (dlg.ShowModal() != wxID_OK) return;
+
+    const double new_tile = dlg.get_tile_mm();
+    const double new_rel  = dlg.get_relief();
+
+    namespace fs             = boost::filesystem;
+    const std::string script = (fs::path(Slic3r::resources_dir()) / "scripts" / "apply_texture_bpy.py").string();
+
+    const wxString cmd = wxString::Format(
+        "\"%s\" \"%s\" \"%s\" \"%s\" --mode %s --tile-size %.1f --relief %.2f",
+        wxString::FromUTF8(bpy_python),
+        wxString::FromUTF8(script),
+        wxString::FromUTF8(src_stl),
+        wxString::FromUTF8(png_path),
+        wxString::FromUTF8(mode_str),
+        new_tile, new_rel);
+
+    wxArrayString    stdout_output;
+    wxBusyCursor     busy;
+    wxWindowDisabler disabler;
+    ::wxExecute(cmd, stdout_output, wxEXEC_SYNC | wxEXEC_NODISABLE);
+
+    std::string result_stl;
+    for (const auto& line : stdout_output)
+        if (line.StartsWith("SKIN_OUTPUT:")) {
+            result_stl = line.Mid(12).Strip().ToStdString();
+            break;
+        }
+
+    if (result_stl.empty() || !boost::filesystem::exists(result_stl)) {
+        show_error(this, _L("Texture update failed."));
+        return;
+    }
+
+    // Snapshot what we need from the old volume before removing it
+    const int             obj_idx  = sel.get_object_idx();
+    ModelObject*          mo       = p->model.objects[obj_idx];
+    const ModelVolumeType vol_type = vol->type();
+    const std::string     vol_name = vol->name;
+
+    int model_vol_idx = -1;
+    for (int i = 0; i < (int)mo->volumes.size(); ++i)
+        if (mo->volumes[i] == vol) { model_vol_idx = i; break; }
+
+    if (model_vol_idx >= 0)
+        mo->delete_volume(model_vol_idx);      // vol pointer is now dangling
+
+    // Load the freshly displaced mesh back in
+    wxArrayString             input_files;
+    std::vector<ModelVolume*> volumes;
+    input_files.Add(wxString::FromUTF8(result_stl));
+    wxGetApp().obj_list()->load_from_files(input_files, *mo, volumes, vol_type, false);
+
+    if (!volumes.empty()) {
+        volumes.front()->name = vol_name;
+
+        json j;
+        j["png"]     = png_path;
+        j["src_stl"] = src_stl;
+        j["tile_mm"] = new_tile;
+        j["relief"]  = new_rel;
+        j["mode"]    = mode_str;
+        std::ofstream fout(result_stl + ".texture.json");
+        if (fout.is_open()) fout << j.dump(4);
+    }
+
+    update();
+}
+
 }}    // namespace Slic3r::GUI

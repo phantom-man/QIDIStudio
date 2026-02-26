@@ -586,6 +586,7 @@ wxMenu* MenuFactory::append_submenu_add_generic(wxMenu* menu, ModelVolumeType ty
     }
     append_menu_item_add_svg(sub_menu, type);
     append_menu_item_add_text(sub_menu, type);
+    append_menu_item_add_texture(sub_menu, type);
     return sub_menu;
 }
 
@@ -642,6 +643,43 @@ void MenuFactory::append_menu_item_add_svg(wxMenu *menu, ModelVolumeType type, b
 void MenuFactory::append_menu_item_add_text(wxMenu *menu, ModelVolumeType type, bool is_submenu_item /* = true*/)
 {
     append_menu_itemm_add_(_L("Text"), GLGizmosManager::Text, menu, type, is_submenu_item);
+}
+
+void MenuFactory::append_menu_item_add_texture(wxMenu* menu, ModelVolumeType type, bool is_submenu_item /* = true*/)
+{
+    if (type != ModelVolumeType::MODEL_PART &&
+        type != ModelVolumeType::NEGATIVE_VOLUME &&
+        type != ModelVolumeType::PARAMETER_MODIFIER)
+        return;
+
+    wxString item_name = wxString(is_submenu_item ? "" : _(ADD_VOLUME_MENU_ITEMS[int(type)].first) + ": ")
+                         + _L("Texture...");
+    menu->AppendSeparator();
+    append_menu_item(menu, wxID_ANY, item_name,
+                     _L("Apply a displacement texture to this object"),
+                     [type](wxCommandEvent&) { plater()->apply_texture(type); },
+                     "menu_obj_svg", nullptr,
+                     []() { return plater() && plater()->can_apply_texture(); },
+                     m_parent);
+}
+
+void MenuFactory::append_menu_item_adjust_texture_depth(wxMenu* menu)
+{
+    if (plater() == nullptr) return;
+    if (!plater()->can_adjust_texture_depth()) return;
+
+    const wxString name       = _L("Adjust Texture Depth...");
+    const int      existing_id = menu->FindItem(name);
+    if (existing_id != wxNOT_FOUND)
+        menu->Destroy(existing_id);
+
+    menu->AppendSeparator();
+    append_menu_item(menu, wxID_ANY, name,
+                     _L("Increase or decrease the displacement depth of the applied texture"),
+                     [](wxCommandEvent&) { plater()->adjust_texture_depth(); },
+                     "menu_obj_svg", nullptr,
+                     []() { return plater() && plater()->can_adjust_texture_depth(); },
+                     m_parent);
 }
 
 void MenuFactory::append_menu_items_add_volume(wxMenu* menu)
@@ -1393,6 +1431,7 @@ void MenuFactory::create_qdt_part_menu()
     append_menu_item_change_type(menu);
     append_menu_item_reload_from_disk(menu);
     append_menu_item_replace_with_stl(menu);
+    append_menu_item_adjust_texture_depth(menu);
 }
 
 void MenuFactory::create_qdt_assemble_part_menu()

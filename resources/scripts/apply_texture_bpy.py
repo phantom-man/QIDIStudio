@@ -74,7 +74,11 @@ class Logger:
         self._buf: list[str] = []
 
     def log(self, msg: str):
-        print(msg, flush=True)
+        try:
+            print(msg, flush=True)
+        except UnicodeEncodeError:
+            # Windows cp1252 terminal can't handle non-Latin chars; ASCII-safe fallback
+            print(msg.encode("ascii", errors="replace").decode("ascii"), flush=True)
         self._buf.append(msg)
 
     def emit_skin_output(self, out_path: str):
@@ -105,7 +109,10 @@ def _import_model(path: str, log: Logger) -> list:
     ext = pathlib.Path(path).suffix.lower()
 
     if ext == ".stl":
-        bpy.ops.import_mesh.stl(filepath=path)
+        try:
+            bpy.ops.wm.stl_import(filepath=path)          # Blender 4+ / bpy 5
+        except AttributeError:
+            bpy.ops.import_mesh.stl(filepath=path)         # Blender 3.x fallback
     elif ext == ".3mf":
         # Standalone bpy does not bundle io_scene_3mf; parse the zip directly.
         meshes_created = _import_3mf_manual(path, log)
@@ -205,53 +212,97 @@ def _import_3mf_manual(path: str, log: Logger) -> list:
     return created
 
 
+def _ops_ctx(obj):
+    """temp_override context for single-object bpy.ops calls in background mode."""
+    return bpy.context.temp_override(
+        active_object=obj,
+        object=obj,
+        selected_objects=[obj],
+        selected_editable_objects=[obj],
+    )
+
+
 def _smart_uv_project(obj, log: Logger):
     """UV-unwrap with Smart UV Project (angle-based islands, no seam waste)."""
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(angle_limit=66.0, island_margin=0.0)
-    bpy.ops.object.mode_set(mode="OBJECT")
+    with _ops_ctx(obj):
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.uv.smart_project(angle_limit=66.0, island_margin=0.0)
+        bpy.ops.object.mode_set(mode="OBJECT")
     log.log(f"  UV unwrap complete on '{obj.name}'")
 
 
-def _gamma_correct_image(img, gamma: float, log: Logger):
-    """Apply per-pixel gamma correction to a loaded Image."""
+def _gamma_correct_image(img, gamma: float, log: Logger) -> None:
+    """Apply gamma correction to a Blender Image.
+
+    Uses numpy vectorisation (bundled with standalone bpy) — ~1000× faster
+    than the per-channel Python loop on real textures.  Falls back to the
+    slow path if numpy is somehow absent.
+    """
     if abs(gamma - 1.0) < 0.01:
         return
-    px = list(img.pixels[:])
     g_inv = 1.0 / gamma
-    for i in range(0, len(px), 4):   # RGBA
-        px[i]   = max(0.0, px[i]  ) ** g_inv
-        px[i+1] = max(0.0, px[i+1]) ** g_inv
-        px[i+2] = max(0.0, px[i+2]) ** g_inv
-        # alpha channel unchanged
-    img.pixels[:] = px
+    try:
+        import numpy as np
+        px = np.array(img.pixels[:], dtype=np.float32).reshape(-1, 4)
+        px[:, :3] = np.power(np.clip(px[:, :3], 0.0, None), g_inv)
+        img.pixels[:] = px.ravel().tolist()
+    except ImportError:
+        # numpy absent — pure-Python fallback (slow on large textures)
+        px = list(img.pixels[:])
+        for i in range(0, len(px), 4):
+            px[i]   = max(0.0, px[i]  ) ** g_inv
+            px[i+1] = max(0.0, px[i+1]) ** g_inv
+            px[i+2] = max(0.0, px[i+2]) ** g_inv
+        img.pixels[:] = px
     img.update()
-    log.log(f"  Gamma correction applied (γ={gamma})")
+    log.log(f"  Gamma correction applied (g={gamma})")
+
+
+def _adaptive_subd_level(obj) -> int:
+    """
+    Choose a subdivision level so result stays under ~150K triangles.
+    A box starts at 12 tris; each Simple-Subd level = 4× triangles.
+    Complex meshes (imported parts) should stay at level 1-2.
+    """
+    n = len(obj.data.polygons)
+    if   n <= 50:    return 3   # primitive test geometry
+    elif n <= 500:   return 2
+    elif n <= 4000:  return 1
+    else:            return 1
 
 
 def _apply_displacement(obj, skin_path: str, tile_size: float,
                         relief: float, invert: bool, gamma: float,
-                        log: Logger):
+                        log: Logger, *, mode: str = "modifier"):
     """
     Subdivide the mesh (Simple) and apply a Displace modifier.
 
     Texture coordinates use an Empty object scaled to tile_size mm so the
     skin repeats every tile_size mm in world space — no UV seam artifacts.
+
+    For 'negative' mode: mid_level=0 so the shell displacement runs 0→relief
+    inward, meaning every textured pixel is at or inside the surface.  This
+    ensures QIDIStudio's boolean always has geometry to subtract.
+    For 'part' and 'modifier': mid_level=0.5 (grey = zero displacement).
     """
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
 
     # ── 1. Subdivision (Simple — preserves hard edges) ──────────────
+    sub_level = _adaptive_subd_level(obj)
     sub = obj.modifiers.new("Subd_tex", type="SUBSURF")
     sub.subdivision_type = "SIMPLE"
-    sub.levels = 3
-    # Ensure subdivision runs before displacement
-    while obj.modifiers[0].name != sub.name:
-        bpy.ops.object.modifier_move_up(modifier=sub.name)
+    sub.levels = sub_level
+    # Ensure subdivision runs before displacement.
+    # Use data-API .move() — works in headless mode without bpy.ops context.
+    sub_idx = list(obj.modifiers).index(sub)
+    if sub_idx != 0:
+        obj.modifiers.move(sub_idx, 0)
+    log.log(f"  Subdivision level {sub_level} (base polys: {len(obj.data.polygons)})")
 
     # ── 2. Load image and apply gamma ────────────────────────────────
     img = bpy.data.images.load(skin_path)
@@ -265,33 +316,71 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
     # ── 4. Mapping Empty ─────────────────────────────────────────────
     # Scale = tile_size → the displacement repeats every tile_size world
     # units (mm, given scale_length = 0.001).
-    bpy.ops.object.empty_add(type="PLAIN_AXES", location=(0.0, 0.0, 0.0))
-    mapping_empty = bpy.context.active_object
-    mapping_empty.name = "tex_mapping_empty"
+    # Use data API to create the empty (bpy.ops.object.empty_add fails
+    # silently in headless mode without a full window context).
+    mapping_empty = bpy.data.objects.new("tex_mapping_empty", None)
+    mapping_empty.empty_display_type = "PLAIN_AXES"
     mapping_empty.scale = (tile_size, tile_size, tile_size)
+    bpy.context.collection.objects.link(mapping_empty)
 
     # ── 5. Displace modifier ─────────────────────────────────────────
+    # mid_level for NEGATIVE mode: 0.0 so black pixel = flush with surface,
+    # white pixel = full relief inward.  This avoids the case where mid=0.5
+    # pushes black-pixel areas OUTSIDE the original, making the boolean miss.
+    # For PART / MODIFIER: mid=0.5 so grey areas have zero net movement.
+    if mode == "negative":
+        mid_level = 0.0
+        strength  = -abs(relief)   # always push inward for negative
+    else:
+        mid_level = 0.5
+        strength  = (-relief if invert else relief)
+
     bpy.context.view_layer.objects.active = obj
     mod = obj.modifiers.new("Displace_tex", type="DISPLACE")
     mod.texture              = tex
     mod.texture_coords        = "OBJECT"
     mod.texture_coords_object = mapping_empty
     mod.direction            = "NORMAL"
-    mod.strength             = (-relief if invert else relief)
-    mod.mid_level            = 0.5    # 0.5 = grey = zero displacement
+    mod.strength             = strength
+    mod.mid_level            = mid_level
 
     # ── 6. Apply all modifiers ────────────────────────────────────────
+    # temp_override is required for bpy.ops.object.modifier_apply to work
+    # in headless/background mode — without it the operator silently no-ops.
     bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
-    for m in list(obj.modifiers):
-        try:
-            bpy.ops.object.modifier_apply(modifier=m.name)
-        except Exception as exc:
-            log.log(f"  WARNING: could not apply modifier '{m.name}': {exc}")
+    with _ops_ctx(obj):
+        for m in list(obj.modifiers):
+            try:
+                bpy.ops.object.modifier_apply(modifier=m.name)
+            except Exception as exc:
+                log.log(f"  WARNING: could not apply modifier '{m.name}': {exc}")
 
-    log.log(f"  Displacement applied: relief={mod.strength:.2f}mm "
-            f"tile={tile_size}mm invert={invert}")
+    # ── 7. Post-process: merge doubles + recalculate normals ─────────
+    # Subdivision on meshes with holes / sharp edges can create coincident
+    # vertices and flipped normals, producing non-manifold geometry that
+    # QIDIStudio rejects.  Merge-by-distance cleans this up.
+    # Works directly on mesh data from Object mode (no mode switch needed).
+    try:
+        import bmesh as _bm
+        bm = _bm.new()
+        bm.from_mesh(obj.data)
+        before = len(bm.verts)
+        _bm.ops.remove_doubles(bm, verts=bm.verts, dist=0.001)
+        _bm.ops.recalc_face_normals(bm, faces=bm.faces)
+        after = len(bm.verts)
+        bm.to_mesh(obj.data)
+        bm.free()
+        obj.data.update()
+        if before != after:
+            log.log(f"  Merged {before - after} duplicate verts ({after} remain)")
+        log.log("  Normals recalculated")
+    except Exception as exc:
+        log.log(f"  WARNING: post-process cleanup failed: {exc}")
+
+    log.log(f"  Displacement applied: relief={strength:.2f}mm "
+            f"tile={tile_size}mm mid={mid_level} mode={mode}")
 
 
 def _export_stl(obj, out_path: str, log: Logger):
@@ -381,7 +470,8 @@ def main():
         bpy.context.view_layer.objects.active = original_obj
         bpy.ops.object.select_all(action="DESELECT")
         original_obj.select_set(True)
-        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        with _ops_ctx(original_obj):
+            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
         if args.mode == "modifier":
             # ── MODIFIER: displace the original mesh in-place, then replace ──
@@ -390,6 +480,7 @@ def main():
                 original_obj, args.skin_path,
                 args.tile_size, args.relief,
                 args.invert, args.gamma, log,
+                mode=args.mode,
             )
             _export_stl(original_obj, out_path, log)
 
@@ -398,21 +489,24 @@ def main():
             # UV the original first so the duplicate inherits correct UV layout
             _smart_uv_project(original_obj, log)
 
-            bpy.context.view_layer.objects.active = original_obj
-            bpy.ops.object.select_all(action="DESELECT")
-            original_obj.select_set(True)
-            bpy.ops.object.duplicate()
-            displaced_obj = bpy.context.active_object
+            # Data-API duplicate — bpy.ops.object.duplicate() silently no-ops
+            # in headless/background mode, causing displaced_obj to alias
+            # original_obj and corrupting the source mesh.
+            new_mesh = original_obj.data.copy()
+            displaced_obj = original_obj.copy()
+            displaced_obj.data = new_mesh
             displaced_obj.name = original_obj.name + "_tex"
+            bpy.context.collection.objects.link(displaced_obj)
 
-            # For NEGATIVE: flip displacement so the shell sticks outward
-            # (QIDIStudio booleans it INTO the parent, creating carved relief)
+            # For NEGATIVE: displacement is always inward (mode handles this in
+            # _apply_displacement, invert_mode passed for PART only)
             invert_mode = (not args.invert) if args.mode == "negative" else args.invert
 
             _apply_displacement(
                 displaced_obj, args.skin_path,
                 args.tile_size, args.relief,
                 invert_mode, args.gamma, log,
+                mode=args.mode,
             )
             _export_stl(displaced_obj, out_path, log)
 

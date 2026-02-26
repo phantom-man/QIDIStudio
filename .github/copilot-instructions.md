@@ -1662,13 +1662,67 @@ Outputs: `SKIN_OUTPUT: <path>` to stdout + logfile. C++ reads this line to find 
 - `part` — duplicates mesh, displaces copy outward, exports as `<stem>_texture_part.stl` (MODEL_PART added to parent)
 - `negative` — duplicates mesh, displaces copy outward (flipped), exports as `<stem>_texture_negative.stl` (NEGATIVE_VOLUME carved into parent)
 
-### C++ Wiring (NOT YET IMPLEMENTED — next task)
-Needs to be added to `Plater.cpp` + `GUI_Factories.cpp`:
-1. **Detect `bpy_env`** — look for `bpy_env\Scripts\python.exe` relative to the QIDIStudio install dir (`resources/` sibling)
-2. **`can_apply_texture()`** — returns true when exactly one full-object is selected AND `bpy_env` python exists
-3. **`apply_texture_to_selection(mode)`** — file picker for PNG, wxExecute with bpy_env python + script, parse `SKIN_OUTPUT:` from log, redirect `obj->input_file`, call `reload_from_disk()`
-4. **`GUI_Factories.cpp`** — add `append_menu_items_add_texture()` to the object right-click menu, wired to `plater()->apply_texture_to_selection(mode)`
-5. **Menu items**: `Add Part > Texture...`, `Add Negative Part > Texture...` (same submenu as `Add Part > SVG` and `Add Part > Text`)
+### C++ Wiring (IMPLEMENTED — 2026-02-26)
+
+**New files:**
+- `src/slic3r/GUI/TextureParamsDialog.hpp/.cpp` — dual-mode wxDialog (Apply / Adjust depth)
+  - Apply mode: PNG file picker + tile size (1–200mm) + relief (0.1–20mm) spinners
+  - Adjust mode: same spinners prefilled + ±0.5/±0.2 mm quick-adjust buttons; re-runs bpy from original clean source mesh (no compound artifacts)
+  - Registered in `src/slic3r/CMakeLists.txt`
+
+**Modified files:**
+- `GUI_Factories.hpp` — declared `append_menu_item_add_texture()` + `append_menu_item_adjust_texture_depth()`
+- `GUI_Factories.cpp` — both functions implemented; texture wired into `append_submenu_add_generic()` after SVG/Text; adjust wired into `create_qdt_part_menu()`
+- `Plater.hpp` — declared `apply_texture()`, `adjust_texture_depth()`, `can_apply_texture()`, `can_adjust_texture_depth()`
+- `Plater.cpp` — all 4 public methods + static helpers `find_bpy_python()` + `volume_is_texture()`; added `#include <fstream>` and `#include "TextureParamsDialog.hpp"`
+
+**Key design decisions:**
+- `wxExecute(cmd, stdout_output, wxEXEC_SYNC | wxEXEC_NODISABLE)` — runs bpy synchronously; parses `SKIN_OUTPUT:` line from stdout
+- Sidecar JSON `<result_stl>.texture.json` stores `{png, src_stl, tile_mm, relief, mode}` — enables depth re-adjustment from original mesh without compounding artifacts
+- `find_bpy_python()` search order: `QIDI_BPY_PYTHON` env var → `<resources_dir>/../bpy_env/Scripts/python.exe`
+- `volume_is_texture(vol)` checks sidecar JSON existence; controls whether "Adjust Texture Depth..." appears
+- Load chain: `wxGetApp().obj_list()->load_from_files(input_files, *mo, volumes, type, false)`
+
+**CRITICAL: Two-repo workflow** — source is edited in `C:\Users\User\source\repos\QIDIStudio\` (this workspace) but CMake builds from `C:\QIDISrc\QIDIStudio\`. After any file edit, sync with:
+```powershell
+$src = "C:\Users\User\source\repos\QIDIStudio\src\slic3r"; $dst = "C:\QIDISrc\QIDIStudio\src\slic3r"
+Copy-Item "$src\GUI\Plater.cpp" "$dst\GUI\Plater.cpp" -Force  # repeat for each changed file
+```
+Then re-run cmake configure if new files were added to CMakeLists.txt, then build.
+
+**bpy_env junction** — `bpy_env` lives in the source workspace, NOT in `install_dir`. Make it discoverable without an env var:
+```
+cmd /c mklink /J "C:\QIDISrc\QIDIStudio\install_dir\bpy_env" "C:\Users\User\source\repos\QIDIStudio\bpy_env"
+```
+This only needs to be done once. Do NOT set `QIDI_BPY_PYTHON` unless the junction approach is unavailable.
+
+**Launcher name** — the built executable is `qidi-studio.exe` (not `QIDIStudio.exe`). `QIDIStudio.dll` (92MB) is the real build product; the `.exe` launchers are thin static wrappers that don't change between builds.
+
+### C++ Menu Registration Gotcha — Never Guard with `plater()` at Registration Time
+
+`plater()` returns nullptr at startup when menus are first built. Any `if (plater() == nullptr) return;` guard inside `append_menu_item_*` silently drops the menu item permanently — it never gets a second chance to be added.
+
+**WRONG** (kills the item at startup):
+```cpp
+void MenuFactory::append_menu_item_add_texture(wxMenu* menu, ModelVolumeType type) {
+    if (plater() == nullptr) return;  // ← KILLS the item; menu is built before plater() exists
+    ...
+}
+```
+
+**CORRECT** — guard only inside the lambdas:
+```cpp
+void MenuFactory::append_menu_item_add_texture(wxMenu* menu, ModelVolumeType type) {
+    // No plater() check here — menu built at startup before plater() exists
+    wxString item_name = ...;
+    append_menu_item(menu, wxID_ANY, item_name, "",
+        [type](wxCommandEvent&) { if (plater()) plater()->apply_texture(type); },  // safe: runs at click time
+        "icon", nullptr,
+        []() { return plater() && plater()->can_apply_texture(); },                // safe: runs at update time
+        m_parent);
+}
+```
+This matches how `append_menu_item_add_svg()` and `append_menu_item_add_text()` work — they never check `plater()` at registration.
 
 ### Key bpy API Gotchas
 - **`bpy.ops.wm.read_factory_settings(use_empty=True)`** must be called first — Blender initializes with a default cube otherwise
@@ -1678,6 +1732,9 @@ Needs to be added to `Plater.cpp` + `GUI_Factories.cpp`:
 - **`mathutils` is bundled** with bpy — import it after `import bpy` succeeds
 - **Displace modifier needs an Empty for texture coords** — scaling the Empty to `tile_size` gives seamless world-space tiling without UV seams
 - **Output naming** prevents `_texture_modifier_texture_modifier.stl` on re-runs: strips known suffixes before adding them
+- **`bpy.ops.import_mesh.stl` REMOVED in Blender 4.x / bpy 5.0** — use `bpy.ops.wm.stl_import(filepath=path)` with a try/except fallback to `bpy.ops.import_mesh.stl` for older bpy 3.x. The script already has this; verify the installed copy in `install_dir/resources/scripts/` matches workspace — install copies can lag after a build.
+- **apply_texture_bpy.py is installed by CMake** into `install_dir/resources/scripts/` at build time. If you edit the script in the workspace without rebuilding, copy it manually: `Copy-Item workspace\resources\scripts\apply_texture_bpy.py install_dir\resources\scripts\apply_texture_bpy.py -Force`. Also sync to `C:\QIDISrc\QIDIStudio\resources\scripts\` so the next rebuild doesn't overwrite with the old version.
+- **Tee-Object buffers build output in PowerShell** — `build_out.txt` line count will plateau and seem frozen while MSBuild is still running. Use `Get-Process MSBuild` to check if it's alive; read the file again after MSBuild exits.
 
 ### Skin Assets
 `resources/assets/` — PNG heightmaps generated by `scripts/generate_skin_assets.py`.
