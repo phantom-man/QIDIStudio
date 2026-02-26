@@ -1,0 +1,20 @@
+C:\Users\User\source\repos\3DPrinting\GCodeRefiner\refiner.py:18: SyntaxWarning: invalid escape sequence '\.'
+  "C:\...\python.exe" "C:\...\refiner.py" --rules m2_gear
+Traceback (most recent call last):
+  File "C:\Users\User\source\repos\3DPrinting\GCodeRefiner\refiner.py", line 471, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\Users\User\source\repos\3DPrinting\GCodeRefiner\refiner.py", line 437, in main
+    refiner = Refiner(
+        profile_name=args.profile,
+        rules_name=args.rules,
+        verbose=args.verbose or args.dry_run,
+    )
+  File "C:\Users\User\source\repos\3DPrinting\GCodeRefiner\refiner.py", line 209, in __init__
+    self.profile = self._load_module("profiles", profile_name)
+                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\source\repos\3DPrinting\GCodeRefiner\refiner.py", line 227, in _load_module
+    spec   = importlib.util.spec_from_file_location(f"{subdir}.{name}", target)
+             ^^^^^^^^^^^^^^
+AttributeError: module 'importlib' has no attribute 'util'
+DONE

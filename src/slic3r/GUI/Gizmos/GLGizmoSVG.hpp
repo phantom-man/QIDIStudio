@@ -104,9 +104,6 @@ private:
     void   draw_filename();
     void   draw_depth();
     void   draw_size();
-    void   draw_tiling();
-    bool   apply_tile_size();   // resize SVG to m_pixel_size x m_pixel_size
-    void   apply_auto_tile();   // compute tile grid from object BB and call apply_tile_size
     void   draw_use_surface();
     void   draw_distance();
     void   draw_rotation();
@@ -161,12 +158,6 @@ private:
     std::optional<float> m_scale_width;
     std::optional<float> m_scale_height;
     std::optional<float> m_scale_depth;
-
-    // Tiling — repeat SVG in a grid over the surface
-    int   m_tile_x    = 1;     // repeat count in X (columns)
-    int   m_tile_y    = 1;     // repeat count in Y (rows)
-    float m_tile_gap  = 0.f;   // gap between tiles in mm (negative = overlap)
-    float m_pixel_size = 0.f;  // square tile size in mm (0 = derive from current SVG size)
 
     // keep SVG data rendered on GPU
     Emboss::Texture m_texture;

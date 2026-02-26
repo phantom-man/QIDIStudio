@@ -1,4 +1,4 @@
-// Include GLGizmoBase.hpp before I18N.hpp as it includes some libigl code, which overrides our localization "L" macro.
+﻿// Include GLGizmoBase.hpp before I18N.hpp as it includes some libigl code, which overrides our localization "L" macro.
 #include "GLGizmoSVG.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -748,28 +748,6 @@ void GLGizmoSVG::set_volume_by_selection()
     }
     reset_volume(); // clear cached data
 
-    // Reset tiling state ONLY when a genuinely different SVG file is opened.
-    // When a remesh job completes it creates a new ModelVolume for the SAME
-    // svg path → selection change → set_volume_by_selection() fires again.
-    // If we reset unconditionally here, every job completion wipes the user's
-    // tile settings (m_tile_x, m_tile_y, m_pixel_size), which is why
-    // Auto Tile always reverted to 1×1 / original SVG size after running.
-    {
-        bool same_svg = false;
-        if (m_volume != nullptr &&
-            m_volume->emboss_shape.has_value() &&
-            m_volume->emboss_shape->svg_file &&
-            volume->emboss_shape->svg_file) {
-            same_svg = (m_volume->emboss_shape->svg_file->path ==
-                        volume->emboss_shape->svg_file->path);
-        }
-        if (!same_svg) {
-            m_tile_x     = 1;
-            m_tile_y     = 1;
-            m_pixel_size = 0.f;
-        }
-    }
-
     m_svg_volume     = gl_volume;
     m_volume         = volume;
     m_volume_id      = volume->id();
@@ -1311,57 +1289,6 @@ bool GLGizmoSVG::process_job(bool make_snapshot)
 
     EmbossShape shape = m_volume_shape; // copy
 
-    // Tiling: replicate the single-tile polygons in an NxM grid before meshing
-    if (m_tile_x > 1 || m_tile_y > 1) {
-        const ExPolygonsWithIds &single = m_volume_shape.shapes_with_ids;
-        if (!single.empty()) {
-            BoundingBox tile_bb = get_extents(single);
-            // Cell pitch in integer polygon coords.
-            // When m_pixel_size is set, use it as the uniform pitch so all tiles
-            // are equally spaced at the user's chosen size.  Polygon content is
-            // centered within each cell so any SVG internal margins are distributed
-            // evenly rather than accumulating as a visible "white border" on one side.
-            // Fall back to the tight polygon bbox when m_pixel_size is unset.
-            coord_t pitch_x, pitch_y;
-            if (m_pixel_size > 0.f) {
-                pitch_x = std::max((coord_t)1, (coord_t)(m_pixel_size / m_volume_shape.scale));
-                pitch_y = pitch_x;
-            } else {
-                pitch_x = std::max((coord_t)1, tile_bb.size().x());
-                pitch_y = std::max((coord_t)1, tile_bb.size().y());
-            }
-            coord_t gap_c  = (coord_t)(m_tile_gap / m_volume_shape.scale);
-            coord_t step_x = pitch_x + gap_c;
-            coord_t step_y = pitch_y + gap_c;
-            if (step_x < 1) step_x = 1;
-            if (step_y < 1) step_y = 1;
-            // Center the NxM grid so the anchor tile sits at the midpoint.
-            coord_t origin_x = -(coord_t)((int64_t)step_x * (m_tile_x - 1) / 2);
-            coord_t origin_y = -(coord_t)((int64_t)step_y * (m_tile_y - 1) / 2);
-            // Content centroid of the single tile in polygon coords.
-            coord_t content_cx = (tile_bb.min.x() + tile_bb.max.x()) / 2;
-            coord_t content_cy = (tile_bb.min.y() + tile_bb.max.y()) / 2;
-            ExPolygonsWithIds tiled;
-            tiled.reserve(single.size() * (size_t)m_tile_x * (size_t)m_tile_y);
-            for (int tj = 0; tj < m_tile_y; ++tj) {
-                for (int ti = 0; ti < m_tile_x; ++ti) {
-                    // Place polygon centroid at the center of each cell
-                    coord_t cell_cx = origin_x + step_x * ti + step_x / 2;
-                    coord_t cell_cy = origin_y + step_y * tj + step_y / 2;
-                    Point   offset(cell_cx - content_cx, cell_cy - content_cy);
-                    for (const ExPolygonsWithId &s : single) {
-                        ExPolygonsWithId copy = s;
-                        for (ExPolygon &ep : copy.expoly)
-                            ep.translate(offset);
-                        tiled.push_back(std::move(copy));
-                    }
-                }
-            }
-            shape.shapes_with_ids = std::move(tiled);
-            shape.final_shape     = {};
-        }
-    }
-
     auto        base  = std::make_unique<Emboss::DataBase>(m_volume->name, m_job_cancel, std::move(shape));
     base->is_outside  = m_volume->type() == ModelVolumeType::MODEL_PART;
     Emboss::DataUpdate data{std::move(base), m_volume_id, make_snapshot};
@@ -1412,7 +1339,6 @@ void GLGizmoSVG::draw_window()
     ImGui::Indent(m_gui_cfg->icon_width);
     draw_depth();
     draw_size();
-    draw_tiling();
 
     m_can_use_surface = (m_volume->emboss_shape->projection.use_surface) ? true : // already used surface must have option to uncheck
                                                                               !m_volume->is_the_only_one_part();
@@ -1861,219 +1787,6 @@ void GLGizmoSVG::draw_size()
     }
     if (make_snap)
         process_job(); // make undo/redo snap-shot}
-}
-
-// ---------------------------------------------------------------------------
-// Helper: resize SVG to a square of m_pixel_size × m_pixel_size (mm)
-// Mirrors the selection.scale() dance from draw_size().
-// ---------------------------------------------------------------------------
-bool GLGizmoSVG::apply_tile_size()
-{
-    if (m_pixel_size <= 0.f) return false;
-    if (!m_volume_shape.svg_file) return false;
-
-    Point  sz     = m_shape_bb.size();
-    double curr_w = sz.x() * m_volume_shape.scale * m_scale_width.value_or(1.f);
-    double curr_h = sz.y() * m_volume_shape.scale * m_scale_height.value_or(1.f);
-    if (curr_w < 1e-6 || curr_h < 1e-6) return false;
-
-    double ratio_w = (double)m_pixel_size / curr_w;
-    double ratio_h = (double)m_pixel_size / curr_h;
-    if (ratio_w < 1e-4 || ratio_w > 1e4 || ratio_h < 1e-4 || ratio_h > 1e4) return false;
-
-    m_scale_width  = m_scale_width.value_or(1.f)  * (float)ratio_w;
-    m_scale_height = m_scale_height.value_or(1.f) * (float)ratio_h;
-
-    Selection &sel = m_parent.get_selection();
-    sel.setup_cache();
-    selection_transform(sel, [&sel, ratio_w, ratio_h]() {
-        sel.scale(Vec3d(ratio_w, ratio_h, 1.), get_drag_transformation_type(sel));
-    });
-    m_parent.do_scale(std::string{});
-    wxGetApp().obj_manipul()->set_dirty();
-    calculate_scale();
-
-    const NSVGimage *img = m_volume_shape.svg_file->image.get();
-    if (img != nullptr) {
-        NSVGLineParams params{get_scale_for_tolerance()};
-        m_volume_shape.shapes_with_ids = create_shape_with_ids(*img, params);
-        m_volume_shape.final_shape     = {};
-    }
-    process_job();
-    return true;
-}
-
-// ---------------------------------------------------------------------------
-// Auto Tile: covers the entire host object skin with one click.
-//
-//   1. Caps tile pitch at 25 mm (prevents accidentally huge tiles)
-//   2. Uses ceil(canvas/pitch)+2 so edge tiles always overshoot object BB
-//   3. Sets tile counts BEFORE apply_tile_size() so the single remesh job
-//      it fires already sees the full NxM grid — no double-job
-//   4. Enables Use Surface automatically
-// ---------------------------------------------------------------------------
-void GLGizmoSVG::apply_auto_tile()
-{
-    if (!m_volume || !m_volume->get_object()) return;
-
-    // Cancel any in-flight job before starting a new path
-    if (m_job_cancel != nullptr)
-        m_job_cancel->store(true);
-
-    // ---- 1. Target tile pitch (mm) ----
-    // Use whatever is in the Tile size field; cap at 25 mm.
-    if (m_pixel_size <= 0.f || m_pixel_size > 25.f)
-        m_pixel_size = 25.f;
-
-    // ---- 2. Object bounding box (MODEL_PART volumes, excl. this SVG) ----
-    const ModelObject *obj = m_volume->get_object();
-    BoundingBoxf3      body_bb;
-    for (const ModelVolume *v : obj->volumes) {
-        if (v == m_volume) continue;
-        if (v->type() != ModelVolumeType::MODEL_PART) continue;
-        body_bb.merge(v->mesh().bounding_box());
-    }
-    if (!body_bb.defined)
-        body_bb = obj->raw_bounding_box();
-    if (!body_bb.defined) return;
-
-    Vec3d  sz      = body_bb.size();
-    double dims[3] = {sz.x(), sz.y(), sz.z()};
-    std::sort(dims, dims + 3, std::greater<double>());
-    double canvas_w = dims[0];
-    double canvas_h = dims[1];
-    if (canvas_w < 0.1 || canvas_h < 0.1) return;
-
-    // ---- 3. Tile counts: ceil to guarantee full coverage + 2 for overshoot ----
-    int tx = std::min(50, (int)std::ceil(canvas_w / m_pixel_size) + 2);
-    int ty = std::min(50, (int)std::ceil(canvas_h / m_pixel_size) + 2);
-    m_tile_x = std::max(1, tx);
-    m_tile_y = std::max(1, ty);
-
-    // ---- 4. Enable Use Surface ----
-    m_volume_shape.projection.use_surface = true;
-    if (m_volume->emboss_shape.has_value())
-        m_volume->emboss_shape->projection.use_surface = true;
-
-    // ---- 5. Resize SVG to m_pixel_size and fire ONE remesh ----
-    // m_tile_x/m_tile_y are already set, so the single process_job call inside
-    // apply_tile_size() will emit the complete NxM tiled grid in one shot.
-    if (!apply_tile_size()) {
-        // Fallback in case apply_tile_size couldn't compute scale (e.g.,
-        // shape_bb not yet populated for a brand-new SVG).
-        process_job();
-    }
-}
-
-void GLGizmoSVG::draw_tiling()
-{
-    bool use_inch = wxGetApp().app_config->get_bool("use_inches");
-    bool changed  = false;
-
-    // --- Tile size row: square pixel size + Auto Tile button ---
-    ImGui::AlignTextToFramePadding();
-    ImGuiWrapper::text(_u8L("Tile size"));
-    if (ImGui::IsItemHovered())
-        m_imgui->tooltip(_u8L("Square size for each tile (mm).\nSets equal width and height for the SVG.\nPress Auto Tile to fill the whole object surface automatically."),
-                         m_gui_cfg->max_tooltip_width);
-
-    // Seed m_pixel_size from the current SVG width the first time.
-    if (m_pixel_size <= 0.f) {
-        Point sz      = m_shape_bb.size();
-        float curr_mm = static_cast<float>(sz.x() * m_volume_shape.scale * m_scale_width.value_or(1.f));
-        m_pixel_size  = (curr_mm > 0.f) ? curr_mm : 10.f;
-    }
-
-    // Shrink the input width to leave room for the Auto Tile button.
-    float auto_btn_w = ImGui::CalcTextSize(_u8L("Auto Tile").c_str()).x
-                       + 2.f * ImGui::GetStyle().FramePadding.x;
-    float gap        = ImGui::GetStyle().ItemSpacing.x;
-    float ps_w       = m_gui_cfg->input_width - auto_btn_w - gap;
-
-    float       ps_display = use_inch ? m_pixel_size * GizmoObjectManipulation::mm_to_in : m_pixel_size;
-    const char *ps_fmt     = use_inch ? "%.3f in" : "%.2f mm";
-
-    ImGui::SameLine(m_gui_cfg->input_offset);
-    ImGui::SetNextItemWidth(ps_w);
-    float prev_ps = ps_display;
-    ImGui::InputFloat("##tile_ps", &ps_display, 0.f, 0.f, ps_fmt);
-    // Update stored value on every edit so the field stays in sync with
-    // m_pixel_size -- but do NOT call apply_tile_size() on every keystroke
-    // (that launches a full backend remesh for each character typed).
-    if (ImGui::IsItemEdited()) {
-        float ps_mm = use_inch ? ps_display / GizmoObjectManipulation::mm_to_in : ps_display;
-        if (ps_mm > 0.1f && ps_mm < 500.f)
-            m_pixel_size = ps_mm;
-    }
-    // Fire the expensive resize+remesh only when the user commits (Enter or
-    // clicks away), not on each intermediate keypress.
-    if (ImGui::IsItemDeactivatedAfterEdit()) {
-        float ps_mm = use_inch ? ps_display / GizmoObjectManipulation::mm_to_in : ps_display;
-        if (ps_mm > 0.1f && ps_mm < 500.f) {
-            m_pixel_size = ps_mm;
-            apply_tile_size();
-        }
-    }
-    if (ImGui::IsItemHovered())
-        m_imgui->tooltip(_u8L("Square tile size in mm.\nSets both SVG width and height to this value.\nPress Enter or click Auto Tile to apply."),
-                         m_gui_cfg->max_tooltip_width);
-
-    ImGui::SameLine();
-    if (ImGui::Button(_u8L("Auto Tile").c_str()))
-        apply_auto_tile();
-    if (ImGui::IsItemHovered())
-        m_imgui->tooltip(_u8L("Calculates exact tile count to cover the host object surface.\nEnables Use Surface and adjusts tile size for even fit."),
-                         m_gui_cfg->max_tooltip_width);
-
-    // --- Tile count row: X columns, Y rows ---
-    ImGui::AlignTextToFramePadding();
-    ImGuiWrapper::text(_u8L("Tile"));
-    if (ImGui::IsItemHovered())
-        m_imgui->tooltip(_u8L("Repeat the SVG pattern in a grid.\nX = columns, Y = rows."), m_gui_cfg->max_tooltip_width);
-
-    float half_w = m_gui_cfg->input_width / 2.f - 2.f;
-
-    ImGui::SameLine(m_gui_cfg->input_offset);
-    ImGui::SetNextItemWidth(half_w);
-    int prev_tx = m_tile_x;
-    if (ImGui::InputInt("##tile_x", &m_tile_x, 1, 5)) {
-        m_tile_x = std::max(1, std::min(m_tile_x, 50));
-        changed  = (m_tile_x != prev_tx);
-    }
-    if (ImGui::IsItemHovered())
-        m_imgui->tooltip(_u8L("Tile columns (X direction)."), m_gui_cfg->max_tooltip_width);
-
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(half_w);
-    int prev_ty = m_tile_y;
-    if (ImGui::InputInt("##tile_y", &m_tile_y, 1, 5)) {
-        m_tile_y = std::max(1, std::min(m_tile_y, 50));
-        changed |= (m_tile_y != prev_ty);
-    }
-    if (ImGui::IsItemHovered())
-        m_imgui->tooltip(_u8L("Tile rows (Y direction)."), m_gui_cfg->max_tooltip_width);
-
-    // --- Gap row (only when tiling is active) ---
-    if (m_tile_x > 1 || m_tile_y > 1) {
-        ImGui::AlignTextToFramePadding();
-        ImGuiWrapper::text(_u8L("Gap"));
-        if (ImGui::IsItemHovered())
-            m_imgui->tooltip(_u8L("Gap between tiles in mm.\nNegative values overlap adjacent tiles."), m_gui_cfg->max_tooltip_width);
-
-        float       gap_display = use_inch ? m_tile_gap * GizmoObjectManipulation::mm_to_in : m_tile_gap;
-        const char *fmt         = use_inch ? "%.3f in" : "%.2f mm";
-        ImGui::SameLine(m_gui_cfg->input_offset);
-        ImGui::SetNextItemWidth(m_gui_cfg->input_width);
-        float prev_gap = gap_display;
-        if (ImGui::InputFloat("##tile_gap", &gap_display, 0.f, 0.f, fmt)) {
-            m_tile_gap = use_inch ? gap_display / GizmoObjectManipulation::mm_to_in : gap_display;
-            m_tile_gap = std::max(-50.f, std::min(m_tile_gap, 200.f));
-            changed   |= (std::abs(gap_display - prev_gap) > 1e-4f);
-        }
-    }
-
-    if (changed)
-        process_job();
 }
 
 void GLGizmoSVG::draw_use_surface()

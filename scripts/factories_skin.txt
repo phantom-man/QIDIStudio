@@ -1,0 +1,113 @@
+
+LineNumber Line
+---------- ----
+        19 #include "Gizmos/GLGizmoSVG.hpp"
+        20 #include "Gizmos/GLGizmoText.hpp"
+       261     { L("Fuzzy Skin")           , "fuzzy_skin"  },
+       296 static const constexpr std::array<std::pair<const char *,
+           const char *>, 3> TEXT_VOLUME_ICONS{{
+       298     {L("Add text"), "add_text_part"},              //
+           ~ModelVolumeType::MODEL_PART
+       299     {L("Add negative text"), "add_text_negative"}, //
+           ~ModelVolumeType::NEGATIVE_VOLUME
+       300     {L("Add text modifier"), "add_text_modifier"}, //
+           ~ModelVolumeType::PARAMETER_MODIFIER
+       303 static const constexpr std::array<std::pair<const char *,
+           const char *>, 3> SVG_VOLUME_ICONS{{
+       304     {L("Add SVG part"), "svg_part"},         //
+           ~ModelVolumeType::MODEL_PART
+       305     {L("Add negative SVG"), "svg_negative"}, //
+           ~ModelVolumeType::NEGATIVE_VOLUME
+       306     {L("Add SVG modifier"), "svg_modifier"}, //
+           ~ModelVolumeType::PARAMETER_MODIFIER
+       451 std::vector<wxBitmap> MenuFactory::get_text_volume_bitmaps()
+       454     volume_bmps.reserve(TEXT_VOLUME_ICONS.size());
+       455     for (const auto &item : TEXT_VOLUME_ICONS)
+           volume_bmps.push_back(create_scaled_bitmap(item.second));
+       459 std::vector<wxBitmap> MenuFactory::get_svg_volume_bitmaps()
+       462     volume_bmps.reserve(SVG_VOLUME_ICONS.size());
+       463     for (const auto &item : SVG_VOLUME_ICONS)
+           volume_bmps.push_back(create_scaled_bitmap(item.second));
+       505 void MenuFactory::append_menu_item_edit_text(wxMenu *menu)
+       507     wxString name = _L("Edit Text");
+       508     if (menu != &m_text_part_menu) {
+       514         if (!plater()->can_edit_text())
+       518         menu, wxID_ANY, _L("Edit Text"), "", [](wxCommandEvent
+           &) { plater()->edit_text(); }, "", nullptr,
+       519         []() { return plater()->can_edit_text(); }, m_parent);
+       522 void MenuFactory::append_menu_item_edit_svg(wxMenu *menu)
+       524     wxString name         = _L("Edit SVG");
+       525     auto     can_edit_svg = []() {
+       533         return volume->is_svg();
+       536     if (menu != &m_svg_part_menu) {
+       540         if (!can_edit_svg()) return;
+       543     wxString    description = _L("Change SVG source file,
+           projection, size, ...");
+       544     std::string icon        = "svg_part";
+       545     auto        open_svg    = [](const wxCommandEvent &) {
+       555         if (mng.get_current_type() == GLGizmosManager::Svg) {
+       556             mng.open_gizmo(GLGizmosManager::Svg); // close()
+           and reopen - move to be visible
+       558         mng.open_gizmo(GLGizmosManager::Svg);
+       560     append_menu_item(menu, wxID_ANY, name, description,
+           open_svg, icon, nullptr, can_edit_svg, m_parent);
+       587     append_menu_item_add_svg(sub_menu, type);
+       588     append_menu_item_add_text(sub_menu, type);
+       605         if (gizmo_type == GLGizmosManager::Text) {
+       606             auto text = dynamic_cast<GLGizmoText
+           *>(gizmo_base);
+       607             assert(text != nullptr);
+       608             if (text == nullptr) return;
+       610                 text->create_volume(volume_type,
+           *screen_position);
+       612                 text->create_volume(volume_type);
+       614         } else if (gizmo_type == GLGizmosManager::Svg) {
+       615             auto svg = dynamic_cast<GLGizmoSVG *>(gizmo_base);
+       616             assert(svg != nullptr);
+       617             if (svg == nullptr) return;
+       619                 svg->create_volume(volume_type,
+           *screen_position);
+       621                 svg->create_volume(volume_type);
+       631         auto              def_icon_name = (gizmo_type ==
+           GLGizmosManager::Svg) ? "menu_obj_svg" : "menu_obj_text";
+       637 void MenuFactory::append_menu_item_add_svg(wxMenu *menu,
+           ModelVolumeType type, bool is_submenu_item /* = true*/)
+       639     append_menu_itemm_add_(_L("SVG"), GLGizmosManager::Svg,
+           menu, type, is_submenu_item);
+       642 void MenuFactory::append_menu_item_add_text(wxMenu *menu,
+           ModelVolumeType type, bool is_submenu_item /* = true*/)
+       644     append_menu_itemm_add_(_L("Text"), GLGizmosManager::Text,
+           menu, type, is_submenu_item);
+       777             evt.SetText(selection.is_single_full_object() ?
+      1028         if (item->GetItemLabelText() == _L("Edit in Parameter
+           Table"))
+      1334 void MenuFactory::create_text_part_menu()
+      1336     wxMenu *menu = &m_text_part_menu;
+      1338     append_menu_item_edit_text(menu);
+      1351 void MenuFactory::create_svg_part_menu()
+      1353     wxMenu *menu = &m_svg_part_menu;
+      1355     append_menu_item_edit_svg(menu);
+      1371     append_menu_item_edit_text(menu);
+      1562     create_text_part_menu();
+      1563     create_svg_part_menu();
+      1598     append_menu_item_edit_text(&m_object_menu);
+      1599     append_menu_item_edit_svg(&m_object_menu);
+      1612     append_menu_item_edit_text(&m_sla_object_menu);
+      1613     append_menu_item_edit_svg(&m_object_menu);
+      1630 wxMenu *MenuFactory::text_part_menu()
+      1632     append_menu_item_change_filament(&m_text_part_menu);
+      1633     append_menu_item_per_object_settings(&m_text_part_menu);
+      1635     return &m_text_part_menu;
+      1638 wxMenu *MenuFactory::svg_part_menu()
+      1640     append_menu_item_change_filament(&m_svg_part_menu);
+      1641     append_menu_item_per_object_settings(&m_svg_part_menu);
+      1643     return &m_svg_part_menu;
+      2322     wxString menu_text = _L("Printable");
+      2323     wxMenuItem* menu_item_set_printable =
+           append_menu_check_item(menu, wxID_ANY, menu_text, "", [this,
+           all_printable](wxCommandEvent&) {
+      2346     wxString lock_text = plate->is_locked() ? names[0] :
+           names[1];
+      2348     auto item = append_menu_item(menu, wxID_ANY, lock_text, "",
+
+DONE
