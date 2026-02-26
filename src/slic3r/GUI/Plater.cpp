@@ -20801,7 +20801,8 @@ void Plater::apply_texture(ModelVolumeType type)
         return;
     }
 
-    // Export the parent object's combined mesh to a temp STL so bpy can read it
+    // Export the parent object's combined mesh to a temp STL so bpy can read it.
+    // Do this BEFORE wxWindowDisabler (store_stl may show its own dialogs).
     namespace fs = boost::filesystem;
     const std::string src_stl = (fs::temp_directory_path() /
         fs::unique_path("qidi_tex_src_%%%%-%%%%-%%%%-%%%%.stl")).string();
@@ -20818,8 +20819,12 @@ void Plater::apply_texture(ModelVolumeType type)
     const std::string script   = (fs::path(Slic3r::resources_dir()) / "scripts" / "apply_texture_bpy.py").string();
 
     // Use a temp log file as the reliable IPC channel for SKIN_OUTPUT.
-    // (wxEXEC_SYNC + wxWindowDisabler blocks the message pump that drains the
-    // stdout pipe, causing wxExecute to return with an empty stdout_output.)
+    // The bpy script writes only ~500 bytes to stdout (well under the 4KB
+    // Windows pipe buffer), so there is no deadlock risk even with windows
+    // disabled.  We use wxWindowDisabler here to freeze the 3D-view Selection
+    // during the ~2s bpy execution: without it, the focus event fired when the
+    // TextureParamsDialog closes clears the 3D selection, and the subsequent
+    // call to load_from_files dereferences an empty volume set → crash.
     const std::string log_path = (fs::temp_directory_path() /
         fs::unique_path("qidi_tex_log_%%%%-%%%%-%%%%-%%%%.txt")).string();
 
@@ -20833,10 +20838,8 @@ void Plater::apply_texture(ModelVolumeType type)
         tile_mm, relief,
         wxString::FromUTF8(log_path));
 
-    // Run bpy synchronously.  wxWindowDisabler is intentionally omitted here:
-    // it blocks the Win32 message pump that wxEXEC_SYNC relies on to drain the
-    // stdout pipe, which causes the captured output to be empty.
-    wxBusyCursor busy;
+    wxBusyCursor    busy;
+    wxWindowDisabler disabler;   // freeze selection state while bpy runs
     wxArrayString stdout_output;
     ::wxExecute(cmd, stdout_output, wxEXEC_SYNC);
 
@@ -20955,7 +20958,8 @@ void Plater::adjust_texture_depth()
         new_tile, new_rel,
         wxString::FromUTF8(log_path2));
 
-    wxBusyCursor  busy;
+    wxBusyCursor    busy;
+    wxWindowDisabler disabler2;  // freeze selection state while bpy runs
     wxArrayString stdout_output;
     ::wxExecute(cmd, stdout_output, wxEXEC_SYNC);
 
