@@ -20817,27 +20817,46 @@ void Plater::apply_texture(ModelVolumeType type)
                                  (type == ModelVolumeType::MODEL_PART)       ? "part"     : "modifier";
     const std::string script   = (fs::path(Slic3r::resources_dir()) / "scripts" / "apply_texture_bpy.py").string();
 
+    // Use a temp log file as the reliable IPC channel for SKIN_OUTPUT.
+    // (wxEXEC_SYNC + wxWindowDisabler blocks the message pump that drains the
+    // stdout pipe, causing wxExecute to return with an empty stdout_output.)
+    const std::string log_path = (fs::temp_directory_path() /
+        fs::unique_path("qidi_tex_log_%%%%-%%%%-%%%%-%%%%.txt")).string();
+
     const wxString cmd = wxString::Format(
-        "\"%s\" \"%s\" \"%s\" \"%s\" --mode %s --tile-size %.1f --relief %.2f",
+        "\"%s\" \"%s\" \"%s\" \"%s\" --mode %s --tile-size %.1f --relief %.2f --log \"%s\"",
         wxString::FromUTF8(bpy_python),
         wxString::FromUTF8(script),
         wxString::FromUTF8(src_stl),
         wxString::FromUTF8(png_path),
         wxString::FromUTF8(mode_str),
-        tile_mm, relief);
+        tile_mm, relief,
+        wxString::FromUTF8(log_path));
 
-    // Run bpy synchronously; capture stdout to parse SKIN_OUTPUT: line
-    wxArrayString        stdout_output;
-    wxBusyCursor         busy;
-    wxWindowDisabler     disabler;
-    ::wxExecute(cmd, stdout_output, wxEXEC_SYNC | wxEXEC_NODISABLE);
+    // Run bpy synchronously.  wxWindowDisabler is intentionally omitted here:
+    // it blocks the Win32 message pump that wxEXEC_SYNC relies on to drain the
+    // stdout pipe, which causes the captured output to be empty.
+    wxBusyCursor busy;
+    wxArrayString stdout_output;
+    ::wxExecute(cmd, stdout_output, wxEXEC_SYNC);
 
+    // Primary: parse SKIN_OUTPUT from the log file (written by --log).
+    // Fallback: scan captured stdout in case --log write failed.
     std::string result_stl;
-    for (const auto& line : stdout_output)
-        if (line.StartsWith("SKIN_OUTPUT:")) {
-            result_stl = line.Mid(12).Strip().ToStdString();
-            break;
-        }
+    auto parse_skin_output = [&result_stl](const std::string& line) {
+        const std::string prefix = "SKIN_OUTPUT: ";
+        if (result_stl.empty() && line.rfind(prefix, 0) == 0)
+            result_stl = line.substr(prefix.size());
+    };
+    if (boost::filesystem::exists(log_path)) {
+        std::ifstream log_in(log_path);
+        for (std::string ln; std::getline(log_in, ln); ) parse_skin_output(ln);
+        boost::filesystem::remove(log_path);
+    }
+    if (result_stl.empty()) {
+        for (const auto& line : stdout_output)
+            parse_skin_output(line.ToStdString());
+    }
 
     if (result_stl.empty() || !boost::filesystem::exists(result_stl)) {
         show_error(this, _L("Texture generation failed.\nCheck that bpy_env is installed correctly."));
@@ -20923,26 +20942,38 @@ void Plater::adjust_texture_depth()
     namespace fs             = boost::filesystem;
     const std::string script = (fs::path(Slic3r::resources_dir()) / "scripts" / "apply_texture_bpy.py").string();
 
+    const std::string log_path2 = (fs::temp_directory_path() /
+        fs::unique_path("qidi_tex_log_%%%%-%%%%-%%%%-%%%%.txt")).string();
+
     const wxString cmd = wxString::Format(
-        "\"%s\" \"%s\" \"%s\" \"%s\" --mode %s --tile-size %.1f --relief %.2f",
+        "\"%s\" \"%s\" \"%s\" \"%s\" --mode %s --tile-size %.1f --relief %.2f --log \"%s\"",
         wxString::FromUTF8(bpy_python),
         wxString::FromUTF8(script),
         wxString::FromUTF8(src_stl),
         wxString::FromUTF8(png_path),
         wxString::FromUTF8(mode_str),
-        new_tile, new_rel);
+        new_tile, new_rel,
+        wxString::FromUTF8(log_path2));
 
-    wxArrayString    stdout_output;
-    wxBusyCursor     busy;
-    wxWindowDisabler disabler;
-    ::wxExecute(cmd, stdout_output, wxEXEC_SYNC | wxEXEC_NODISABLE);
+    wxBusyCursor  busy;
+    wxArrayString stdout_output;
+    ::wxExecute(cmd, stdout_output, wxEXEC_SYNC);
 
     std::string result_stl;
-    for (const auto& line : stdout_output)
-        if (line.StartsWith("SKIN_OUTPUT:")) {
-            result_stl = line.Mid(12).Strip().ToStdString();
-            break;
-        }
+    auto parse_skin2 = [&result_stl](const std::string& line) {
+        const std::string prefix = "SKIN_OUTPUT: ";
+        if (result_stl.empty() && line.rfind(prefix, 0) == 0)
+            result_stl = line.substr(prefix.size());
+    };
+    if (boost::filesystem::exists(log_path2)) {
+        std::ifstream log_in2(log_path2);
+        for (std::string ln; std::getline(log_in2, ln); ) parse_skin2(ln);
+        boost::filesystem::remove(log_path2);
+    }
+    if (result_stl.empty()) {
+        for (const auto& line : stdout_output)
+            parse_skin2(line.ToStdString());
+    }
 
     if (result_stl.empty() || !boost::filesystem::exists(result_stl)) {
         show_error(this, _L("Texture update failed."));
