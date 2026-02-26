@@ -565,8 +565,7 @@ def main():
             ok = generate_procedural(cat, idx, out_path)
         if not ok:
             if args.procedural_only:
-                done += 1
-                continue    # skip AI call when --procedural-only requested
+                continue    # skip AI call; don't count toward done/skipped/failed
             ok = generate_one(prompt, out_path)
             if ok:
                 time.sleep(1.1)   # rate-limit only AI calls
