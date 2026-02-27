@@ -1,13 +1,6 @@
 {
   "hooks": {
-    "UserPromptSubmit": [
-      {
-        "type": "command",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File \".github\\hooks\\prompt_submit_hook.ps1\"",
-        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .github/hooks/prompt_submit_hook.ps1",
-        "timeout": 10
-      }
-    ],
+
     "PreCompact": [
       {
         "type": "command",
@@ -15,6 +8,14 @@
         "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .github/hooks/precompact_hook.ps1",
         "timeout": 30
       }
-    ]
+				],
+				"UserPromptSubmit": [
+					{
+						"type": "command",
+						"windows": "powershell -NoProfile -ExecutionPolicy Bypass -File \".github\\hooks\\prompt_submit_hook.ps1\"",
+						"command": "powershell -NoProfile -ExecutionPolicy Bypass -File .github/hooks/prompt_submit_hook.ps1",
+						"timeout": 30
+					}
+				]
   }
 }

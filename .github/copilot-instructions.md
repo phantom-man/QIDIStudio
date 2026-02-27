@@ -31,7 +31,48 @@ Look above — you should see `━━━ QIDISTUDIO KNOWLEDGE BASE ━━━`.
 | Semantic search | `memory_env\Scripts\python.exe memory/inject.py --query "cmake build"` |
 | Re-index docs to LanceDB | `memory_env\Scripts\python.exe memory/extract.py` |
 | Push prompt to LangSmith Hub | `memory_env\Scripts\python.exe memory/push_prompt.py` |
+| Push ALL agent prompts to Hub | `memory_env\Scripts\python.exe agents/push_all_prompts.py` |
 | Re-install deps | `.\memory_env\Scripts\python.exe -m pip install -r memory\requirements.txt` |
+| Run agent fleet | `memory_env\Scripts\python.exe agents/orchestrator.py "your request"` |
+
+---
+
+## ⚡ ALWAYS PARALLEL — NON-NEGOTIABLE
+
+These rules are **mandatory**. Violating them is the #1 performance problem.
+
+### Parallelism Rules
+
+1. **NEVER use `captureOutput: true`** on terminal commands. They block until the shell
+   closes. Instead: pipe to a file (`2>&1 | Tee-Object out.txt`) then `read_file` it.
+
+2. **NEVER wait sequentially** for unrelated operations. Fire all independent tool calls
+   in a single `<function_calls>` block. If calls don't depend on each other, they run together.
+
+3. **NEVER poll a terminal** more than once. If you need output, write it to a file,
+   move on to other work, and come back to read the file as a separate step.
+
+4. **Delegate blocking work to `runSubagent`.** If a task involves: running a build,
+   waiting on a long install, reading many files, or doing research — spawn a subagent.
+   You are the director. You keep your context clean.
+
+5. **Multi-step tasks: plan first, execute in parallel batches.**
+   Use `manage_todo_list` to lay out the plan, then execute all non-dependent steps
+   in the same tool call block.
+
+6. **Sub-agents get full context upfront.** Load them heavy with everything they need.
+   No back-and-forth. Trust LanceDB to hold the detail.
+
+### Agent Fleet (sub-agents for heavy tasks)
+
+| Agent | Purpose | Key Capability |
+|-------|---------|----------------|
+| `researcher` | Technical research, documentation deep-dives | Gemini + Google Search |
+| `builder` | C++ / Python / CMake implementation | Gemini + Code Execution |
+| `verifier` | Code review, bug-pattern check | Gemini, structured verdict |
+| `scribe` | Memory sync, knowledge base write | LanceDB tools |
+
+Invoke via: `memory_env\Scripts\python.exe agents/orchestrator.py "task description"`
 
 ---
 
@@ -70,3 +111,6 @@ Append rows here — `memory/extract.py` auto-indexes them into LanceDB.
 | 2026-02-27 | LangSmith | push_prompt.py python env | Use `memory_env\Scripts\python.exe memory/push_prompt.py` — universal memory venv; NOT deepagents venv or Python 3.13 | memory_env is the single canonical venv for all LangSmith/LanceDB memory commands |
 | 2026-02-27 | LangSmith | Remote prompt confirmed live | `qidistudio-memory-agent` pushed successfully, org `073a725b-0613-4b53-9391-56f740a3e7ea`, rev `ace15015` | push_out.txt was stale (showed old tenant error); actual push was already fixed and working |
 | 2026-02-27 | tools_and_env | Universal memory venv | Created `memory_env\` at repo root with Python 3.13; install: `memory_env\Scripts\pip install -r memory\requirements.txt` | Replaces dependency on deepagents venv for all langsmith/lancedb/sentence-transformers operations |
+| 2026-02-27 | tools_and_env | Agent fleet architecture | LangGraph Supervisor + Send API fan-out; 4 agents: researcher/builder/verifier/scribe; all Gemini via langchain-google-genai | agents/orchestrator.py; parallel dispatch uses Send API — all tasks with no deps run same superstep |
+| 2026-02-27 | tools_and_env | Parallelism directive | NEVER captureOutput:true; NEVER sequential waits; delegate blocking ops to runSubagent; write output to file, read_file later | User directive — blocking terminal polling is the #1 cause of getting stuck |
+| 2026-02-27 | LangSmith | Agent prompt Hub names | All agent prompts pushed as qidi-<agent_id>: qidi-director, qidi-researcher, qidi-builder, qidi-verifier, qidi-scribe | agents/push_all_prompts.py iterates agents/prompts/*.md and pushes each |

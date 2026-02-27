@@ -2,6 +2,7 @@
 # Venv: memory_env\Scripts\python.exe (Python 3.13)
 # Install: .\memory_env\Scripts\python.exe -m pip install -r memory\requirements.txt
 
+# Core memory stack
 lancedb>=0.6.0
 sentence-transformers>=3.0.0
 python-dotenv>=1.0.0
@@ -10,3 +11,7 @@ langchain>=0.2.0
 langchain-core>=0.2.0
 psycopg2-binary>=2.9.0
 pyarrow>=14.0.0
+
+# Agent fleet (LangGraph + Google Gemini)
+langgraph>=0.2.0
+langchain-google-genai>=3.1.0
