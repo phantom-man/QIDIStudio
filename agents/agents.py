@@ -73,11 +73,17 @@ def load_prompt(agent_id: str) -> str:
 
 # ── Model factory ─────────────────────────────────────────────────────────────
 
+# Vertex AI project + region — auth via gcloud ADC (no API key needed)
+_GCP_PROJECT  = os.environ.get("GOOGLE_CLOUD_PROJECT",  "crafty-hook-483415-b3")
+_GCP_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+
+
 def _make_llm(model: str, temperature: float = 0.0, **kwargs: Any) -> ChatGoogleGenerativeAI:
     return ChatGoogleGenerativeAI(
         model=model,
         temperature=temperature,
-        google_api_key=os.environ.get("GOOGLE_API_KEY"),
+        project=_GCP_PROJECT,
+        location=_GCP_LOCATION,
         **kwargs,
     )
 
