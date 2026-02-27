@@ -279,22 +279,31 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
                         relief: float, invert: bool, gamma: float,
                         log: Logger, *, mode: str = "modifier"):
     """
-    Pure-Python UV displacement pipeline — no Displace modifier, no bmesh.from_object().
+    Pure-Python box-mapped displacement — topology-agnostic, zero UV seams.
 
-    The entire history of seam-streak and shredded-mesh artifacts traced to
-    bmesh.from_object(): it splits vertices at UV seam edges so each side
-    displaces differently.  This function avoids that entirely:
+    Works identically on flat plates, vertical walls, tubes, tapered shapes,
+    and any other geometry because it uses NO UV MAP whatsoever.
 
+    Algorithm:
       0. Weld vertices (STL has one vertex copy per triangle face)
-      1. Subdivide via bmesh.ops.subdivide_edges() — pure bmesh, no modifier
-      2. Smart UV Project — marks seam edges but does NOT split vertices
-      3. Scale UVs so 1 UV unit = tile_size mm across the object
-      4. Load image pixels into numpy array (with gamma)
-      5. For each vertex: average its UV across all loops, sample texture
-         bilinearly (with tiling), displace along vertex normal
-      6. Recalculate face normals
+      1. Subdivide via bmesh.ops.subdivide_edges — pure bmesh, no modifier
+      2. Load image pixels into numpy array (with gamma)
+      3. For each vertex:
+           • Determine dominant normal axis (|nx| vs |ny| vs |nz|)
+           • Project vertex world position onto the perpendicular plane
+             using that axis → 2D texture coordinate (u, v)
+           • Scale by 1/tile_size so 1 tile = tile_size mm
+           • Bilinear-sample the image with tiling (frac(u), frac(v))
+           • Displace along vertex normal by (pixel − mid_level) × strength
+      4. Recalculate face normals
 
-    No modifier stack, no depsgraph bake, no vertex splits.
+    Box mapping with HARD axis selection (no blending):
+      Flat top face   → all normals are Z-dominant → pure Z projection → clean
+      Vertical wall   → all normals are X or Y dominant → pure planar → clean
+      Tapered surface → each vertex independently picks its strongest axis
+                        → no blend region, no patch boundaries
+    No UV map → no seam edges → no vertex splits → no streaks.
+    No Displace modifier → no bmesh.from_object() → no topology distortion.
     """
     import bmesh
     try:
@@ -302,7 +311,7 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
         HAS_NP = True
     except ImportError:
         HAS_NP = False
-        log.log("  WARNING: numpy not found; using slow pixel loop fallback")
+        log.log("  WARNING: numpy not found; falling back to slow pixel loop")
 
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
@@ -319,41 +328,19 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
     after_w = len(obj.data.vertices)
     log.log(f"  Welded: {before_w}→{after_w} verts")
 
-    # ── 1. Subdivide via bmesh.ops (no modifier → nothing to bake) ───
-    # bmesh.ops.subdivide_edges bisects each edge — existing vertex
-    # positions are never moved, so holes and sharp edges stay intact.
+    # ── 1. Subdivide via bmesh.ops ───────────────────────────────────
     sub_level = _adaptive_subd_level(obj)
     bm = bmesh.new()
     bm.from_mesh(obj.data)
     for _ in range(sub_level):
-        bmesh.ops.subdivide_edges(
-            bm, edges=bm.edges[:], cuts=1, use_grid_fill=True
-        )
+        bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=1, use_grid_fill=True)
     bm.normal_update()
     bm.to_mesh(obj.data)
     bm.free()
     obj.data.update()
     log.log(f"  Subdivided ×{sub_level} (bmesh.ops): {len(obj.data.vertices)} verts")
 
-    # ── 2. UV unwrap ─────────────────────────────────────────────────
-    # Smart UV Project marks seam edges but does NOT split vertices in
-    # the stored mesh.  Vertex splits only happen inside bmesh.from_object()
-    # when a modifier stack uses UV coords — we never call that here.
-    _smart_uv_project(obj, log)
-
-    # ── 3. Scale UVs for tile_size ───────────────────────────────────
-    xs = [v.co.x for v in obj.data.vertices]
-    ys = [v.co.y for v in obj.data.vertices]
-    bbox_x = max(xs) - min(xs)
-    bbox_y = max(ys) - min(ys)
-    uv_scale = max(max(bbox_x, bbox_y) / tile_size, 1.0) if tile_size > 0 else 1.0
-    uv_layer = obj.data.uv_layers.active
-    for luv in uv_layer.data:
-        luv.uv.x *= uv_scale
-        luv.uv.y *= uv_scale
-    log.log(f"  UV scale ×{uv_scale:.2f} (bbox={bbox_x:.1f}×{bbox_y:.1f}mm tile={tile_size}mm)")
-
-    # ── 4. Load texture pixels ───────────────────────────────────────
+    # ── 2. Load texture pixels ───────────────────────────────────────
     img = bpy.data.images.load(skin_path)
     img.colorspace_settings.name = "Non-Color"
     _gamma_correct_image(img, gamma, log)
@@ -362,12 +349,14 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
         px = np.array(img.pixels[:], dtype=np.float32).reshape(H, W, 4)
     else:
         px_flat = list(img.pixels[:])
-    log.log(f"  Texture loaded: {W}×{H}px")
+    log.log(f"  Texture loaded: {W}×{H}px  tile_size={tile_size}mm")
 
     def sample(u: float, v: float) -> float:
         """Bilinear sample with repeat tiling."""
         u = u % 1.0
         v = v % 1.0
+        if u < 0.0: u += 1.0
+        if v < 0.0: v += 1.0
         fx = u * (W - 1)
         fy = v * (H - 1)
         x0, y0 = int(fx), int(fy)
@@ -380,31 +369,25 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
             c01 = float(px[y1, x0, 0])
             c11 = float(px[y1, x1, 0])
         else:
-            def idx(yy, xx): return (yy * W + xx) * 4
-            c00 = px_flat[idx(y0, x0)]
-            c10 = px_flat[idx(y0, x1)]
-            c01 = px_flat[idx(y1, x0)]
-            c11 = px_flat[idx(y1, x1)]
+            def _i(yy, xx): return (yy * W + xx) * 4
+            c00 = px_flat[_i(y0, x0)]
+            c10 = px_flat[_i(y0, x1)]
+            c01 = px_flat[_i(y1, x0)]
+            c11 = px_flat[_i(y1, x1)]
         return c00*(1-tx)*(1-ty) + c10*tx*(1-ty) + c01*(1-tx)*ty + c11*tx*ty
 
-    # ── 5. Build vert → averaged UV map ─────────────────────────────
-    # A vertex at a seam appears in loops with different UVs.  Average
-    # them — since the texture tiles, the average of two seam-side UVs
-    # may differ by ~1.0; use the fractional average to stay consistent.
-    mesh = obj.data
-    uv_data = uv_layer.data
-    vert_uv_sum = {}   # vi → [sum_u, sum_v, count]
-    for poly in mesh.polygons:
-        for li in poly.loop_indices:
-            vi = mesh.loops[li].vertex_index
-            uv = uv_data[li].uv
-            if vi not in vert_uv_sum:
-                vert_uv_sum[vi] = [0.0, 0.0, 0]
-            vert_uv_sum[vi][0] += uv.x
-            vert_uv_sum[vi][1] += uv.y
-            vert_uv_sum[vi][2] += 1
+    # ── 3. Box-map displacement ──────────────────────────────────────
+    # For each vertex pick the axis whose |normal component| is largest.
+    # Use the other two axes as planar texture coordinates, scaled by
+    # 1/tile_size so 1 tile = tile_size mm.
+    #
+    #   Z-dominant (flat top/bottom):  u = x/tile_size,  v = y/tile_size
+    #   Y-dominant (front/back wall): u = x/tile_size,  v = z/tile_size
+    #   X-dominant (left/right wall): u = y/tile_size,  v = z/tile_size
+    #
+    # Hard selection — no blending — so there is never a gradient patch
+    # between two projection zones.
 
-    # ── 6. Displace each vertex along its normal ─────────────────────
     if mode == "negative":
         mid_level = 0.0
         strength  = -abs(relief)
@@ -412,26 +395,35 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
         mid_level = 0.5
         strength  = (-relief if invert else relief)
 
+    mesh = obj.data
     displaced = 0
     for v in mesh.vertices:
-        entry = vert_uv_sum.get(v.index)
-        if not entry or entry[2] == 0:
-            continue
-        u = entry[0] / entry[2]
-        vc = entry[1] / entry[2]
+        n  = v.normal
+        ax, ay, az = abs(n.x), abs(n.y), abs(n.z)
+        x, y, z = v.co.x, v.co.y, v.co.z
+
+        if az >= ax and az >= ay:          # Z-dominant: top/bottom faces
+            u = x / tile_size
+            vc = y / tile_size
+        elif ay >= ax:                     # Y-dominant: front/back walls
+            u = x / tile_size
+            vc = z / tile_size
+        else:                              # X-dominant: left/right walls
+            u = y / tile_size
+            vc = z / tile_size
+
         pixel_val = sample(u, vc)
         disp = (pixel_val - mid_level) * strength
-        n = v.normal
         v.co.x += n.x * disp
         v.co.y += n.y * disp
         v.co.z += n.z * disp
         displaced += 1
 
     mesh.update()
-    log.log(f"  Displaced {displaced}/{len(mesh.vertices)} verts"
-            f"  strength={strength:.2f}mm mid={mid_level}")
+    log.log(f"  Box-mapped: {displaced} verts displaced  "
+            f"strength={strength:.2f}mm mid={mid_level}")
 
-    # ── 7. Recalculate face normals ──────────────────────────────────
+    # ── 4. Recalculate face normals ──────────────────────────────────
     bm = bmesh.new()
     bm.from_mesh(mesh)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
