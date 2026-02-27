@@ -28,10 +28,11 @@ if ($success) {
 } else {
     # Fallback: static "use Context7" (memory module not installed or failed)
     Add-Content -Path $logFile -Value "$ts [UserPromptSubmit] falling back to static Context7 hint"
+    $fallbackMsg = 'use Context7. NOTE: persistent memory is offline - run: pip install -r memory/requirements.txt'
     @{
         hookSpecificOutput = @{
-            hookEventName     = "UserPromptSubmit"
-            additionalContext = "use Context7. Also: persistent memory is offline — remember to run 'pip install -r memory/requirements.txt' in the QIDIStudio repo."
+            hookEventName     = 'UserPromptSubmit'
+            additionalContext = $fallbackMsg
         }
     } | ConvertTo-Json -Compress
 }
