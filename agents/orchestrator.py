@@ -78,11 +78,15 @@ class SingleTaskState(TypedDict):
 
 # ── Director LLM ─────────────────────────────────────────────────────────────
 
+_GCP_PROJECT  = os.environ.get("GOOGLE_CLOUD_PROJECT",  "crafty-hook-483415-b3")
+_GCP_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+
 def _director_llm() -> ChatGoogleGenerativeAI:
     return ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
         temperature=0.0,
-        google_api_key=os.environ.get("GOOGLE_API_KEY"),
+        project=_GCP_PROJECT,
+        location=_GCP_LOCATION,
     )
 
 
