@@ -92,12 +92,12 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--log",      default="",
                    help="Path for the log file (optional)")
     p.add_argument("--projection",
-                   choices=["conformal", "lscm", "object"],
-                   default="lscm",
+                   choices=["auto", "conformal", "lscm", "object"],
+                   default="auto",
                    help=("UV projection for texture wrapping: "
-                         "lscm=LSCM with sharp-edge seams (default — angle-preserving, seams at hard design edges only, "
-                         "skin-wraps smoothly around curves without spike artifacts), "
-                         "object=world-space box-map (no UV needed, safe fallback but stretches on curved faces), "
+                         "auto=detect from geometry (default — LSCM for organic, OBJECT for angular CAD), "
+                         "lscm=force LSCM conformal UV (angle-preserving, best for smooth curved surfaces), "
+                         "object=force world-space box-map (no seams, best for flat/angular CAD parts), "
                          "conformal=Smart-UV-Project (arbitrary island cuts, can spike on CAD parts)"))
     p.add_argument("--full-surface",
                    dest="full_surface",
@@ -374,20 +374,83 @@ def _adaptive_subd_level(obj) -> int:
     else:            return 2   # large mesh — cap at 2 to avoid RAM issues
 
 
-def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger):
+def _auto_projection(obj, log: Logger) -> tuple:
+    """
+    Analyse the mesh and choose the LSCM seam angle.
+
+    LSCM (Blender CONFORMAL) is always the correct projection for manifold
+    meshes — both organic shapes AND CAD/prismatic/vacuum parts.  The key
+    variable is the seam-placement threshold:
+
+      Organic (smooth surfaces, curved shells):  seams at >= 60° edges only.
+        Few seams → UV islands match large smooth regions → no ridges.
+
+      CAD / prismatic / revolution parts:  seams at >= 30° edges.
+        30° catches every planar-panel boundary (port transitions, gasket
+        seats, boss shoulders, filleted corners).  Each geometric panel
+        becomes its own UV island with zero distortion on its flat faces.
+        Seams fall exactly on design-edge boundaries — not across smooth
+        regions — so there are no displacement discontinuities on faces.
+
+    Source: Advanced Texture Wrapping for CAD (PhD manuscript, §II.1).
+    Reference: `bpy.ops.mesh.edges_select_sharp(sharpness=0.523599)` — 30°.
+
+    Returns (projection, seam_angle_rad).
+    """
+    import bmesh, math
+
+    # Measure with the tighter (30°) threshold to classify the mesh type.
+    MEASURE_RAD = 0.5236   # 30° — the CAD seam threshold
+    ORGANIC_RAD = 1.0472   # 60° — the organic seam threshold
+    CAD_THRESH  = 0.15     # >15% of edges ≥ 30° → prismatic/CAD geometry
+
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    bm.edges.ensure_lookup_table()
+
+    total = 0
+    sharp30 = 0
+    for e in bm.edges:
+        linked = e.link_faces
+        total += 1
+        if len(linked) != 2:
+            sharp30 += 1
+            continue
+        dot   = max(-1.0, min(1.0, linked[0].normal.dot(linked[1].normal)))
+        angle = math.acos(dot)
+        if angle >= MEASURE_RAD:
+            sharp30 += 1
+
+    bm.free()
+
+    fraction   = sharp30 / total if total > 0 else 0.0
+    is_cad     = fraction >= CAD_THRESH
+    seam_angle = MEASURE_RAD if is_cad else ORGANIC_RAD
+    geometry   = 'CAD/prismatic' if is_cad else 'organic/smooth'
+    log.log(f"  Auto-projection: {sharp30}/{total} edges >=30° "
+            f"({fraction:.1%}) → {geometry} → seam_angle={math.degrees(seam_angle):.0f}°")
+    return ('lscm', seam_angle)
+
+
+def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger,
+                  seam_angle_rad: float = 1.0472):
     """
     UV-unwrap the mesh and scale coordinates so 1 UV unit = tile_size mm
     of actual surface distance.
 
     projection:
-      'conformal' — Blender Smart UV Project: per-island angle-based seam detection;
-                    robust on any mesh topology including CAD parts with holes and
-                    fillets.  UV islands are individually placed, then globally
-                    scaled by the geodesic mm-per-UV estimate.
-      'lscm'      — Blender CONFORMAL (LSCM): true Least-Squares Conformal Maps,
-                    maximally angle-preserving.  Best for smooth organic surfaces.
-                    Auto-marks sharp-edge seams before unwrapping; falls back to
-                    smart_project if the unwrap fails.
+      'lscm'      — Blender CONFORMAL (LSCM): Least-Squares Conformal Maps.
+                    Minimises E_LSCM = ∫|∇u − N×∇v|² dA — angle-preserving.
+                    Seams placed at edges whose dihedral angle >= seam_angle_rad:
+                      30° (0.523 rad) for prismatic/CAD parts — every panel face
+                        gets its own perfectly-mapped island (PhD: §II.1)
+                      60° (1.047 rad) for smooth organic surfaces — fewer seams,
+                        continuous UV across curved regions.
+      'conformal' — Blender Smart UV Project (fallback): per-island seam
+                    detection. Robust on any topology but can spike on CAD.
+
+    seam_angle_rad: dihedral angle threshold for seam placement (default 60°).
+      Pass 0.523599 (30°) for prismatic/CAD geometry.
 
     After this call the active UV layer has coordinates whose repeat period is
     tile_size mm, calibrated from the average 3-D vs UV edge-length ratio across
@@ -404,26 +467,27 @@ def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger):
         bpy.ops.mesh.select_all(action='SELECT')
 
         if projection == 'lscm':
-            # PhD pipeline: place seams ONLY at hard design edges (>=60°).
-            # This ensures UV islands correspond to geometric panels:
-            #   - flat top face:  one island, no cuts across it
-            #   - curved walls:   continuous UV — texture wraps like skin
-            #   - screw holes:    seam at rim edge (already a sharp feature)
-            # Result: no spike artifacts on smooth surfaces, correct skin-wrap.
+            # PhD pipeline (Advanced Texture Wrapping for CAD, §II.1):
+            # Place seams at design-edge boundaries using the dihedral threshold
+            # chosen by _auto_projection:
+            #   30° (CAD/prismatic): every planar panel → own island, zero
+            #       distortion per-face, seams only at geometric transitions
+            #       (port shoulders, boss rims, gasket seats, fillet roots).
+            #   60° (organic/smooth): seams only at hard corners — continuous
+            #       UV wraps around curved walls like painted skin.
             #
-            # Step 1: clear ALL existing seams first (avoid stale seams from
-            # previous runs or the import step).
+            # Step 1: clear ALL existing seams (stale from import/prior run).
+            import math as _math
+            seam_deg = _math.degrees(seam_angle_rad)
             bpy.ops.mesh.select_all(action='SELECT')
-            bpy.ops.mesh.mark_seam(clear=True)   # wipe stale seams
-            # Step 2: select sharp edges (sharpness=1.05 rad = 60°) and mark as seams.
-            # 60° catches hard 90° CAD corners, slots, screw bosses without
-            # cutting smooth fillets or gently curved walls.
-            bpy.ops.mesh.edges_select_sharp(sharpness=1.05)
+            bpy.ops.mesh.mark_seam(clear=True)
+            # Step 2: select edges whose dihedral >= seam_angle_rad, mark as seams.
+            bpy.ops.mesh.edges_select_sharp(sharpness=seam_angle_rad)
             bpy.ops.mesh.mark_seam(clear=False)
             bpy.ops.mesh.select_all(action='SELECT')
             try:
-                bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.005)
-                log.log("  UV: LSCM (CONFORMAL) unwrap completed — seams at sharp edges only")
+                bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.001)
+                log.log(f"  UV: LSCM (CONFORMAL) unwrap — seams at >={seam_deg:.0f}° edges")
             except Exception as uv_err:
                 log.log(f"  UV: LSCM failed ({uv_err}) — falling back to smart_project")
                 bpy.ops.uv.smart_project(angle_limit=66.0, island_margin=0.0)
@@ -533,9 +597,17 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     # ── 1. UV unwrap — BEFORE subdivision (clean low-poly topology) ───────
     # UV coordinates survive Simple subdivision: Blender interpolates them
     # linearly across subdivided loops, so the tile scale stays correct.
+    # ── 1a. Auto-detect projection mode + seam angle from geometry ───────
+    # 'auto' uses geometry analysis (PhD: Advanced Texture Wrapping for CAD):
+    #   - always LSCM (angle-preserving conformal maps)
+    #   - 30° seams for CAD/prismatic parts, 60° seams for organic shapes
+    seam_angle_rad = 1.0472  # default: 60° (organic)
+    if projection == 'auto':
+        projection, seam_angle_rad = _auto_projection(obj, log)
+
     use_uv = (projection in ('conformal', 'lscm'))
     if use_uv:
-        _do_uv_unwrap(obj, tile_size, projection, log)
+        _do_uv_unwrap(obj, tile_size, projection, log, seam_angle_rad=seam_angle_rad)
 
     # ── 2. Simple Subdivision ─────────────────────────────────────────────
     sub_level = _adaptive_subd_level(obj)

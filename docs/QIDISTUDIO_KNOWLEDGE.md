@@ -1202,7 +1202,43 @@ def inject_dna_to_gcode(gcode_path, dna):
 
 ---
 
-### 15.4 Blender Conformal UV (bpy API)
+### 15.4 Blender Conformal UV (bpy API) — PhD Seam Strategy
+
+_Source: "Advanced Texture Wrapping for CAD" (docs/Advanced Texture Wrapping for CAD.md, §II.1)_
+
+**LSCM is correct for ALL manifold meshes — both organic and CAD/prismatic parts.**
+The key variable is the **seam-placement threshold**, not the projection method:
+
+| Geometry type | Seam angle | Why |
+|---|---|---|
+| Organic / smooth / curved shells | **60° (1.047 rad)** | Fewer seams → UV flows continuously around curves like skin |
+| CAD / prismatic / vacuum parts | **30° (0.523 rad)** | Every planar panel gets its own island → zero distortion per face; seams fall exactly at design edges (port shoulders, boss rims, gasket seats, fillet roots) |
+
+**The mathematical guarantee:** LSCM minimises $E_{LSCM}(\mathbf{u,v}) = \int_S |\nabla\mathbf{u} - \mathbf{N} \times \nabla\mathbf{v}|^2 \, dA$, which is angle-preserving by definition. On a flat (planar) face, a conformal map is also an isometry — zero stretch, zero distortion. 30° seams ensure each flat panel is a separate island, so every panel gets an exact isometric mapping.
+
+**Critical mistake to avoid:** Using OBJECT (box-map) projection for angular CAD parts. This seems intuitive but is wrong because:
+- World-space box projection is seamless only along axis-aligned faces
+- Non-axis-aligned faces (angled ports, chamfers, tapered revolves) get stretch
+- It cannot adapt to the per-panel orientation the way UV+seams can
+
+**`_auto_projection()` logic in `apply_texture_bpy.py`:**
+```python
+# Count edges with dihedral angle >= 30°
+# >= 15% → CAD/prismatic → seam_angle = 30°
+# <  15% → organic/smooth → seam_angle = 60°
+# Always returns ('lscm', seam_angle_rad)
+```
+
+**Blender implementation:**
+```python
+# Step 1: clear stale seams
+bpy.ops.mesh.mark_seam(clear=True)
+# Step 2: mark seams at design-edge boundaries
+bpy.ops.mesh.edges_select_sharp(sharpness=0.523599)  # 30° for CAD
+bpy.ops.mesh.mark_seam(clear=False)
+# Step 3: LSCM conformal unwrap
+bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.001)
+```
 
 When working inside Blender (via `apply_texture_bpy.py`), use Blender's built-in conformal unwrap rather than libIGL:
 
