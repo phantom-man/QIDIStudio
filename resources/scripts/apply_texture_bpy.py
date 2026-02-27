@@ -382,16 +382,19 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     disp.direction           = 'NORMAL'
     log.log(f"  Displace modifier: strength={strength:.2f}mm  mid={mid_level:.1f}  coords=OBJECT")
 
-    # ── 5. Apply modifier stack via ops.object.convert ────────────────
-    # In full Blender this bakes Subdiv + Displace into obj.data.
-    # No bmesh.from_object() → no UV-seam vertex splitting.
+    # ── 5. Apply modifiers individually via modifier_apply ───────────
+    # ops.object.modifier_apply is more reliable in background mode than
+    # ops.object.convert(target='MESH') which can silently no-op.
+    # Apply in stack order: Subdiv first, then Displace.
+    bpy.context.view_layer.objects.active = obj
     with bpy.context.temp_override(
         active_object=obj, object=obj,
         selected_objects=[obj], selected_editable_objects=[obj],
     ):
-        bpy.ops.object.convert(target='MESH')
+        bpy.ops.object.modifier_apply(modifier="Subdiv")
+        bpy.ops.object.modifier_apply(modifier="Displace")
 
-    log.log(f"  Modifier applied: {len(obj.data.vertices)} verts post-convert")
+    log.log(f"  Modifiers applied: {len(obj.data.vertices)} verts post-apply")
     log.log(f"  Done: relief={strength:.2f}mm tile={tile_size}mm mode={mode}")
 
 
@@ -633,6 +636,7 @@ def main():
 
     try:
         log.log("=== apply_texture_bpy.py ===")
+        log.log(f"IS_FULL_BLENDER={IS_FULL_BLENDER}  binary_path={getattr(bpy.app, 'binary_path', 'n/a')}")
         log.log(f"mode={args.mode}  tile={args.tile_size}mm  "
                 f"relief={args.relief}mm  invert={args.invert}  gamma={args.gamma}")
         log.log(f"model: {args.model_path}")
