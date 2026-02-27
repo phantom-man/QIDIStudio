@@ -20843,8 +20843,12 @@ void Plater::apply_texture(ModelVolumeType type)
     const std::string script   = (fs::path(Slic3r::resources_dir()) / "scripts" / "apply_texture_bpy.py").string();
 
     // Use a temp log file as the reliable IPC channel for SKIN_OUTPUT.
-    // bpy writes ~500 bytes to stdout (well under the 4 KB Windows pipe buffer)
-    // so no deadlock risk, but the log file is more robust across OS buffering.
+    // We run bpy with wxEXEC_BLOCK (= SYNC | NOEVENTS) so the wx event loop
+    // does NOT pump while waiting.  Without NOEVENTS, timers and paint handlers
+    // fire during the ~2s wait and some read the already-cleared 3D canvas
+    // Selection → crash.  NOEVENTS is safe here because we read bpy output
+    // from a log file, not from stdout, so there's no pipe to drain via the
+    // event loop.
     const std::string log_path = (fs::temp_directory_path() /
         fs::unique_path("qidi_tex_log_%%%%-%%%%-%%%%-%%%%.txt")).string();
 
@@ -20860,7 +20864,7 @@ void Plater::apply_texture(ModelVolumeType type)
 
     wxBusyCursor    busy;
     wxArrayString stdout_output;
-    ::wxExecute(cmd, stdout_output, wxEXEC_SYNC);
+    ::wxExecute(cmd, stdout_output, wxEXEC_BLOCK | wxEXEC_HIDE_CONSOLE);
 
     // Primary: parse SKIN_OUTPUT from the log file (written by --log).
     // Fallback: scan captured stdout in case --log write failed.
@@ -21061,7 +21065,7 @@ void Plater::adjust_texture_depth()
 
     wxBusyCursor  busy;
     wxArrayString stdout_output;
-    ::wxExecute(cmd, stdout_output, wxEXEC_SYNC);
+    ::wxExecute(cmd, stdout_output, wxEXEC_BLOCK | wxEXEC_HIDE_CONSOLE);
 
     std::string result_stl;
     auto parse_skin2 = [&result_stl](const std::string& line) {

@@ -392,6 +392,8 @@ void MenuFactory::append_menu_item_add_texture(wxMenu* menu, ModelVolumeType typ
 }
 ```
 
+- **`wxEXEC_SYNC` event loop fires handlers that touch stale canvas Selection** — `wxEXEC_SYNC` runs a local wx event loop while waiting for the child process. Any paint/timer handler fired during that loop can access `scene_selection()` / `get_selection()` and crash if the Selection was already cleared (e.g. by a closed dialog). **Fix: use `wxEXEC_BLOCK` (`= wxEXEC_SYNC | wxEXEC_NOEVENTS`) instead.** This disables event pumping for the duration of the child process. Safe when using `--log <tmpfile>` IPC since there's no stdout pipe to drain via the event loop.
+
 - **`ShowModal()` clears the 3D canvas Selection before returning** — On Windows, a dialog's `WM_DESTROY` fires a focus event on the 3D canvas that clears `Selection` BEFORE `ShowModal()` returns control. Any code reading `scene_selection()` or `get_selection()` after a `ShowModal()` call will see an empty selection set and crash. **Fix pattern:** capture `instance_idx`, `inst_transform`, `instance_offset` into local variables from the live `Selection` BEFORE `ShowModal()`. Never call `ObjectList::load_from_files()` or `ObjectList::load_generic_subobject()` after a dialog close — they both dereference `selection.get_instance_idxs().begin()` without an empty check. Do the `Model::read_from_file` + `mo->add_volume()` + transform setup directly instead.
 
 - **`wxWindowDisabler` during `wxEXEC_SYNC` blocks stdout pipe** — `wxWindowDisabler` blocks the Win32 message pump; `wxEXEC_SYNC` drains the child's stdout via the message pump. Together they deadlock. Fix: use `--log <tmpfile>` IPC instead of stdout, and don't use `wxWindowDisabler` during `wxExecute`.
