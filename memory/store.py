@@ -88,7 +88,10 @@ def _get_table():
         return _table
 
     db = _get_db()
-    existing = db.table_names()
+    try:
+        existing = db.list_tables()   # lancedb >= 0.5
+    except AttributeError:
+        existing = db.table_names()   # older API
 
     if LANCEDB_TABLE in existing:
         t = db.open_table(LANCEDB_TABLE)
