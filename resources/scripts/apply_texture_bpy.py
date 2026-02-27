@@ -93,11 +93,12 @@ def _parse_args() -> argparse.Namespace:
                    help="Path for the log file (optional)")
     p.add_argument("--projection",
                    choices=["conformal", "lscm", "object"],
-                   default="object",
+                   default="lscm",
                    help=("UV projection for texture wrapping: "
-                         "object=world-space box-map (default, no UV seams, safe on any topology), "
-                         "conformal=Smart-UV-Project (angle-based islands, may spike at seams on CAD parts), "
-                         "lscm=Least-Squares Conformal Maps (angle-preserving, best for smooth organic shapes)"))
+                         "lscm=LSCM with sharp-edge seams (default — angle-preserving, seams at hard design edges only, "
+                         "skin-wraps smoothly around curves without spike artifacts), "
+                         "object=world-space box-map (no UV needed, safe fallback but stretches on curved faces), "
+                         "conformal=Smart-UV-Project (arbitrary island cuts, can spike on CAD parts)"))
     p.add_argument("--full-surface",
                    dest="full_surface",
                    action="store_true",
@@ -309,6 +310,55 @@ def _gamma_correct_image(img, gamma: float, log: Logger) -> None:
     log.log(f"  Gamma correction applied (g={gamma})")
 
 
+def _compute_shape_dna(obj, k: int = 10, log: "Logger | None" = None):
+    """
+    Compute the Shape DNA of a mesh: the first k eigenvalues of the
+    combinatorial graph Laplacian (degree matrix − adjacency matrix).
+
+    These eigenvalues are isometry-invariant — they encode the global
+    shape topology as a compact fingerprint.  Two geometrically identical
+    meshes have the same DNA regardless of position or rotation.
+
+    References:
+      Reuter 2006 'Shape DNA: Spectral Geometry for Shape Recognition'
+      PhD Manuscript Sec. IV — get_shape_dna()
+
+    NOTE: Uses the combinatorial Laplacian (fast, O(E) edges) rather than
+    the cotangent-weighted Laplacian (requires edge angle data).  Sufficient
+    for logging/diagnostics.  For production metrology use robust_laplacian
+    on the exported STL (see KB § 15.2).
+
+    Skips the computation if the mesh has more than 5 000 vertices to avoid
+    O(V²) memory allocation on subdivided meshes.
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        if log:
+            log.log("  Shape DNA: numpy unavailable, skipping")
+        return None
+
+    mesh = obj.data
+    n = len(mesh.vertices)
+    if n > 5000:
+        if log:
+            log.log(f"  Shape DNA: mesh has {n} verts — too large for in-process DNA, skipping")
+        return None
+
+    adj = np.zeros((n, n), dtype=np.float32)
+    for edge in mesh.edges:
+        u, v = edge.vertices[0], edge.vertices[1]
+        adj[u, v] = adj[v, u] = 1.0
+    deg = np.diag(adj.sum(axis=1))
+    L = deg - adj
+    evals = np.linalg.eigvalsh(L)   # sorted ascending
+    dna = evals[:k]
+    if log:
+        dna_str = ",".join(f"{x:.4f}" for x in dna)
+        log.log(f"  Shape DNA (k={k}): [{dna_str}]")
+    return dna
+
+
 def _adaptive_subd_level(obj) -> int:
     """
     Choose a subdivision level so result stays under ~300K triangles.
@@ -354,15 +404,26 @@ def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger):
         bpy.ops.mesh.select_all(action='SELECT')
 
         if projection == 'lscm':
-            # Mark seams at sharp feature edges so LSCM has valid cuts.
-            # sharpness=1.05 rad ≈ 60° — catches hard CAD edges without
-            # over-cutting smooth organic surfaces.
+            # PhD pipeline: place seams ONLY at hard design edges (>=60°).
+            # This ensures UV islands correspond to geometric panels:
+            #   - flat top face:  one island, no cuts across it
+            #   - curved walls:   continuous UV — texture wraps like skin
+            #   - screw holes:    seam at rim edge (already a sharp feature)
+            # Result: no spike artifacts on smooth surfaces, correct skin-wrap.
+            #
+            # Step 1: clear ALL existing seams first (avoid stale seams from
+            # previous runs or the import step).
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.mark_seam(clear=True)   # wipe stale seams
+            # Step 2: select sharp edges (sharpness=1.05 rad = 60°) and mark as seams.
+            # 60° catches hard 90° CAD corners, slots, screw bosses without
+            # cutting smooth fillets or gently curved walls.
             bpy.ops.mesh.edges_select_sharp(sharpness=1.05)
             bpy.ops.mesh.mark_seam(clear=False)
             bpy.ops.mesh.select_all(action='SELECT')
             try:
-                bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.01)
-                log.log("  UV: LSCM (CONFORMAL) unwrap completed")
+                bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.005)
+                log.log("  UV: LSCM (CONFORMAL) unwrap completed — seams at sharp edges only")
             except Exception as uv_err:
                 log.log(f"  UV: LSCM failed ({uv_err}) — falling back to smart_project")
                 bpy.ops.uv.smart_project(angle_limit=66.0, island_margin=0.0)
@@ -572,6 +633,12 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     log.log(f"  Done: relief={strength:.2f}mm  tile={tile_size}mm  mode={mode}  "
             f"projection={'UV('+projection+')' if use_uv else 'OBJECT'}  "
             f"full_surface={full_surface}")
+
+    # ── 7. Shape DNA (diagnostic fingerprint) ────────────────────────────
+    # Compute on the post-displacement mesh (before subdivision makes it huge).
+    # Log eigenvalues so the user/debugger can verify shape integrity.
+    # For meshes subdivided beyond 5 000 verts this is skipped automatically.
+    _compute_shape_dna(obj, k=10, log=log)
 
 
 def _apply_displacement(obj, skin_path: str, tile_size: float,
