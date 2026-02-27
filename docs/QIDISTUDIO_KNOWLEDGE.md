@@ -943,6 +943,15 @@ for _ in range(10):
 
 **Critical sign note:** `igl.cotmatrix` returns a **negative** semi-definite matrix (diagonal negative, off-diagonal non-negative). This is OPPOSITE to `robust_laplacian` which is positive semi-definite. When converting between the two, flip the sign.
 
+#### Geometry Central (Sharp et al.)
+
+**Install:** C++ library — no pip wheel. Python bindings are experimental and not on PyPI.  
+**License:** MIT  
+**Repo:** https://github.com/nmwsharp/geometry-central  
+**Note:** The PhD manuscript lists this under Python libraries but it is primarily a **C++ geometry library**. For Python workflows, use `robust_laplacian` and `libigl` instead — they expose the same surface geometry algorithms (cotangent Laplacian, heat geodesics, parameterization) as pip-installable wheels. Geometry Central is relevant if the pipeline ever moves to a compiled C++ extension inside QIDIStudio itself.
+
+---
+
 #### Robust Laplacians (Sharp & Crane SGP 2020)
 
 **Install:** `pip install robust_laplacian`  
@@ -1144,6 +1153,11 @@ STL/3MF design
       ▼
 6. SCAN / RECONSTRUCT printed part (photogrammetry or depth sensor → point cloud)
       ▼
+6b. HAUSDORFF DISTANCE CHECK (geometric delta-validation)
+      │  d_H(A,B) = max(sup_{a∈A} inf_{b∈B} d(a,b), sup_{b∈B} inf_{a∈A} d(a,b))
+      │  Measures worst-case geometric deviation between scanned part and CAD model
+      │  Python: scipy.spatial.distance.directed_hausdorff or trimesh.proximity.closest_point
+      ▼
 7. SHAPE DNA COMPARISON
       │  Compute DNA of scanned part; compare to target DNA
       │  Fitness = 1 / Σ(λ_target - λ_printed)²
@@ -1289,6 +1303,8 @@ robust_laplacian>=1.0.0
 trimesh[easy]>=4.0.0
 scipy>=1.11.0
 numpy>=1.24.0
+# NOTE: geometry-central (https://github.com/nmwsharp/geometry-central) is C++ only
+# — no pip wheel. Use libigl + robust_laplacian as the Python equivalent.
 ```
 
 **Python version compatibility:**
@@ -1306,7 +1322,23 @@ import trimesh; m = trimesh.creation.icosphere(); print(f"trimesh OK — icosphe
 
 ---
 
-### 15.8 Troubleshooting — Geometry Stack
+### 15.8 Reference Papers (PhD Manuscript Sources)
+
+Key papers underpinning the computational metrology pipeline:
+
+| Paper | Authors | Relevance |
+|-------|---------|----------|
+| [Rethinking Texture Mapping](https://www.cemyuksel.com/courses/conferences/siggraph2017-rethinking_texture_mapping/) | Yuksel, Tarini, Lefebvre (SIGGRAPH 2017) | Survey of UV alternatives: Ptex, Mesh Colors, PolyCube, Volume UV |
+| [Shape DNA: Spectral Geometry](https://reuter.mit.edu/papers/reuter-sig06.pdf) | Reuter et al. (2006) | Laplace-Beltrami eigenvalues as isometry-invariant shape fingerprint |
+| [Conformal Geometry of Surfaces](https://archive.ymsc.tsinghua.edu.cn/pacm_download/59/11124-Shing-Tung_Yau_236.pdf) | Gu & Yau | Mathematical foundation for angle-preserving maps on manifolds |
+| [Texture Synthesis over Arbitrary Manifolds](https://history.siggraph.org/learning/texture-synthesis-over-arbitrary-manifold-surfaces-by-wei-and-levoy/) | Wei & Levoy (SIGGRAPH 2001) | Patch-based texture synthesis directly on mesh surface — no UV needed |
+| [Discrete Differential Geometry (DDG)](https://brickisland.net/DDGSpring2024/) | Crane et al. (CMU 15-458) | Cotangent Laplacian, heat geodesics, spectral conformal parameterization |
+
+**CAD-specific caveat:** The full pipeline (conformal UV + spectral DNA + Hausdorff + inverse compensation) is designed for CAD parts with hard edges. The conformal UV step creates seam artifacts at hard edges, but the DNA comparison + error compensation loop corrects for this. For displacement textures without the metrology loop, OBJECT-coordinate mapping avoids seam problems entirely (current QIDIStudio approach).
+
+---
+
+### 15.9 Troubleshooting — Geometry Stack
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
