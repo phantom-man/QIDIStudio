@@ -279,151 +279,166 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
                         relief: float, invert: bool, gamma: float,
                         log: Logger, *, mode: str = "modifier"):
     """
-    Subdivide the mesh and apply a Displace modifier using UV texture coordinates.
+    Pure-Python UV displacement pipeline — no Displace modifier, no bmesh.from_object().
 
-    Approach (matches the standard Blender texturing workflow):
-      1. Weld vertices  (STL boundary duplicates)
-      2. Smart UV Project  → proper UV island layout
-      3. Scale UVs so 1 UV unit = tile_size mm  → tile_size controls repeat frequency
-      4. Simple subdivision  → bisects triangles, never moves vertices
-         (Catmull-Clark rounds corners/holes unless crease data is perfect;
-          Simple is safe and reliable in bpy-standalone headless mode)
-      5. Displace modifier: texture_coords=UV, direction=NORMAL
-         UV coords give consistent displacement across seams;
-         NORMAL direction gives proper surface embossing on all faces.
-      6. Bake via depsgraph  (reliable headless path)
-      7. Recalculate normals
+    The entire history of seam-streak and shredded-mesh artifacts traced to
+    bmesh.from_object(): it splits vertices at UV seam edges so each side
+    displaces differently.  This function avoids that entirely:
+
+      0. Weld vertices (STL has one vertex copy per triangle face)
+      1. Subdivide via bmesh.ops.subdivide_edges() — pure bmesh, no modifier
+      2. Smart UV Project — marks seam edges but does NOT split vertices
+      3. Scale UVs so 1 UV unit = tile_size mm across the object
+      4. Load image pixels into numpy array (with gamma)
+      5. For each vertex: average its UV across all loops, sample texture
+         bilinearly (with tiling), displace along vertex normal
+      6. Recalculate face normals
+
+    No modifier stack, no depsgraph bake, no vertex splits.
     """
+    import bmesh
+    try:
+        import numpy as np
+        HAS_NP = True
+    except ImportError:
+        HAS_NP = False
+        log.log("  WARNING: numpy not found; using slow pixel loop fallback")
+
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
 
     # ── 0. Weld ──────────────────────────────────────────────────────
-    # STL files export one copy of each vertex per triangle face; weld them
-    # so the mesh is manifold before UV unwrapping and subdivision.
-    try:
-        import bmesh as _bm_prep
-        bm_p = _bm_prep.new()
-        bm_p.from_mesh(obj.data)
-        before_w = len(bm_p.verts)
-        _bm_prep.ops.remove_doubles(bm_p, verts=bm_p.verts, dist=0.001)
-        _bm_prep.ops.recalc_face_normals(bm_p, faces=bm_p.faces)
-        after_w = len(bm_p.verts)
-        bm_p.to_mesh(obj.data)
-        bm_p.free()
-        obj.data.update()
-        log.log(f"  Welded: {before_w}→{after_w} verts")
-    except Exception as exc:
-        log.log(f"  WARNING: pre-weld failed ({exc})")
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    before_w = len(bm.verts)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.001)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(obj.data)
+    bm.free()
+    obj.data.update()
+    after_w = len(obj.data.vertices)
+    log.log(f"  Welded: {before_w}→{after_w} verts")
 
-    # ── 1. UV Unwrap ─────────────────────────────────────────────────
-    # Smart UV Project creates clean island layout for repeating textures.
-    # UV coordinates are required for texture_coords='UV' on the Displace
-    # modifier — this is the approach that reliably maps textures in Blender.
+    # ── 1. Subdivide via bmesh.ops (no modifier → nothing to bake) ───
+    # bmesh.ops.subdivide_edges bisects each edge — existing vertex
+    # positions are never moved, so holes and sharp edges stay intact.
+    sub_level = _adaptive_subd_level(obj)
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    for _ in range(sub_level):
+        bmesh.ops.subdivide_edges(
+            bm, edges=bm.edges[:], cuts=1, use_grid_fill=True
+        )
+    bm.normal_update()
+    bm.to_mesh(obj.data)
+    bm.free()
+    obj.data.update()
+    log.log(f"  Subdivided ×{sub_level} (bmesh.ops): {len(obj.data.vertices)} verts")
+
+    # ── 2. UV unwrap ─────────────────────────────────────────────────
+    # Smart UV Project marks seam edges but does NOT split vertices in
+    # the stored mesh.  Vertex splits only happen inside bmesh.from_object()
+    # when a modifier stack uses UV coords — we never call that here.
     _smart_uv_project(obj, log)
 
-    # Scale UV map so that 1 UV unit = tile_size mm in world space.
-    # Smart UV Project packs everything into [0,1]; we scale up so the
-    # texture repeats every tile_size mm across the largest bbox dimension.
-    try:
-        xs = [v.co.x for v in obj.data.vertices]
-        ys = [v.co.y for v in obj.data.vertices]
-        bbox_max = max(max(xs) - min(xs), max(ys) - min(ys))
-        uv_scale = max(1.0, bbox_max / tile_size) if tile_size > 0 else 1.0
-        uv_layer = obj.data.uv_layers.active
-        if uv_layer:
-            for loop_uv in uv_layer.data:
-                loop_uv.uv.x *= uv_scale
-                loop_uv.uv.y *= uv_scale
-        log.log(f"  UV scaled ×{uv_scale:.2f} (bbox={bbox_max:.1f}mm tile={tile_size}mm)")
-    except Exception as exc:
-        log.log(f"  WARNING: UV scale failed ({exc})")
+    # ── 3. Scale UVs for tile_size ───────────────────────────────────
+    xs = [v.co.x for v in obj.data.vertices]
+    ys = [v.co.y for v in obj.data.vertices]
+    bbox_x = max(xs) - min(xs)
+    bbox_y = max(ys) - min(ys)
+    uv_scale = max(max(bbox_x, bbox_y) / tile_size, 1.0) if tile_size > 0 else 1.0
+    uv_layer = obj.data.uv_layers.active
+    for luv in uv_layer.data:
+        luv.uv.x *= uv_scale
+        luv.uv.y *= uv_scale
+    log.log(f"  UV scale ×{uv_scale:.2f} (bbox={bbox_x:.1f}×{bbox_y:.1f}mm tile={tile_size}mm)")
 
-    # ── 2. Simple subdivision ────────────────────────────────────────
-    # SIMPLE subdivision bisects each triangle into 4 without moving any
-    # existing vertices — holes and sharp edges stay exactly as-is.
-    # Do NOT use Catmull-Clark: CC rounds corners and holes unless crease
-    # weights are perfectly configured, which is unreliable in headless
-    # bpy-standalone and was the root cause of the shredded-mesh artifacts.
-    sub_level = _adaptive_subd_level(obj)
-    sub = obj.modifiers.new("Subd_tex", type="SUBSURF")
-    sub.subdivision_type = "SIMPLE"
-    sub.levels = sub_level
-    log.log(f"  Subdivision SIMPLE level {sub_level} (base polys: {len(obj.data.polygons)})")
-
-    # ── 3. Load image and apply gamma ────────────────────────────────
+    # ── 4. Load texture pixels ───────────────────────────────────────
     img = bpy.data.images.load(skin_path)
-    img.colorspace_settings.name = "Non-Color"  # displacement data, not colour
+    img.colorspace_settings.name = "Non-Color"
     _gamma_correct_image(img, gamma, log)
+    W, H = img.size[0], img.size[1]
+    if HAS_NP:
+        px = np.array(img.pixels[:], dtype=np.float32).reshape(H, W, 4)
+    else:
+        px_flat = list(img.pixels[:])
+    log.log(f"  Texture loaded: {W}×{H}px")
 
-    # ── 4. Legacy image texture (used by Displace modifier) ──────────
-    tex = bpy.data.textures.new("skin_tex", type="IMAGE")
-    tex.image = img
-    tex.extension = "REPEAT"  # tile the image when UV coords exceed [0,1]
+    def sample(u: float, v: float) -> float:
+        """Bilinear sample with repeat tiling."""
+        u = u % 1.0
+        v = v % 1.0
+        fx = u * (W - 1)
+        fy = v * (H - 1)
+        x0, y0 = int(fx), int(fy)
+        x1 = min(x0 + 1, W - 1)
+        y1 = min(y0 + 1, H - 1)
+        tx, ty = fx - x0, fy - y0
+        if HAS_NP:
+            c00 = float(px[y0, x0, 0])
+            c10 = float(px[y0, x1, 0])
+            c01 = float(px[y1, x0, 0])
+            c11 = float(px[y1, x1, 0])
+        else:
+            def idx(yy, xx): return (yy * W + xx) * 4
+            c00 = px_flat[idx(y0, x0)]
+            c10 = px_flat[idx(y0, x1)]
+            c01 = px_flat[idx(y1, x0)]
+            c11 = px_flat[idx(y1, x1)]
+        return c00*(1-tx)*(1-ty) + c10*tx*(1-ty) + c01*(1-tx)*ty + c11*tx*ty
 
-    # ── 5. Displace modifier with UV texture coordinates ─────────────
-    # UV coords: displacement value at each vertex = texture sample at its
-    # UV position.  No mapping-empty object needed.
-    # NORMAL direction: displaces each vertex along its surface normal
-    # (perpendicular to the surface), giving proper embossing on all faces
-    # including curved sides and the top face.
+    # ── 5. Build vert → averaged UV map ─────────────────────────────
+    # A vertex at a seam appears in loops with different UVs.  Average
+    # them — since the texture tiles, the average of two seam-side UVs
+    # may differ by ~1.0; use the fractional average to stay consistent.
+    mesh = obj.data
+    uv_data = uv_layer.data
+    vert_uv_sum = {}   # vi → [sum_u, sum_v, count]
+    for poly in mesh.polygons:
+        for li in poly.loop_indices:
+            vi = mesh.loops[li].vertex_index
+            uv = uv_data[li].uv
+            if vi not in vert_uv_sum:
+                vert_uv_sum[vi] = [0.0, 0.0, 0]
+            vert_uv_sum[vi][0] += uv.x
+            vert_uv_sum[vi][1] += uv.y
+            vert_uv_sum[vi][2] += 1
+
+    # ── 6. Displace each vertex along its normal ─────────────────────
     if mode == "negative":
         mid_level = 0.0
-        strength  = -abs(relief)   # always push inward for negative
+        strength  = -abs(relief)
     else:
         mid_level = 0.5
         strength  = (-relief if invert else relief)
 
-    bpy.context.view_layer.objects.active = obj
-    mod = obj.modifiers.new("Displace_tex", type="DISPLACE")
-    mod.texture        = tex
-    mod.texture_coords = "UV"
-    mod.direction      = "NORMAL"
-    mod.strength       = strength
-    mod.mid_level      = mid_level
-    log.log(f"  Displace: strength={strength:.2f}mm mid={mid_level} dir=NORMAL coords=UV")
+    displaced = 0
+    for v in mesh.vertices:
+        entry = vert_uv_sum.get(v.index)
+        if not entry or entry[2] == 0:
+            continue
+        u = entry[0] / entry[2]
+        vc = entry[1] / entry[2]
+        pixel_val = sample(u, vc)
+        disp = (pixel_val - mid_level) * strength
+        n = v.normal
+        v.co.x += n.x * disp
+        v.co.y += n.y * disp
+        v.co.z += n.z * disp
+        displaced += 1
 
-    # ── 6. Bake all modifiers via depsgraph ───────────────────────────
-    bpy.context.view_layer.update()
+    mesh.update()
+    log.log(f"  Displaced {displaced}/{len(mesh.vertices)} verts"
+            f"  strength={strength:.2f}mm mid={mid_level}")
 
-    try:
-        import bmesh as _bmesh
-        depsgraph = bpy.context.evaluated_depsgraph_get()
-        obj_eval  = obj.evaluated_get(depsgraph)
-        bm = _bmesh.new()
-        bm.from_object(obj_eval, depsgraph)
-        bm.to_mesh(obj.data)
-        bm.free()
-        obj.data.update()
-        # Remove modifiers — they are now baked into the mesh data.
-        for m in list(obj.modifiers):
-            obj.modifiers.remove(m)
-        log.log(f"  Modifiers baked via depsgraph. Verts after: {len(obj.data.vertices)}")
-    except Exception as exc:
-        log.log(f"  WARNING: depsgraph bake failed ({exc}); falling back to convert()")
-        bpy.ops.object.select_all(action="DESELECT")
-        obj.select_set(True)
-        bpy.context.view_layer.objects.active = obj
-        try:
-            with _ops_ctx(obj):
-                bpy.ops.object.convert(target="MESH")
-            log.log(f"  Modifiers applied via convert. Verts after: {len(obj.data.vertices)}")
-        except Exception as exc2:
-            log.log(f"  WARNING: convert also failed: {exc2}")
-
-    # ── 7. Post-process: recalculate normals ─────────────────────────
-    try:
-        import bmesh as _bm
-        bm = _bm.new()
-        bm.from_mesh(obj.data)
-        _bm.ops.recalc_face_normals(bm, faces=bm.faces)
-        bm.to_mesh(obj.data)
-        bm.free()
-        obj.data.update()
-        log.log("  Normals recalculated")
-    except Exception as exc:
-        log.log(f"  WARNING: normals recalc failed: {exc}")
-
-    log.log(f"  Done: relief={strength:.2f}mm tile={tile_size}mm mid={mid_level} mode={mode}")
+    # ── 7. Recalculate face normals ──────────────────────────────────
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+    log.log(f"  Done: relief={strength:.2f}mm tile={tile_size}mm mode={mode}")
 
 
 def _export_stl(obj, out_path: str, log: Logger):
