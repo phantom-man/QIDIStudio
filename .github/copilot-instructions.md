@@ -317,8 +317,10 @@ Right-click menu items that apply a PNG displacement texture to the skin of a se
 | bpy_env junction created | ✅ `install_dir\bpy_env` → workspace `bpy_env` |
 | Script produces `SKIN_OUTPUT:` + valid STL | ✅ Confirmed manually (56KB, 1.5s) |
 | Committed | ✅ `ef2ec27` |
-| **Full UX test (texture volume loads in 3D view)** | ✅ Crash fixed (`f5c3436`) — pending live test |
-| **"Adjust Texture Depth..." item appears on child** | 🔄 Pending |
+| Crash fixes (ifstream scope, wxEXEC_BLOCK, dialog) | ✅ `f5c3436` |
+| **1-part result: `set_mesh()` replaces original** | ✅ `f1a2cfd` — pending live test |
+| **Displacement actually fires in headless bpy** | ✅ `f1a2cfd` — depsgraph fix confirmed |
+| **"Adjust Texture Depth..." item appears on part** | 🔄 Pending (sidecar path on set_mesh needs verify) |
 | **Depth ±0.2/±0.5 buttons work without compounding** | 🔄 Pending |
 
 ### Full UX Test Sequence (next session — pick up here)
@@ -326,15 +328,20 @@ Right-click menu items that apply a PNG displacement texture to the skin of a se
 1. Kill any running QIDIStudio, launch: `& "C:\QIDISrc\QIDIStudio\install_dir\qidi-studio.exe"`
 2. Load any STL model
 3. Select it → right-click → **Add Negative Part → Texture...**
-4. Pick a PNG from `install_dir\resources\assets\` (e.g. `armadillo_plates_01.png`), tile=15, relief=1.2 → OK
-5. Expected: texture volume appears as named child in object list
-6. Right-click the texture child → verify **"Adjust Texture Depth..."** appears
-7. Click it → verify dialog is prefilled, ±buttons clamp correctly
-8. Confirm depth change produces deeper/shallower texture without compounding artifacts
+   *(note: both menu items now do the same thing — modifier mode, 1-part result)*
+4. Pick a PNG from `install_dir\resources\assets\armadillo_plates\` (e.g. `armadillo_plates_01.png`), tile=15, relief=1.2 → OK
+5. Expected: **the selected part's mesh is replaced in-place with the textured version** (no child volume, still 1 part)
+6. The part may shift in Z — `ensure_on_bed()` should auto-reposition it on the bed
+7. Right-click the part → verify **"Adjust Texture Depth..."** appears
+   - This requires `vol->source.input_file` to point to the result STL (set by `apply_texture`)
+   - And sidecar JSON at `result_stl + ".texture.json"` must exist (written by `apply_texture`)
+8. Click → verify dialog shows original relief, ±buttons work
+9. Confirm depth change re-runs bpy on ORIGINAL src_stl (from sidecar) → no compounding
 
-**If "Adjust Texture Depth..." doesn't appear:**
-- `can_adjust_texture_depth()` checks `volume_is_texture(vol)` which checks `vol->source.input_file + ".texture.json"` exists
-- Verify `load_from_files()` sets `vol->source.input_file` to the result STL path (it should)
+**If adjusted texture is wrong (showing original unmodified shape):**
+- `adjust_texture_depth()` calls bpy on `meta["src_stl"]` = the temp stl from `apply_texture`
+- That temp file is in `%TEMP%\qidi_tex_src_*.stl` — exists for this session but NOT after restart
+- Long-term fix needed: save src_stl to project alongside the sidecar JSON
 
 ### Why BPY over trimesh
 
@@ -357,7 +364,7 @@ apply_texture_bpy.py  <model_stl>  <skin_asset>
 
 Outputs: `SKIN_OUTPUT: <path>` to stdout. C++ parses this line.
 
-**Invocation:** `bpy_env\Scripts\python.exe resources\scripts\apply_texture_bpy.py model.stl skin.png --mode negative --log out.txt`
+**Invocation:** `bpy_env\Scripts\python.exe resources\scripts\apply_texture_bpy.py model.stl skin.png --mode modifier --log out.txt`
 
 ### C++ Wiring Summary
 
@@ -367,7 +374,18 @@ Outputs: `SKIN_OUTPUT: <path>` to stdout. C++ parses this line.
 - `GUI_Factories.hpp/cpp` — `append_menu_item_add_texture()`, `append_menu_item_adjust_texture_depth()`
 - `Plater.hpp/cpp` — `apply_texture()`, `adjust_texture_depth()`, `can_apply_texture()`, `can_adjust_texture_depth()`, `find_bpy_python()` (static), `volume_is_texture()` (static)
 
-**Sidecar JSON** (`<result_stl>.texture.json`) stores `{png, src_stl, tile_mm, relief, mode}` — enables re-adjustment from original clean mesh without compounding artifacts.
+**`apply_texture()` logic (current — 1-part result):**
+1. Export `mo->raw_mesh()` to temp STL
+2. Run bpy with `--mode modifier` (always — regardless of `type` parameter)
+3. Load result STL: `tmp.objects[0]->raw_mesh()`
+4. Find first `is_model_part()` volume → `vol->set_mesh(std::move(mesh))`; `vol->calculate_convex_hull()`; `vol->set_new_unique_id()`
+5. `vol->source.input_file = result_stl` — enables `can_adjust_texture_depth()` check
+6. Write sidecar JSON at `result_stl + ".texture.json"` with `{png, src_stl, tile_mm, relief, mode}`
+7. `changed_object(obj_idx)` — invalidates BB, calls `ensure_on_bed()`, reloads 3D scene
+
+**`TakeSnapshot` note:** Takes `const std::string&`, NOT wxString. Use `std::string("Apply Texture")`, NOT `_L("Apply Texture")`.
+
+**Sidecar JSON** (`<result_stl>.texture.json`) stores `{png, src_stl, tile_mm, relief, mode}` — enables re-adjustment. `src_stl` is a `%TEMP%\qidi_tex_src_*.stl` — valid only for current session.
 
 **`find_bpy_python()` search order:** `QIDI_BPY_PYTHON` env var → `<resources_dir>/../bpy_env/Scripts/python.exe`
 
@@ -413,11 +431,31 @@ void MenuFactory::append_menu_item_add_texture(wxMenu* menu, ModelVolumeType typ
 
 - **Output naming** prevents `_texture_modifier_texture_modifier.stl` on re-runs by stripping known suffixes before appending.
 
+- **bpy headless depsgraph staleness — CRITICAL** — In Blender headless (background) mode, when you create a new object via `bpy.data.objects.new()` and link it to a collection, the depsgraph is NOT automatically updated. Any modifier referencing that object (e.g. Displace → `texture_coords_object = mapping_empty`) will see a null reference during evaluation → **silent zero displacement**. Also, `bpy.ops.object.convert(target='MESH')` on a mesh that already IS a mesh does NOT apply modifiers in background mode (confirmed by vertex count staying at 13752 instead of subdividing to ~18000+). **Fix:** always call `bpy.context.view_layer.update()` before evaluating, then use `bmesh.from_object(obj_eval, depsgraph)` to bake the evaluated mesh back to `obj.data`. This is the reliable headless path.
+
+  ```python
+  bpy.context.view_layer.update()           # force depsgraph to register new objects
+  depsgraph = bpy.context.evaluated_depsgraph_get()
+  obj_eval  = obj.evaluated_get(depsgraph)  # mesh with all modifiers applied
+  bm = bmesh.new()
+  bm.from_object(obj_eval, depsgraph)       # bake into bmesh
+  bm.to_mesh(obj.data)                      # write back to obj data
+  bm.free()
+  for m in list(obj.modifiers): obj.modifiers.remove(m)  # clean up modifier stack
+  ```
+
+- **Displacement shifts part's Z center** — With `mid_level=0.5` and relief=1.0, white pixel areas are raised by +0.5mm in the normal direction, dark areas lowered by -0.5mm. For a mostly-bright texture (like armadillo scales), the net Z centroid of the part SHIFTS upward by several mm. This is correct behavior — `changed_object()` calls `ensure_on_bed()` which auto-repositions on the bed after texture apply.
+
+- **`_negative` mode duplicate-object bug** — In the legacy `--mode negative` and `--mode part` paths, `original_obj.copy()` creates a new object that is linked to the collection but not always accessible via `view_layer` in headless mode. This caused `obj.select_set(True)` to silently fail and `convert()` to no-op on the wrong object. **Avoided entirely** by always using `--mode modifier` which displaces the original imported object (definitely in the view layer).
+
 ### Skin Assets
 
 `resources/assets/` — PNG heightmaps generated by `scripts/generate_skin_assets.py`.
+Note: assets are in **subdirectories**: `armadillo_plates/armadillo_plates_01.png` etc.
 - Procedural: `honeycomb`, `diamond_knurl`, `voronoi_cells`, `chainmail`, `brick_pattern`, `herringbone`, `riveted_metal`
 - AI (Replicate Flux Schnell): `dragon_scales`, `reptile_scales`, `damascus_steel`, `carbon_fiber`, etc.
+
+When testing, use: `C:\QIDISrc\QIDIStudio\install_dir\resources\assets\armadillo_plates\armadillo_plates_01.png`
 
 ---
 
