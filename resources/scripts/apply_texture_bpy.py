@@ -279,94 +279,93 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
                         relief: float, invert: bool, gamma: float,
                         log: Logger, *, mode: str = "modifier"):
     """
-    Subdivide the mesh (Simple) and apply a Displace modifier.
+    Subdivide the mesh and apply a Displace modifier using UV texture coordinates.
 
-    Texture coordinates use an Empty object scaled to tile_size mm so the
-    skin repeats every tile_size mm in world space — no UV seam artifacts.
-
-    For 'negative' mode: mid_level=0 so the shell displacement runs 0→relief
-    inward, meaning every textured pixel is at or inside the surface.  This
-    ensures QIDIStudio's boolean always has geometry to subtract.
-    For 'part' and 'modifier': mid_level=0.5 (grey = zero displacement).
+    Approach (matches the standard Blender texturing workflow):
+      1. Weld vertices  (STL boundary duplicates)
+      2. Smart UV Project  → proper UV island layout
+      3. Scale UVs so 1 UV unit = tile_size mm  → tile_size controls repeat frequency
+      4. Simple subdivision  → bisects triangles, never moves vertices
+         (Catmull-Clark rounds corners/holes unless crease data is perfect;
+          Simple is safe and reliable in bpy-standalone headless mode)
+      5. Displace modifier: texture_coords=UV, direction=NORMAL
+         UV coords give consistent displacement across seams;
+         NORMAL direction gives proper surface embossing on all faces.
+      6. Bake via depsgraph  (reliable headless path)
+      7. Recalculate normals
     """
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
 
-    # ── 0. Weld + mark sharp edges ───────────────────────────────────
-    # STL files have no shared vertices; weld them first.
-    # Then mark any edge with a dihedral angle > 30° as a crease edge
-    # (crease weight = 1.0).  Catmull-Clark subdivision with creases
-    # preserves sharp edges exactly — no spike artifacts at corners or
-    # holes — while subdividing flat surfaces smoothly for texture detail.
+    # ── 0. Weld ──────────────────────────────────────────────────────
+    # STL files export one copy of each vertex per triangle face; weld them
+    # so the mesh is manifold before UV unwrapping and subdivision.
     try:
         import bmesh as _bm_prep
-        import math as _math
         bm_p = _bm_prep.new()
         bm_p.from_mesh(obj.data)
         before_w = len(bm_p.verts)
         _bm_prep.ops.remove_doubles(bm_p, verts=bm_p.verts, dist=0.001)
-        after_w = len(bm_p.verts)
         _bm_prep.ops.recalc_face_normals(bm_p, faces=bm_p.faces)
-        # Mark sharp edges for subdivision crease
-        crease_layer = bm_p.edges.layers.crease.verify()
-        sharp_thresh = _math.radians(30.0)
-        sharp_count = 0
-        for edge in bm_p.edges:
-            if len(edge.link_faces) == 2:
-                angle = edge.calc_face_angle(0.0)
-                if angle > sharp_thresh:
-                    edge[crease_layer] = 1.0
-                    sharp_count += 1
-            else:
-                # boundary edges (holes) are always sharp
-                edge[crease_layer] = 1.0
-                sharp_count += 1
+        after_w = len(bm_p.verts)
         bm_p.to_mesh(obj.data)
         bm_p.free()
         obj.data.update()
-        log.log(f"  Welded: {before_w}→{after_w} verts, {sharp_count} sharp edges marked")
+        log.log(f"  Welded: {before_w}→{after_w} verts")
     except Exception as exc:
-        log.log(f"  WARNING: pre-weld/crease failed ({exc})")
+        log.log(f"  WARNING: pre-weld failed ({exc})")
 
-    # ── 1. Subdivision (Catmull-Clark with creases) ───────────────────
-    # CC subdiv respects crease weights → sharp edges stay sharp,
-    # flat faces subdivide smoothly.  This eliminates spike artifacts
-    # at sharp corners and holes (the classic STL displacement problem).
+    # ── 1. UV Unwrap ─────────────────────────────────────────────────
+    # Smart UV Project creates clean island layout for repeating textures.
+    # UV coordinates are required for texture_coords='UV' on the Displace
+    # modifier — this is the approach that reliably maps textures in Blender.
+    _smart_uv_project(obj, log)
+
+    # Scale UV map so that 1 UV unit = tile_size mm in world space.
+    # Smart UV Project packs everything into [0,1]; we scale up so the
+    # texture repeats every tile_size mm across the largest bbox dimension.
+    try:
+        xs = [v.co.x for v in obj.data.vertices]
+        ys = [v.co.y for v in obj.data.vertices]
+        bbox_max = max(max(xs) - min(xs), max(ys) - min(ys))
+        uv_scale = max(1.0, bbox_max / tile_size) if tile_size > 0 else 1.0
+        uv_layer = obj.data.uv_layers.active
+        if uv_layer:
+            for loop_uv in uv_layer.data:
+                loop_uv.uv.x *= uv_scale
+                loop_uv.uv.y *= uv_scale
+        log.log(f"  UV scaled ×{uv_scale:.2f} (bbox={bbox_max:.1f}mm tile={tile_size}mm)")
+    except Exception as exc:
+        log.log(f"  WARNING: UV scale failed ({exc})")
+
+    # ── 2. Simple subdivision ────────────────────────────────────────
+    # SIMPLE subdivision bisects each triangle into 4 without moving any
+    # existing vertices — holes and sharp edges stay exactly as-is.
+    # Do NOT use Catmull-Clark: CC rounds corners and holes unless crease
+    # weights are perfectly configured, which is unreliable in headless
+    # bpy-standalone and was the root cause of the shredded-mesh artifacts.
     sub_level = _adaptive_subd_level(obj)
     sub = obj.modifiers.new("Subd_tex", type="SUBSURF")
-    sub.subdivision_type = "CATMULL_CLARK"
+    sub.subdivision_type = "SIMPLE"
     sub.levels = sub_level
-    sub.use_creases = True
-    # Ensure subdivision runs before displacement.
-    sub_idx = list(obj.modifiers).index(sub)
-    if sub_idx != 0:
-        obj.modifiers.move(sub_idx, 0)
-    log.log(f"  Subdivision CC level {sub_level} (base polys: {len(obj.data.polygons)})")    
+    log.log(f"  Subdivision SIMPLE level {sub_level} (base polys: {len(obj.data.polygons)})")
 
-    # ── 2. Load image and apply gamma ────────────────────────────────
+    # ── 3. Load image and apply gamma ────────────────────────────────
     img = bpy.data.images.load(skin_path)
-    img.colorspace_settings.name = "Non-Color"  # displacement = data, not colour
+    img.colorspace_settings.name = "Non-Color"  # displacement data, not colour
     _gamma_correct_image(img, gamma, log)
 
-    # ── 3. Image texture (legacy texture API — used by Displace modifier) ──
+    # ── 4. Legacy image texture (used by Displace modifier) ──────────
     tex = bpy.data.textures.new("skin_tex", type="IMAGE")
     tex.image = img
+    tex.extension = "REPEAT"  # tile the image when UV coords exceed [0,1]
 
-    # ── 4. Mapping Empty ─────────────────────────────────────────────
-    # Scale = tile_size → the displacement repeats every tile_size world
-    # units (mm, given scale_length = 0.001).
-    # Use data API to create the empty (bpy.ops.object.empty_add fails
-    # silently in headless mode without a full window context).
-    mapping_empty = bpy.data.objects.new("tex_mapping_empty", None)
-    mapping_empty.empty_display_type = "PLAIN_AXES"
-    mapping_empty.scale = (tile_size, tile_size, tile_size)
-    bpy.context.collection.objects.link(mapping_empty)
-
-    # ── 5. Displace modifier ─────────────────────────────────────────
-    # mid_level for NEGATIVE mode: 0.0 so black pixel = flush with surface,
-    # white pixel = full relief inward.  This avoids the case where mid=0.5
-    # pushes black-pixel areas OUTSIDE the original, making the boolean miss.
-    # For PART / MODIFIER: mid=0.5 so grey areas have zero net movement.
+    # ── 5. Displace modifier with UV texture coordinates ─────────────
+    # UV coords: displacement value at each vertex = texture sample at its
+    # UV position.  No mapping-empty object needed.
+    # NORMAL direction: displaces each vertex along its surface normal
+    # (perpendicular to the surface), giving proper embossing on all faces
+    # including curved sides and the top face.
     if mode == "negative":
         mid_level = 0.0
         strength  = -abs(relief)   # always push inward for negative
@@ -376,31 +375,18 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
 
     bpy.context.view_layer.objects.active = obj
     mod = obj.modifiers.new("Displace_tex", type="DISPLACE")
-    mod.texture              = tex
-    mod.texture_coords        = "OBJECT"
-    mod.texture_coords_object = mapping_empty
-    # Z-axis displacement: moves every vertex straight up/down along local Z.
-    # NORMAL direction causes spikes at hole edges where surface normals
-    # transition from flat (0,0,1) to wall (1,0,0) — the interpolated vertex
-    # normal at the boundary points diagonally → vertex flies off at 45°.
-    # Z direction avoids this entirely: all vertices move ±Z, producing clean
-    # texture relief on horizontal faces with no edge spikes.
-    mod.direction            = "Z"
-    mod.strength             = strength
-    mod.mid_level            = mid_level
+    mod.texture        = tex
+    mod.texture_coords = "UV"
+    mod.direction      = "NORMAL"
+    mod.strength       = strength
+    mod.mid_level      = mid_level
+    log.log(f"  Displace: strength={strength:.2f}mm mid={mid_level} dir=NORMAL coords=UV")
 
-    # ── 6. Apply all modifiers ────────────────────────────────────────
-    # Force a depsgraph update BEFORE evaluating.  In headless mode, newly
-    # created objects (like mapping_empty) don't enter the depsgraph until
-    # view_layer.update() is called.  Without this, the Displace modifier
-    # silently receives a null texture-coords object and produces zero
-    # displacement; the Subsurf also appears to have no effect in convert().
+    # ── 6. Bake all modifiers via depsgraph ───────────────────────────
     bpy.context.view_layer.update()
 
-    # Primary: bake via the depsgraph-evaluated mesh (most reliable headless path).
-    # This respects the full modifier stack including OBJECT texture coordinates.
     try:
-        import bmesh as _bmesh  # bpy bundles bmesh; import here so name doesn't clash
+        import bmesh as _bmesh
         depsgraph = bpy.context.evaluated_depsgraph_get()
         obj_eval  = obj.evaluated_get(depsgraph)
         bm = _bmesh.new()
@@ -414,7 +400,6 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
         log.log(f"  Modifiers baked via depsgraph. Verts after: {len(obj.data.vertices)}")
     except Exception as exc:
         log.log(f"  WARNING: depsgraph bake failed ({exc}); falling back to convert()")
-        # Fallback: bpy.ops.object.convert — works for simple cases
         bpy.ops.object.select_all(action="DESELECT")
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
@@ -423,14 +408,9 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
                 bpy.ops.object.convert(target="MESH")
             log.log(f"  Modifiers applied via convert. Verts after: {len(obj.data.vertices)}")
         except Exception as exc2:
-            log.log(f"  WARNING: convert also failed: {exc2}; modifiers left on stack (depsgraph export)")
-            # _export_stl evaluates via depsgraph so modifiers will still apply at export time
+            log.log(f"  WARNING: convert also failed: {exc2}")
 
-    # ── 7. Post-process: recalculate normals ────────────────────────
-    # After displacement, some face normals may flip.  Recalculate to ensure
-    # they all point outward.  Skip remove_doubles here — we already welded
-    # before subdivision; running it again on the displaced mesh merges
-    # vertices that were correctly separated by displacement.
+    # ── 7. Post-process: recalculate normals ─────────────────────────
     try:
         import bmesh as _bm
         bm = _bm.new()
@@ -441,10 +421,9 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
         obj.data.update()
         log.log("  Normals recalculated")
     except Exception as exc:
-        log.log(f"  WARNING: post-process normal recalc failed: {exc}")
+        log.log(f"  WARNING: normals recalc failed: {exc}")
 
-    log.log(f"  Displacement applied: relief={strength:.2f}mm "
-            f"tile={tile_size}mm mid={mid_level} mode={mode}")
+    log.log(f"  Done: relief={strength:.2f}mm tile={tile_size}mm mid={mid_level} mode={mode}")
 
 
 def _export_stl(obj, out_path: str, log: Logger):
@@ -539,11 +518,7 @@ def main():
 
         if args.mode == "modifier":
             # ── MODIFIER: displace the original mesh in-place, then replace ──
-            # NOTE: do NOT call _smart_uv_project here.
-            # We use OBJECT texture coordinates (not UV), so no UV data is needed.
-            # UV unwrapping marks seam edges in the mesh; when the subdivided mesh
-            # is baked back via bmesh.from_object(), those seam vertices are split
-            # and each side displaces slightly differently → long spike artifacts.
+            # _apply_displacement handles UV unwrap internally (Step 1).
             _apply_displacement(
                 original_obj, args.skin_path,
                 args.tile_size, args.relief,
