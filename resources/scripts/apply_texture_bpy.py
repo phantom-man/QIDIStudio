@@ -91,6 +91,22 @@ def _parse_args() -> argparse.Namespace:
                    help="Gamma applied to the skin image before displacement (default 0.7)")
     p.add_argument("--log",      default="",
                    help="Path for the log file (optional)")
+    p.add_argument("--projection",
+                   choices=["conformal", "lscm", "object"],
+                   default="conformal",
+                   help=("UV projection for texture wrapping: "
+                         "conformal=Smart-UV-Project (default, works on any topology), "
+                         "lscm=Least-Squares Conformal Maps (angle-preserving, best for smooth organic shapes), "
+                         "object=world-space box-map (legacy, no UV needed)"))
+    p.add_argument("--full-surface",
+                   dest="full_surface",
+                   action="store_true",
+                   default=True,
+                   help="Displace the ENTIRE surface — skin-wrap mode (default ON)")
+    p.add_argument("--no-full-surface",
+                   dest="full_surface",
+                   action="store_false",
+                   help="Restrict displacement to top-facing faces only (legacy behaviour for flat CAD parts)")
     # bpy injects its own args after '--'; strip them
     argv = sys.argv[1:]
     if "--" in argv:
@@ -295,43 +311,154 @@ def _gamma_correct_image(img, gamma: float, log: Logger) -> None:
 
 def _adaptive_subd_level(obj) -> int:
     """
-    Choose a subdivision level so result stays under ~150K triangles.
-    A box starts at 12 tris; each Simple-Subd level = 4× triangles.
-    Complex meshes (imported parts) should stay at level 1-2.
+    Choose a subdivision level so result stays under ~300K triangles.
+    Each Simple-Subd level = 4× triangles.
+    Real-world STL parts need level 2+ to avoid visible triangle edges
+    through displacement — long thin triangles from CAD meshing are
+    still long after level 1, showing as diagonal streaks.
     """
     n = len(obj.data.polygons)
-    if   n <= 50:    return 3   # primitive test geometry
-    elif n <= 500:   return 2
-    elif n <= 4000:  return 1
-    else:            return 1
+    if   n <= 50:    return 4   # primitive test geometry
+    elif n <= 500:   return 3
+    elif n <= 5000:  return 2   # typical imported part — was 1, bumped to 2
+    else:            return 2   # large mesh — cap at 2 to avoid RAM issues
+
+
+def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger):
+    """
+    UV-unwrap the mesh and scale coordinates so 1 UV unit = tile_size mm
+    of actual surface distance.
+
+    projection:
+      'conformal' — Blender Smart UV Project: per-island angle-based seam detection;
+                    robust on any mesh topology including CAD parts with holes and
+                    fillets.  UV islands are individually placed, then globally
+                    scaled by the geodesic mm-per-UV estimate.
+      'lscm'      — Blender CONFORMAL (LSCM): true Least-Squares Conformal Maps,
+                    maximally angle-preserving.  Best for smooth organic surfaces.
+                    Auto-marks sharp-edge seams before unwrapping; falls back to
+                    smart_project if the unwrap fails.
+
+    After this call the active UV layer has coordinates whose repeat period is
+    tile_size mm, calibrated from the average 3-D vs UV edge-length ratio across
+    up to 2 000 sampled loop edges.
+    """
+    import mathutils
+
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.select_all(action='DESELECT')
+    obj.select_set(True)
+
+    with _ops_ctx(obj):
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+
+        if projection == 'lscm':
+            # Mark seams at sharp feature edges so LSCM has valid cuts.
+            # sharpness=1.05 rad ≈ 60° — catches hard CAD edges without
+            # over-cutting smooth organic surfaces.
+            bpy.ops.mesh.edges_select_sharp(sharpness=1.05)
+            bpy.ops.mesh.mark_seam(clear=False)
+            bpy.ops.mesh.select_all(action='SELECT')
+            try:
+                bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.01)
+                log.log("  UV: LSCM (CONFORMAL) unwrap completed")
+            except Exception as uv_err:
+                log.log(f"  UV: LSCM failed ({uv_err}) — falling back to smart_project")
+                bpy.ops.uv.smart_project(angle_limit=66.0, island_margin=0.0)
+        else:  # 'conformal' — Smart UV Project
+            bpy.ops.uv.smart_project(angle_limit=66.0, island_margin=0.0)
+            log.log("  UV: Smart UV Project unwrap completed")
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+    # ── Scale UV so 1 UV unit = tile_size mm ─────────────────────────────
+    # Estimate mm-per-UV-unit by comparing 3-D edge lengths to UV edge lengths
+    # across a random sample of loop edges.  This gives a geodesic calibration
+    # that is accurate regardless of mesh scale or UV island packing.
+    mesh    = obj.data
+    uv_lyr  = mesh.uv_layers.active
+    if uv_lyr is None:
+        log.log("  UV: WARNING — no UV layer after unwrap; tiling may be incorrect")
+        return
+
+    verts   = mesh.vertices
+    loops_  = mesh.loops
+    uv_data = uv_lyr.data
+    total_3d = 0.0
+    total_uv = 0.0
+    n_samp   = 0
+
+    for poly in mesh.polygons:
+        nv = len(poly.loop_indices)
+        for k in range(nv):
+            l0  = poly.loop_indices[k]
+            l1  = poly.loop_indices[(k + 1) % nv]
+            v0  = verts[loops_[l0].vertex_index].co
+            v1  = verts[loops_[l1].vertex_index].co
+            u0  = uv_data[l0].uv
+            u1  = uv_data[l1].uv
+            d3  = (v1 - v0).length
+            du  = ((u1[0] - u0[0]) ** 2 + (u1[1] - u0[1]) ** 2) ** 0.5
+            if du > 1e-10 and d3 > 1e-10:
+                total_3d += d3
+                total_uv  += du
+                n_samp    += 1
+                if n_samp >= 2000:
+                    break
+        if n_samp >= 2000:
+            break
+
+    if total_uv > 1e-10:
+        mm_per_uv = total_3d / total_uv   # current: 1 UV unit = this many mm
+        uv_scale  = mm_per_uv / tile_size  # target:  1 UV unit = tile_size mm
+    else:
+        # Rare fallback — no usable edge pairs (degenerate UV); use bbox
+        import mathutils as mu
+        bb   = [mu.Vector(c) for c in obj.bound_box]
+        max_mm = max(
+            max(v.x for v in bb) - min(v.x for v in bb),
+            max(v.y for v in bb) - min(v.y for v in bb),
+            max(v.z for v in bb) - min(v.z for v in bb),
+        )
+        uv_scale  = max_mm / tile_size
+        mm_per_uv = uv_scale * tile_size
+        log.log(f"  UV scale: bbox fallback (max_mm={max_mm:.1f})")
+
+    for loop_item in uv_lyr.data:
+        loop_item.uv = (loop_item.uv[0] * uv_scale, loop_item.uv[1] * uv_scale)
+
+    log.log(f"  UV scale: {uv_scale:.3f}x  "
+            f"(~{mm_per_uv:.2f} mm/UV_unit → tile_size={tile_size}mm, "
+            f"sampled {n_samp} edges)")
 
 
 def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
                                 relief: float, invert: bool, gamma: float,
-                                log: Logger, *, mode: str = "modifier"):
+                                log: Logger, *, mode: str = "modifier",
+                                projection: str = "conformal",
+                                full_surface: bool = True):
     """
-    Full-Blender displacement pipeline — Displace modifier + CC subdivision.
+    Full-Blender displacement pipeline — Displace modifier + Simple subdivision.
 
-    Only called when IS_FULL_BLENDER is True (running under blender.exe).
+    projection = 'conformal' (default) | 'lscm' | 'object'
+      conformal / lscm:  UV-based displacement — texture follows the surface
+                         geodesically.  The pattern wraps continuously around
+                         ALL faces, including vertical walls and the underside,
+                         just like paint on a physical object (skin-wrap mode).
+      object:            World-space OBJECT-coordinate box-map (legacy).
+                         Simple, no UV needed, but stretches on curved faces.
 
-    Approach:
-      0. Weld duplicate verts (STL has one copy per tri)
-      1. Catmull-Clark SUBSURF modifier (stays on stack until convert)
-      2. Load PNG → bpy.data.textures (type='IMAGE')
-      3. Add a mapping Empty scaled to tile_size so one texture repeat = tile_size mm
-         (OBJECT texture coords → vertex pos / tile_size → seamless tiling)
-      4. Displace modifier with texture_coords='OBJECT' → no UV map → no seam verts
-      5. bpy.ops.object.convert(target='MESH') → applies both modifiers in-place
-         (reliable in full Blender; unreliable in bpy pip package)
-
-    No UV map, no bmesh.from_object(), no vertex splitting.
+    full_surface = True (default):  displace the ENTIRE surface.
+    full_surface = False:           restrict to top-facing faces only (legacy CAD
+                                    mode — sharp walls, textured top only).
     """
     import bmesh
 
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
 
-    # ── 0. Weld ──────────────────────────────────────────────────────
+    # ── 0. Weld duplicate verts (STL: one copy per triangle) ─────────────
     bm = bmesh.new()
     bm.from_mesh(obj.data)
     before_w = len(bm.verts)
@@ -342,79 +469,121 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     obj.data.update()
     log.log(f"  Welded: {before_w}→{len(obj.data.vertices)} verts")
 
-    # ── 1. Catmull-Clark Subdivision Surface modifier ─────────────────
+    # ── 1. UV unwrap — BEFORE subdivision (clean low-poly topology) ───────
+    # UV coordinates survive Simple subdivision: Blender interpolates them
+    # linearly across subdivided loops, so the tile scale stays correct.
+    use_uv = (projection in ('conformal', 'lscm'))
+    if use_uv:
+        _do_uv_unwrap(obj, tile_size, projection, log)
+
+    # ── 2. Simple Subdivision ─────────────────────────────────────────────
     sub_level = _adaptive_subd_level(obj)
     subd = obj.modifiers.new("Subdiv", type='SUBSURF')
-    subd.subdivision_type = 'SIMPLE'   # midpoint-only — holes stay crisp, no diagonal normals
-    subd.levels = sub_level
-    subd.render_levels = sub_level
+    subd.subdivision_type = 'SIMPLE'
+    subd.levels            = sub_level
+    subd.render_levels     = sub_level
     log.log(f"  Subdiv modifier: Simple ×{sub_level}")
+    with bpy.context.temp_override(
+        active_object=obj, object=obj,
+        selected_objects=[obj], selected_editable_objects=[obj],
+    ):
+        bpy.ops.object.modifier_apply(modifier="Subdiv")
+    obj.data.update()
+    log.log(f"  Subdiv applied: {len(obj.data.vertices)} verts")
 
-    # ── 2. Load texture ──────────────────────────────────────────────
+    # ── 3. Vertex group (optional) ────────────────────────────────────────
+    vgroup_name = ""
+    if not full_surface:
+        # Legacy: restrict to faces pointing upward (normal.z > 0.5).
+        # Walls, fillets, holes are excluded — they stay perfectly sharp.
+        vg      = obj.vertex_groups.new(name="TopFace")
+        mesh    = obj.data
+        vert_max_z = [0.0] * len(mesh.vertices)
+        for poly in mesh.polygons:
+            nz = poly.normal.z
+            for vi in poly.vertices:
+                if nz > vert_max_z[vi]:
+                    vert_max_z[vi] = nz
+        top_verts = [i for i, nz in enumerate(vert_max_z) if nz > 0.5]
+        vg.add(top_verts, 1.0, 'REPLACE')
+        vgroup_name = "TopFace"
+        log.log(f"  Vertex group 'TopFace': {len(top_verts)}/{len(mesh.vertices)} verts (normal.z > 0.5)")
+    else:
+        log.log("  Full-surface mode: no vertex mask — entire surface will be displaced")
+
+    # ── 4. Load & prepare texture ─────────────────────────────────────────
     img = bpy.data.images.load(skin_path)
     img.colorspace_settings.name = "Non-Color"
     _gamma_correct_image(img, gamma, log)
     W, H = img.size[0], img.size[1]
     log.log(f"  Texture loaded: {W}×{H}px  tile_size={tile_size}mm")
 
-    tex = bpy.data.textures.new("SkinTexture", type='IMAGE')
-    tex.image = img
+    tex           = bpy.data.textures.new("SkinTexture", type='IMAGE')
+    tex.image     = img
+    tex.extension = 'REPEAT'   # tile seamlessly beyond UV island boundaries
 
-    # ── 3. Mapping Empty — one full texture tile = tile_size mm ──────
-    # With texture_coords='OBJECT', Blender maps vertex world positions
-    # into the empty's local space.  Scaling the empty to tile_size means
-    # a vertex at (x, y, z) maps to (x/tile_size, y/tile_size, z/tile_size).
-    # The texture repeats every 1.0 unit → seamless tiling every tile_size mm.
-    empty = bpy.data.objects.new("TexMap", None)
-    bpy.context.collection.objects.link(empty)
-    empty.scale = (tile_size, tile_size, tile_size)
-    bpy.context.view_layer.update()   # register empty so depsgraph sees it
-    log.log(f"  Mapping empty: scale={tile_size}mm (registered in depsgraph)")
-
-    # ── 4. Displace modifier ─────────────────────────────────────────
+    # ── 5. Displace modifier ──────────────────────────────────────────────
     if mode == "negative":
         strength  = -abs(relief)
         mid_level = 0.0
     else:
         strength  = (-relief if invert else relief)
-        mid_level = 0.0  # [0..1] PNG heightmaps: black=baseline, white=+relief; no inward push
+        mid_level = 0.0
 
-    disp = obj.modifiers.new("Displace", type='DISPLACE')
-    disp.texture             = tex
-    disp.texture_coords      = 'OBJECT'
-    disp.texture_coords_object = empty
-    disp.strength            = strength
-    disp.mid_level           = mid_level
-    disp.direction           = 'NORMAL'  # safe with SIMPLE subd (no diagonal normals)
-    log.log(f"  Displace modifier: strength={strength:.2f}mm  mid={mid_level:.1f}  coords=OBJECT dir=NORMAL")
+    disp           = obj.modifiers.new("Displace", type='DISPLACE')
+    disp.texture   = tex
+    disp.strength  = strength
+    disp.mid_level = mid_level
+    disp.direction = 'NORMAL'
+    if vgroup_name:
+        disp.vertex_group = vgroup_name
 
-    # ── 5. Apply modifiers individually via modifier_apply ───────────
-    # ops.object.modifier_apply is more reliable in background mode than
-    # ops.object.convert(target='MESH') which can silently no-op.
-    # Apply in stack order: Subdiv first, then Displace.
+    if use_uv:
+        # UV-based: Blender looks up the texture using the mesh's UV coords.
+        # Because the UV was computed conformally (angle-preserving) and scaled
+        # to tile_size mm per repeat, the displacement pattern follows the
+        # surface geodesically — it wraps around curves just like painted skin.
+        disp.texture_coords = 'UV'
+        log.log(f"  Displace modifier: strength={strength:.2f}mm  "
+                f"coords=UV({projection})  mid={mid_level:.1f}  "
+                f"vgroup={'TopFace' if vgroup_name else 'none'}")
+    else:
+        # OBJECT-based: world-space box-map via a scaling Empty (legacy).
+        # Works perfectly for box/flat geometry; stretches on curved surfaces.
+        empty = bpy.data.objects.new("TexMap", None)
+        bpy.context.collection.objects.link(empty)
+        empty.scale = (tile_size, tile_size, tile_size)
+        bpy.context.view_layer.update()
+        disp.texture_coords        = 'OBJECT'
+        disp.texture_coords_object = empty
+        log.log(f"  Displace modifier: strength={strength:.2f}mm  "
+                f"coords=OBJECT  empty_scale={tile_size}mm  mid={mid_level:.1f}  "
+                f"vgroup={'TopFace' if vgroup_name else 'none'}")
+
+    # ── 6. Apply Displace modifier ────────────────────────────────────────
     bpy.context.view_layer.objects.active = obj
     with bpy.context.temp_override(
         active_object=obj, object=obj,
         selected_objects=[obj], selected_editable_objects=[obj],
     ):
-        bpy.ops.object.modifier_apply(modifier="Subdiv")
         bpy.ops.object.modifier_apply(modifier="Displace")
 
     log.log(f"  Modifiers applied: {len(obj.data.vertices)} verts post-apply")
-    log.log(f"  Done: relief={strength:.2f}mm tile={tile_size}mm mode={mode}")
+    log.log(f"  Done: relief={strength:.2f}mm  tile={tile_size}mm  mode={mode}  "
+            f"projection={'UV('+projection+')' if use_uv else 'OBJECT'}  "
+            f"full_surface={full_surface}")
 
 
 def _apply_displacement(obj, skin_path: str, tile_size: float,
                         relief: float, invert: bool, gamma: float,
-                        log: Logger, *, mode: str = "modifier"):
-    """Thin wrapper — always delegates to the full-Blender pipeline.
-
-    The script now hard-fails at startup if IS_FULL_BLENDER is False,
-    so this function is guaranteed to be called only under blender.exe.
-    The Python box-map fallback has been removed (it produced artifacts
-    on complex real-world parts).
-    """
-    _apply_displacement_blender(obj, skin_path, tile_size, relief, invert, gamma, log, mode=mode)
+                        log: Logger, *, mode: str = "modifier",
+                        projection: str = "conformal",
+                        full_surface: bool = True):
+    """Thin wrapper — always delegates to the full-Blender pipeline."""
+    _apply_displacement_blender(
+        obj, skin_path, tile_size, relief, invert, gamma, log,
+        mode=mode, projection=projection, full_surface=full_surface,
+    )
 
 
 def _export_stl(obj, out_path: str, log: Logger):
@@ -486,7 +655,8 @@ def main():
         log.log("=== apply_texture_bpy.py ===")
         log.log(f"IS_FULL_BLENDER={IS_FULL_BLENDER}  binary_path={getattr(bpy.app, 'binary_path', 'n/a')}")
         log.log(f"mode={args.mode}  tile={args.tile_size}mm  "
-                f"relief={args.relief}mm  invert={args.invert}  gamma={args.gamma}")
+                f"relief={args.relief}mm  invert={args.invert}  gamma={args.gamma}  "
+                f"projection={args.projection}  full_surface={args.full_surface}")
         log.log(f"model: {args.model_path}")
         log.log(f"skin : {args.skin_path}")
 
@@ -516,6 +686,8 @@ def main():
                 args.tile_size, args.relief,
                 args.invert, args.gamma, log,
                 mode=args.mode,
+                projection=args.projection,
+                full_surface=args.full_surface,
             )
             _export_stl(original_obj, out_path, log)
 
@@ -542,6 +714,8 @@ def main():
                 args.tile_size, args.relief,
                 invert_mode, args.gamma, log,
                 mode=args.mode,
+                projection=args.projection,
+                full_surface=args.full_surface,
             )
             _export_stl(displaced_obj, out_path, log)
 
