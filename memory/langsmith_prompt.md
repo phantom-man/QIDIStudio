@@ -92,7 +92,17 @@ They were validated through actual runtime testing.
 
 ## 3. MEMORY EXTRACTION PROTOCOL
 
-When extracting learnings at the end of a session (PreCompact trigger or user says "save this"):
+When extracting learnings at the end of a session (PreCompact trigger or user says "save this"),
+`memory/extract.py` syncs **three categories of knowledge** into LanceDB, not just learnings:
+
+| Source type | LanceDB `topic` prefix | Category |
+|------------|------------------------|----------|
+| Session Learnings Log rows (confirmed gotchas) | *(none — raw topic)* | varies |
+| Protocol sections (`## ...Protocol` / `## ...Layout`) | `protocol: <name>` | `workflow` |
+| Skills routing (`## Skills` trigger table) | `skill: <name>` | `workflow` |
+
+At session-start, `inject.py` retrieves all three and formats them into three separate labelled
+blocks: `[PROTOCOLS]`, `[SKILLS]`, `[ENGINEERING LEARNINGS]`.
 
 ### 3A. What counts as a learning
 
@@ -131,21 +141,36 @@ Each learning row in the Session Learnings Log table:
 
 ## 4. CONTEXT INJECTION FORMAT
 
-When injecting memories at session start, format as:
+When injecting memories at session start, format as three clearly-labelled blocks:
 
 ```
 --- PERSISTENT MEMORY (from previous sessions) ---
-[BPY PIPELINE]
-  • calc_normals_split removed Blender 4.1 (2026-02-27): Do not call mesh.calc_normals_split(). — Removed in Blender 4.1; runtime AttributeError
-  • vertex group after subdiv (2026-02-27): Build TopFace group AFTER applying SUBSURF modifier. — Indices change; pre-subdiv group is invalidated
+Treat these as confirmed facts. Do not re-investigate or contradict them without explicit evidence.
 
-[BUILD SYSTEM]
-  • sync before build (2026-02-10): Always Copy-Item changed .cpp/.hpp from workspace to QIDISrc before cmake build. — Two-repo layout; edits not auto-reflected in build dir
+[PROTOCOLS — steps to follow]
+  • Save This Protocol: At natural end of every session extract learnings → write .md files → run extract.py → git commit
+  • Visual Reference Log Protocol: Save every shared image to docs/images/ and log to VISUAL_REFERENCE_LOG.md
+  • Async Terminal Output — Fire-and-Poll: Fire command, do other work, poll output file once; never poll terminal in a loop
+
+[SKILLS — load these skill files when relevant]
+  • cpp-pro: Load the 'cpp-pro' skill when: Writing or reviewing any C++ code (wxWidgets, OpenGL, CMake)
+    → Skill file: .agents/skills/cpp-pro/SKILL.md — read it with read_file before acting
+  • debugging-wizard: Load the 'debugging-wizard' skill when: Tracking down crashes, wxExecute failures
+    → Skill file: .agents/skills/debugging-wizard/SKILL.md — read it with read_file before acting
+
+[ENGINEERING LEARNINGS]
+  [BPY PIPELINE]
+    • calc_normals_split removed Blender 4.1 (2026-02-27): Do not call mesh.calc_normals_split() — Removed in Blender 4.1; runtime AttributeError
+    • vertex group after subdiv (2026-02-27): Build TopFace group AFTER applying SUBSURF modifier — Indices change; pre-subdiv group is invalidated
+
+  [BUILD SYSTEM]
+    • sync before build (2026-02-27): Always Copy-Item changed files from workspace to QIDISrc before cmake build — Two-repo layout; edits not auto-reflected in build dir
 
 --- END PERSISTENT MEMORY ---
+use Context7
 ```
 
-Prioritise: recent learnings (last 30 days) + learnings most semantically similar to the current task topic.
+Prioritise: most recent learnings + learnings most semantically similar to the current task topic.
 
 ---
 

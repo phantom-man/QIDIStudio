@@ -1,12 +1,17 @@
 """
-extract.py — Parses the Session Learnings Log from copilot-instructions.md
-             and syncs all rows into LanceDB.
+extract.py — Syncs three knowledge sources from copilot-instructions.md into LanceDB:
 
-Run this after the Save This Protocol writes new learnings to the .md file:
+  1. Session Learnings Log   — table rows of confirmed gotchas / decisions (category varies)
+  2. Protocols               — one row per ## ...Protocol section  (category: workflow)
+  3. Skills routing          — one row per skill trigger           (category: workflow)
+
+Also reads QIDISTUDIO_KNOWLEDGE.md for any learnings table there.
+
+Run after the Save This Protocol writes new learnings:
   python memory/extract.py
 
-It is idempotent — rows are upserted by topic, so re-running never creates duplicates.
-LangSmith tracing is enabled if LANGCHAIN_TRACING_V2=true in .env.
+Idempotent — rows are upserted by topic, so re-running never creates duplicates.
+LangSmith tracing enabled if LANGCHAIN_TRACING_V2=true in .env.
 """
 
 import re
@@ -121,6 +126,113 @@ def extract_from_knowledge(path: Optional[Path] = None) -> list[dict]:
     return _parse_learnings_table(match.group(1))
 
 
+# ── Protocol extraction ────────────────────────────────────────────────────
+
+_PROTOCOL_NAMES = [
+    "Save This",
+    "Visual Reference Log",
+    "Amazon Link Fetching",
+    "Fire-and-Poll",
+    "Async Terminal Output",
+    "Two-Repo Layout",
+]
+
+def extract_protocols(path: Optional[Path] = None) -> list[dict]:
+    """
+    Parse named protocol sections from copilot-instructions.md.
+    Returns one row per protocol with category='workflow'.
+
+    Each row: { topic, decision, rationale, category, date, source }
+    """
+    path = path or REPO_ROOT / ".github" / "copilot-instructions.md"
+    if not path.exists():
+        return []
+    text = path.read_text(encoding="utf-8")
+
+    rows: list[dict] = []
+
+    # Find every ## heading that contains "Protocol" or matches known names
+    section_re = re.compile(
+        r'^(#{1,3} .+?(?:Protocol|Layout|Procedure|Workflow).+?)\n(.*?)(?=^#{1,3} |\Z)',
+        re.MULTILINE | re.DOTALL | re.IGNORECASE,
+    )
+
+    for m in section_re.finditer(text):
+        heading = m.group(1).strip().lstrip("#").strip().strip('"').strip("'")
+        body    = m.group(2).strip()
+
+        if not body:
+            continue
+
+        # First non-empty, non-heading paragraph = summary
+        paragraphs = [p.strip() for p in body.split("\n\n") if p.strip()]
+        first_para = paragraphs[0] if paragraphs else ""
+
+        # Collapse newlines in para for clean storage
+        decision  = re.sub(r'\s+', ' ', first_para)[:400]
+        # Steps = remaining text, compacted
+        steps_raw = "\n\n".join(paragraphs[1:4]) if len(paragraphs) > 1 else ""
+        rationale = re.sub(r'\s+', ' ', steps_raw)[:600] if steps_raw else f"See {path.name} §{heading}"
+
+        rows.append({
+            "topic":     f"protocol: {heading}",
+            "decision":  decision,
+            "rationale": rationale,
+            "category":  "workflow",
+            "date":      None,
+            "source":    "copilot-instructions/protocol",
+        })
+
+    return rows
+
+
+# ── Skills routing extraction ──────────────────────────────────────────────
+
+def extract_skills(path: Optional[Path] = None) -> list[dict]:
+    """
+    Parse the Skills section from copilot-instructions.md.
+    Each 'Trigger | Skill' table row becomes one LanceDB row so the agent gets
+    prompted to load the right skill file when the topic matches.
+
+    Returns rows with category='workflow'.
+    """
+    path = path or REPO_ROOT / ".github" / "copilot-instructions.md"
+    if not path.exists():
+        return []
+
+    text = path.read_text(encoding="utf-8")
+
+    # Find the Skills section block
+    match = re.search(r'## Skills.+?(?=^## |\Z)', text, re.DOTALL | re.MULTILINE)
+    if not match:
+        return []
+
+    skills_block = match.group(0)
+    rows: list[dict] = []
+
+    # Each table row looks like: | trigger text | `skill-name` |
+    row_re = re.compile(r'^\|\s*(.+?)\s*\|\s*`([^`]+)`\s*\|', re.MULTILINE)
+
+    for m in row_re.finditer(skills_block):
+        trigger    = m.group(1).strip()
+        skill_name = m.group(2).strip()
+
+        # Skip header rows
+        if trigger.lower() in ("trigger", "skill", "when"):
+            continue
+
+        rows.append({
+            "topic":     f"skill: {skill_name}",
+            "decision":  f"Load the '{skill_name}' skill when: {trigger}",
+            "rationale": f"Skill file: .agents/skills/{skill_name}/SKILL.md — read it with read_file before acting",
+            "category":  "workflow",
+            "date":      None,
+            "source":    "copilot-instructions/skills",
+        })
+
+    return rows
+
+
 def sync_to_lancedb(rows: list[dict], source: str = "copilot-instructions") -> tuple[int, int]:
     """Upsert all rows into LanceDB. Returns (inserted, skipped)."""
     from memory.store import upsert_learning
@@ -129,11 +241,12 @@ def sync_to_lancedb(rows: list[dict], source: str = "copilot-instructions") -> t
     skipped  = 0
 
     for row in rows:
-        topic    = row.get("topic", "").strip()
-        decision = row.get("decision", "").strip()
-        rationale= row.get("rationale", "").strip()
-        category = row.get("category", "").strip() or _infer_category(topic, decision)
-        dt       = row.get("date", "").strip() or None
+        topic    = (row.get("topic")     or "").strip()
+        decision = (row.get("decision")  or "").strip()
+        rationale= (row.get("rationale") or "").strip()
+        category = (row.get("category")  or "").strip() or _infer_category(topic, decision)
+        dt       = (row.get("date")      or "").strip() or None
+        src      = row.get("source")     or source
 
         if not topic or not decision:
             skipped += 1
@@ -145,7 +258,7 @@ def sync_to_lancedb(rows: list[dict], source: str = "copilot-instructions") -> t
                 decision=decision,
                 rationale=rationale,
                 category=category,
-                source=source,
+                source=src,
                 learning_date=dt,
             )
             inserted += 1
@@ -163,18 +276,28 @@ def main():
 
     all_rows: list[dict] = []
 
-    # 1. copilot-instructions.md
+    # 1. Session Learnings Log in copilot-instructions.md
     rows1 = extract_from_instructions()
-    print(f"  copilot-instructions.md : {len(rows1)} learnings found")
+    print(f"  copilot-instructions.md (learnings)  : {len(rows1)} rows")
     all_rows.extend(rows1)
 
-    # 2. QIDISTUDIO_KNOWLEDGE.md
+    # 2. Session Learnings Log in QIDISTUDIO_KNOWLEDGE.md
     rows2 = extract_from_knowledge()
-    print(f"  QIDISTUDIO_KNOWLEDGE.md : {len(rows2)} learnings found")
+    print(f"  QIDISTUDIO_KNOWLEDGE.md  (learnings) : {len(rows2)} rows")
     all_rows.extend(rows2)
 
+    # 3. Protocol sections
+    rows3 = extract_protocols()
+    print(f"  copilot-instructions.md  (protocols) : {len(rows3)} rows")
+    all_rows.extend(rows3)
+
+    # 4. Skills routing table
+    rows4 = extract_skills()
+    print(f"  copilot-instructions.md  (skills)    : {len(rows4)} rows")
+    all_rows.extend(rows4)
+
     if not all_rows:
-        print("\nNo learnings found. Make sure the 'Session Learnings Log' table exists in the .md files.")
+        print("\nNo content found. Check that 'Session Learnings Log' table and '## Skills' section exist in copilot-instructions.md.")
         return
 
     print(f"\nSyncing {len(all_rows)} rows to LanceDB...")

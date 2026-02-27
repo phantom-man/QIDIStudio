@@ -29,26 +29,63 @@ def _build_context(learnings: list[dict]) -> str:
 
     lines = [
         "--- PERSISTENT MEMORY (from previous sessions) ---",
-        "The following learnings were stored in LanceDB from prior engineering sessions.",
-        "Treat these as confirmed facts — do not re-investigate or contradict them without explicit evidence.",
+        "Treat these as confirmed facts. Do not re-investigate or contradict them without explicit evidence.",
         "",
     ]
 
-    # Group by category
-    by_cat: dict[str, list[dict]] = {}
-    for r in learnings:
-        cat = r.get("category", "general")
-        by_cat.setdefault(cat, []).append(r)
+    # Separate protocols, skill routing, and general learnings
+    protocols: list[dict] = []
+    skills:    list[dict] = []
+    rest:      list[dict] = []
 
-    for cat, rows in by_cat.items():
-        lines.append(f"[{cat.upper().replace('_', ' ')}]")
-        for r in rows:
-            topic    = r.get("topic",     "")
-            decision = r.get("decision",  "")
-            rationale= r.get("rationale", "")
-            dt       = r.get("date",      "")
-            lines.append(f"  • {topic} ({dt}): {decision}" + (f" — {rationale}" if rationale else ""))
+    for r in learnings:
+        topic = r.get("topic", "")
+        if topic.startswith("protocol:"):
+            protocols.append(r)
+        elif topic.startswith("skill:"):
+            skills.append(r)
+        else:
+            rest.append(r)
+
+    # ── Protocols section ─────────────────────────────────────────
+    if protocols:
+        lines.append("[PROTOCOLS — steps to follow]")
+        for r in protocols:
+            name     = r.get("topic", "").removeprefix("protocol:").strip()
+            decision = r.get("decision", "")
+            lines.append(f"  • {name}: {decision[:200]}")
         lines.append("")
+
+    # ── Skills routing section ────────────────────────────────────
+    if skills:
+        lines.append("[SKILLS — load these skill files when relevant]")
+        for r in skills:
+            name     = r.get("topic", "").removeprefix("skill:").strip()
+            decision = r.get("decision", "")
+            path     = r.get("rationale", "")
+            lines.append(f"  • {name}: {decision[:180]}")
+            if path:
+                lines.append(f"    → {path[:120]}")
+        lines.append("")
+
+    # ── Engineering learnings grouped by category ─────────────────
+    if rest:
+        lines.append("[ENGINEERING LEARNINGS]")
+        by_cat: dict[str, list[dict]] = {}
+        for r in rest:
+            cat = r.get("category", "general")
+            by_cat.setdefault(cat, []).append(r)
+
+        for cat, rows in by_cat.items():
+            lines.append(f"  [{cat.upper().replace('_', ' ')}]")
+            for r in rows:
+                topic     = r.get("topic",     "")
+                decision  = r.get("decision",  "")
+                rationale = r.get("rationale", "")
+                dt        = r.get("date",      "")
+                suffix    = f" — {rationale}" if rationale else ""
+                lines.append(f"    • {topic} ({dt}): {decision}{suffix}")
+            lines.append("")
 
     lines.append("--- END PERSISTENT MEMORY ---")
     lines.append("use Context7")
