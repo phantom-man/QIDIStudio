@@ -292,37 +292,56 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
 
-    # ── 0. Weld vertices — CRITICAL for STL input ──────────────────
-    # STL files have NO shared vertices: every triangle is self-contained.
-    # Without welding, subdivision treats each triangle in isolation and
-    # displacement pulls the seam vertices apart → long spiky artifacts.
-    # Merge-by-distance connects the seams before any modifier runs.
+    # ── 0. Weld + mark sharp edges ───────────────────────────────────
+    # STL files have no shared vertices; weld them first.
+    # Then mark any edge with a dihedral angle > 30° as a crease edge
+    # (crease weight = 1.0).  Catmull-Clark subdivision with creases
+    # preserves sharp edges exactly — no spike artifacts at corners or
+    # holes — while subdividing flat surfaces smoothly for texture detail.
     try:
-        import bmesh as _bm_weld
-        bm_w = _bm_weld.new()
-        bm_w.from_mesh(obj.data)
-        before_w = len(bm_w.verts)
-        _bm_weld.ops.remove_doubles(bm_w, verts=bm_w.verts, dist=0.001)
-        after_w = len(bm_w.verts)
-        _bm_weld.ops.recalc_face_normals(bm_w, faces=bm_w.faces)
-        bm_w.to_mesh(obj.data)
-        bm_w.free()
+        import bmesh as _bm_prep
+        import math as _math
+        bm_p = _bm_prep.new()
+        bm_p.from_mesh(obj.data)
+        before_w = len(bm_p.verts)
+        _bm_prep.ops.remove_doubles(bm_p, verts=bm_p.verts, dist=0.001)
+        after_w = len(bm_p.verts)
+        _bm_prep.ops.recalc_face_normals(bm_p, faces=bm_p.faces)
+        # Mark sharp edges for subdivision crease
+        crease_layer = bm_p.edges.layers.crease.verify()
+        sharp_thresh = _math.radians(30.0)
+        sharp_count = 0
+        for edge in bm_p.edges:
+            if len(edge.link_faces) == 2:
+                angle = edge.calc_face_angle(0.0)
+                if angle > sharp_thresh:
+                    edge[crease_layer] = 1.0
+                    sharp_count += 1
+            else:
+                # boundary edges (holes) are always sharp
+                edge[crease_layer] = 1.0
+                sharp_count += 1
+        bm_p.to_mesh(obj.data)
+        bm_p.free()
         obj.data.update()
-        log.log(f"  Welded STL vertices: {before_w} → {after_w} verts")
+        log.log(f"  Welded: {before_w}→{after_w} verts, {sharp_count} sharp edges marked")
     except Exception as exc:
-        log.log(f"  WARNING: pre-weld failed ({exc}); subdivision may produce seam artifacts")
+        log.log(f"  WARNING: pre-weld/crease failed ({exc})")
 
-    # ── 1. Subdivision (Simple — preserves hard edges) ──────────────
+    # ── 1. Subdivision (Catmull-Clark with creases) ───────────────────
+    # CC subdiv respects crease weights → sharp edges stay sharp,
+    # flat faces subdivide smoothly.  This eliminates spike artifacts
+    # at sharp corners and holes (the classic STL displacement problem).
     sub_level = _adaptive_subd_level(obj)
     sub = obj.modifiers.new("Subd_tex", type="SUBSURF")
-    sub.subdivision_type = "SIMPLE"
+    sub.subdivision_type = "CATMULL_CLARK"
     sub.levels = sub_level
+    sub.use_creases = True
     # Ensure subdivision runs before displacement.
-    # Use data-API .move() — works in headless mode without bpy.ops context.
     sub_idx = list(obj.modifiers).index(sub)
     if sub_idx != 0:
         obj.modifiers.move(sub_idx, 0)
-    log.log(f"  Subdivision level {sub_level} (base polys: {len(obj.data.polygons)})")    
+    log.log(f"  Subdivision CC level {sub_level} (base polys: {len(obj.data.polygons)})")    
 
     # ── 2. Load image and apply gamma ────────────────────────────────
     img = bpy.data.images.load(skin_path)
@@ -360,7 +379,13 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
     mod.texture              = tex
     mod.texture_coords        = "OBJECT"
     mod.texture_coords_object = mapping_empty
-    mod.direction            = "NORMAL"
+    # Z-axis displacement: moves every vertex straight up/down along local Z.
+    # NORMAL direction causes spikes at hole edges where surface normals
+    # transition from flat (0,0,1) to wall (1,0,0) — the interpolated vertex
+    # normal at the boundary points diagonally → vertex flies off at 45°.
+    # Z direction avoids this entirely: all vertices move ±Z, producing clean
+    # texture relief on horizontal faces with no edge spikes.
+    mod.direction            = "Z"
     mod.strength             = strength
     mod.mid_level            = mid_level
 
