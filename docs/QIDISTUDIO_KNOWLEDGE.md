@@ -1,6 +1,6 @@
 # QIDIStudio — Complete Engineering Knowledge Base
 
-_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes)_
+_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh)_
 
 This document captures all reverse-engineered knowledge about QIDIStudio's source code,
 build system, configuration, and 3MF format. It serves as the single source of truth
@@ -689,6 +689,7 @@ Fix: `set_volume_by_selection()` now compares `svg_file->path` between the incom
 _Last updated: 2026-02-27. Replaces old trimesh/apply_skin.py pipeline entirely._
 
 Adds **"Add Negative Part → Texture…"** and **"Add Part → Texture…"** items to the 3D object right-click menu. The feature:
+
 1. Lets the user pick a PNG skin asset (heightmap) and set tile size + relief depth
 2. Exports the model volume as a temp STL, runs `blender.exe --background --python apply_texture_bpy.py`
 3. Blender applies SIMPLE subdivision + Displace modifier (vertex group restricted to top faces)
@@ -721,6 +722,7 @@ Adds **"Add Negative Part → Texture…"** and **"Add Part → Texture…"** it
 ```
 
 **C++ reload flow (`apply_texture()`):**
+
 - Export `mo->raw_mesh()` to `%TEMP%\qidi_tex_src_*.stl`
 - Run Blender with `wxEXEC_BLOCK` (= `wxEXEC_SYNC | wxEXEC_NOEVENTS` — CRITICAL, see gotcha below)
 - Parse `SKIN_OUTPUT:` line from log file
@@ -730,6 +732,7 @@ Adds **"Add Negative Part → Texture…"** and **"Add Part → Texture…"** it
 - `changed_object(obj_idx)` → `ensure_on_bed()` → reloads 3D scene
 
 **Why Blender instead of trimesh:**
+
 - Blender SIMPLE subdivision handles all edge cases cleanly (CAD parts, organic shapes)
 - Displace modifier evaluates per-polygon normals correctly; no vertex-loop artifacts
 - Vertex group support restricts displacement to top faces only (critical for CAD holes)
@@ -799,6 +802,7 @@ Session knowledge is stored in a local LanceDB vector DB at `data/lancedb/`, tab
 | Sources indexed | `copilot-instructions.md`, `QIDISTUDIO_KNOWLEDGE.md`, `memory/langsmith_prompt.md` |
 
 **Key commands:**
+
 ```powershell
 # Re-index all source docs:
 & 'C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe' memory/extract.py
@@ -814,8 +818,10 @@ Session knowledge is stored in a local LanceDB vector DB at `data/lancedb/`, tab
 ### LangSmith Hub — Known Gotchas
 
 **Gotcha 1: Tenant mismatch when using handle prefix**
+
 - `client.push_prompt("damienfosborn/prompt-name", ...)` → `Cannot create a prompt for another tenant. Current tenant: None`
 - Fix: Use **simple name** (no `handle/` prefix) + pass `workspace_id` to `Client()`:
+
   ```python
   ws_id  = os.getenv("LANGSMITH_WORKSPACE_ID")  # "073a725b-..."
   client = Client(api_key=api_key, workspace_id=ws_id)
@@ -823,19 +829,23 @@ Session knowledge is stored in a local LanceDB vector DB at `data/lancedb/`, tab
   ```
 
 **Gotcha 2: 409 "Nothing to commit" is not an error**
+
 - LangSmith returns HTTP 409 when the pushed prompt is identical to what's already stored.
 - Treat it as success: `if "409" in str(exc) and "Nothing to commit" in str(exc): print("OK, up to date")`
 
 **Gotcha 3: ChatPromptTemplate placeholder**
+
 - Use `("placeholder", "{messages}")` not `("human", "{input}")` — placeholder accepts a full message list.
 
 ### LanceDB API Gotchas
 
 **Gotcha: `list_tables()` returns `ListTablesResponse` (Pydantic model), not a list**
+
 - `"my_table" in db.list_tables()` fails silently — always evaluates False.
 - Fix: `tbl_names = [t.name for t in db.list_tables()]` or `db.list_tables().tables`
 
 **Gotcha: pandas not available in Python 3.13 env**
+
 - `tbl.to_pandas()` raises `ImportError`.
 - Fix: Use `tbl.to_arrow()` + PyArrow scanner for all query operations.
 
@@ -847,6 +857,466 @@ Session knowledge is stored in a local LanceDB vector DB at `data/lancedb/`, tab
 | PreCompact | `.github/hooks/precompact_hook.ps1` | Outputs "Save This Protocol" JSON instruction to agent |
 
 **Critical**: Hook shell commands are NOT visible to the agent. Only the JSON `additionalContext` output reaches the agent. All file writes must be done by the agent itself, not the hook script.
+
+---
+
+## 15. Computational Metrology & Geometry Processing
+
+_PhD-level reference for high-fidelity texture mapping on 3D manifolds. All sources verified 2026-02-27._
+
+This section documents the theory and implementation toolkit needed for **conformal UV parameterization**, **spectral shape analysis**, **geodesic distance computation**, and **inverse error compensation** — the full pipeline for physically-accurate texture projection onto non-uniform 3D surfaces (including QIDIStudio's displacement texture workflow).
+
+---
+
+### 15.1 Core Python Libraries
+
+#### LibIGL Python Bindings
+
+**Install:** `pip install libigl` (no C++ toolchain needed — prebuilt wheels on PyPI)  
+**License:** GPL-3.0 / MPL-2.0. Use MPL-2.0 subset to stay LGPL-safe.  
+**Docs:** https://libigl.github.io/libigl-python-bindings/  
+**Latest release:** 2.6.1 (Jul 2025)
+
+Key API examples (all inputs/outputs are numpy arrays or scipy sparse matrices):
+
+```python
+import igl
+import scipy as sp
+import numpy as np
+
+# Load mesh
+v, f = igl.read_triangle_mesh("mesh.off")  # v: (V,3) float64, f: (F,3) int32
+
+# Cotangent Laplace-Beltrami operator — NEGATIVE semi-definite (off-diag positive)
+# NOTE: sign is OPPOSITE of robust_laplacian — diagonal entries NEGATIVE
+L = igl.cotmatrix(v, f)           # (V,V) scipy sparse
+
+# Mass matrix (area weights per vertex)
+M = igl.massmatrix(v, f, igl.MASSMATRIX_TYPE_VORONOI)   # (V,V) diagonal sparse
+M_bary = igl.massmatrix(v, f, igl.MASSMATRIX_TYPE_BARYCENTRIC)
+
+# Strong Laplacian: Minv @ L
+Minv = sp.sparse.diags(1 / M.diagonal())
+delta_f = Minv.dot(L.dot(f_scalar))
+
+# Gaussian curvature (angle deficit)
+k = igl.gaussian_curvature(v, f)  # (V,) per-vertex
+
+# Principal curvatures and directions
+v1, v2, k1, k2 = igl.principal_curvature(v, f)
+H = 0.5 * (k1 + k2)  # mean curvature
+
+# Gradient operator G: (F*3, V) maps vertex scalars to per-face gradients
+G = igl.grad(v, f)
+gu = G.dot(u).reshape(f.shape, order="F")  # u: (V,) scalar field
+
+# Exact geodesic distance (Mitchell 1987 algorithm)
+vs = np.array([0])        # source vertices
+vt = np.arange(v.shape[0])  # target: all vertices
+d = igl.exact_geodesic(v, f, vs, vt)
+
+# Boundary detection
+bnd = igl.boundary_loop(f)   # (B,) indices of boundary vertices in order
+
+# --- PARAMETERIZATION ---
+
+# Method 1: Harmonic (fixed circular boundary) — lowest distortion for disks
+bnd_uv = igl.map_vertices_to_circle(v, bnd)
+uv = igl.harmonic(v, f, bnd, bnd_uv, 1)  # 1=harmonic, 2=biharmonic
+
+# Method 2: LSCM (Least Squares Conformal Maps) — free boundary, angle-preserving
+b = np.array([bnd[0], bnd[bnd.size // 2]])
+bc = np.array([[0.0, 0.0], [1.0, 0.0]])
+_, uv_lscm = igl.lscm(v, f, b, bc)
+
+# Method 3: ARAP (As-Rigid-As-Possible) — preserves distances, init with harmonic
+arap = igl.ARAP(v, f, 2, np.zeros(0))
+uv_arap = arap.solve(np.zeros((0, 0)), uv)  # uv = harmonic init
+
+# Laplacian smoothing (mean curvature flow)
+from scipy.sparse.linalg import spsolve
+for _ in range(10):
+    M = igl.massmatrix(v, f, igl.MASSMATRIX_TYPE_BARYCENTRIC)
+    s = M - 0.001 * L
+    v = spsolve(s, M.dot(v))
+```
+
+**Critical sign note:** `igl.cotmatrix` returns a **negative** semi-definite matrix (diagonal negative, off-diagonal non-negative). This is OPPOSITE to `robust_laplacian` which is positive semi-definite. When converting between the two, flip the sign.
+
+#### Robust Laplacians (Sharp & Crane SGP 2020)
+
+**Install:** `pip install robust_laplacian`  
+**License:** MIT  
+**Docs:** https://github.com/nmwsharp/robust-laplacians-py  
+**Key property:** Always symmetric **positive** semi-definite. Works on non-manifold meshes, meshes with boundary, and point clouds. Internally builds an intrinsic Delaunay triangulation + intrinsic mollification.
+
+```python
+import robust_laplacian
+import scipy.sparse.linalg as sla
+
+# For a triangle mesh
+L, M = robust_laplacian.mesh_laplacian(verts, faces)
+# L: (V,V) sparse, POSITIVE semi-definite. M: (V,V) diagonal mass matrix
+
+# For a point cloud
+L, M = robust_laplacian.point_cloud_laplacian(points, mollify_factor=1e-5, n_neighbors=30)
+
+# Compute first k eigenvectors (spectral basis / Shape DNA)
+n_eig = 10
+evals, evecs = sla.eigsh(L, n_eig, M, sigma=1e-8)
+# evals: smallest eigenvalues, evecs: (V, k) eigenvectors
+
+# Strong Laplacian (for diffusion, smoothing)
+# Solve: L x = M y  (Poisson problem)
+# Or form M^-1 L for the strong version
+```
+
+**Sign convention:** `robust_laplacian` is positive semi-definite — diagonal entries positive, off-diagonal negative. `igl.cotmatrix` is negative semi-definite — the opposite. When mixing the two, always flip the sign.
+
+#### Trimesh
+
+**Install:** `pip install trimesh` (minimal) or `pip install trimesh[easy]` (adds scipy, networkx, etc.)  
+**License:** MIT  
+**Docs:** https://trimesh.org  
+**Latest:** 4.11.2 (Feb 2026)
+
+```python
+import trimesh
+import numpy as np
+
+# Load (supports STL, PLY, OBJ, GLTF/GLB, 3MF, etc.)
+mesh = trimesh.load_mesh("model.stl")
+
+# Key properties
+mesh.is_watertight      # bool
+mesh.volume             # float (only valid if watertight)
+mesh.center_mass        # (3,) centroid
+mesh.moment_inertia     # (3,3)
+mesh.euler_number       # topological invariant
+mesh.bounding_box.extents    # axis-aligned BB
+mesh.bounding_box_oriented   # OBB
+
+# Vertex/face access
+verts  = mesh.vertices   # (V,3)
+faces  = mesh.faces      # (F,3)
+norms  = mesh.vertex_normals  # (V,3)
+
+# Laplacian smoothing (3 modes available)
+# Classic, Taubin (preserves volume), Humphrey
+smoothed = trimesh.smoothing.filter_laplacian(mesh, lamb=0.5, iterations=10)
+smoothed = trimesh.smoothing.filter_taubin(mesh)
+
+# Boolean ops (requires manifold3d or Blender)
+union = trimesh.boolean.union([mesh_a, mesh_b], engine="manifold")
+diff  = trimesh.boolean.difference(mesh_a, mesh_b, engine="manifold")
+
+# Surface sampling
+points, face_idx = trimesh.sample.sample_surface(mesh, count=10000)
+
+# Nearest point on surface + signed distance
+closest, dist, tri_idx = trimesh.proximity.closest_point(mesh, query_points)
+signed_dist = trimesh.proximity.signed_distance(mesh, query_points)
+
+# Cross section (for 3D printing simulation)
+section = mesh.section(plane_origin=[0,0,0], plane_normal=[0,0,1])  # returns Path3D
+
+# Export
+mesh.export("output.stl")
+mesh.export("output.ply")
+mesh.export("output.glb")
+
+# From raw arrays
+mesh2 = trimesh.Trimesh(vertices=verts, faces=faces, process=False)
+```
+
+---
+
+### 15.2 Mathematical Foundations
+
+#### Laplace-Beltrami Operator (Cotangent Formula)
+
+The fundamental PDE operator on surfaces. Given scalar function $f$ on a triangle mesh:
+
+$$\Delta f(v_i) = \frac{1}{2A_i} \sum_{j \in N(i)} (\cot \alpha_{ij} + \cot \beta_{ij})(f_j - f_i)$$
+
+where $\alpha_{ij}$ and $\beta_{ij}$ are the two angles opposite to edge $(i,j)$ in the adjacent triangles, $A_i$ is the Voronoi area at vertex $i$, and $N(i)$ are the one-ring neighbours.
+
+**Matrix form:** $L_{ij} = (\cot\alpha_{ij} + \cot\beta_{ij})$ for $j \in N(i)$, $L_{ii} = -\sum_{k \neq i} L_{ik}$.
+
+**Applications:** mesh smoothing, UV parameterization, heat diffusion, spectral analysis, geodesic distance.
+
+#### Shape DNA / Spectral Fingerprint (Reuter 2006)
+
+The eigenvalues of the Laplace-Beltrami operator are isometry-invariant shape descriptors:
+
+$$\Delta \phi_k = \lambda_k \phi_k, \quad \lambda_0 \leq \lambda_1 \leq \lambda_2 \leq \ldots$$
+
+The first $k$ eigenvalues $(\lambda_0, \lambda_1, \ldots, \lambda_{k-1})$ form the **Shape DNA** — a compact fingerprint that is invariant to rigid motions and scaling (if normalized). Use it to:
+- Verify that a printed part matches a CAD model (compare DNA before/after printing)
+- Detect manufacturing defects (abnormal eigenvalue drift)
+- Drive a feedback loop for inverse error compensation
+
+**Python implementation (from the PhD manuscript):**
+
+```python
+import numpy as np
+import robust_laplacian
+import scipy.sparse.linalg as sla
+
+def get_shape_dna(verts, faces, k=20):
+    """Returns first k eigenvalues of the Laplace-Beltrami operator.
+    Invariant to rigid motions. Good fingerprint for shape comparison."""
+    L, M = robust_laplacian.mesh_laplacian(verts, faces)
+    # Use sigma close to 0 to get the smallest eigenvalues
+    evals, _ = sla.eigsh(L, k=k, M=M, sigma=1e-8, which='LM')
+    return np.sort(np.abs(evals))  # sort ascending, abs to handle near-zero numerical noise
+
+def spectral_distance(dna_a, dna_b):
+    """Fitness function: inverse of sum of squared differences."""
+    return 1.0 / (np.sum((dna_a - dna_b)**2) + 1e-12)
+```
+
+#### Conformal Mapping (Angle-Preserving UV Parameterization)
+
+A **conformal map** preserves angles but not necessarily areas. It is the lowest-distortion parameterization for texture mapping. Three implementations available:
+
+| Method | Boundary | Distortion | Use case |
+|--------|----------|------------|----------|
+| Harmonic | Fixed (circle) | Area distortion possible | Simple disk-topology mesh |
+| LSCM (Least Squares Conformal) | Free | Minimizes angular distortion | General open meshes |
+| ARAP (As-Rigid-As-Possible) | Free | Minimizes distance distortion | When distances matter |
+| SCP (Spectral Conformal) | Free, spectral | Near-optimal conformal | Research-grade quality |
+
+The **Spectral Conformal Parameterization (SCP)** algorithm (DDG course, CMU):
+1. Build the complex cotangent Laplacian $L_c$
+2. Build the area matrix $A$ from boundary halfedge traversal
+3. Minimize conformal energy $E_C(z) = E_D(z) - A(z)$
+4. Find eigenvector corresponding to smallest eigenvalue via inverse power method
+
+#### Geodesic Distance (Heat Method — Crane 2013)
+
+Computing shortest-path distances on curved surfaces. The **Heat Method** is O(n) after precomputation:
+
+1. **Diffuse heat:** solve $(M - t L) u = \delta_s$ (one step of heat diffusion from source $s$)
+2. **Normalize gradient:** $X = -\nabla u / |\nabla u|$ (unit gradient field)
+3. **Integrate:** solve $L \phi = \nabla \cdot X$ (Poisson equation for distance $\phi$)
+
+Timestep rule: $t = h^2$ where $h$ = mean edge length.
+
+**In libigl:**
+```python
+# See igl.heat_geodesics for the full precomputed version
+# Manual implementation:
+import scipy.sparse.linalg as sla
+L = igl.cotmatrix(v, f)
+M = igl.massmatrix(v, f, igl.MASSMATRIX_TYPE_VORONOI)
+t = igl.avg_edge_length(v, f)**2
+A = M - t * L  # heat flow operator
+# source: delta at vertex 0
+delta = np.zeros(v.shape[0]); delta[0] = 1.0
+u = sla.spsolve(A, delta)
+# normalize gradient, solve Poisson...
+```
+
+---
+
+### 15.3 Full "Perfection" Pipeline for QIDIStudio
+
+This is the closed-loop workflow connecting geometry processing to physical 3D printing verification:
+
+```
+STL/3MF design
+      │
+      ▼
+1. CONFORMAL UV PARAMETERIZATION (igl.lscm or igl.harmonic)
+      │  Maps 3D surface → 2D UV domain with minimal angle distortion
+      ▼
+2. TEXTURE APPLICATION (Blender: resources/scripts/apply_texture_bpy.py)
+      │  Displacement map applied in UV space, geometry deformed
+      ▼
+3. SPECTRAL DNA EXTRACTION (robust_laplacian + eigsh)
+      │  Compute Laplace-Beltrami eigenvalues → Shape DNA fingerprint
+      │  Inject DNA into G-code header as: ; SHAPE_DNA: λ₀,λ₁,...
+      ▼
+4. SLICE → G-CODE (QIDIStudio)
+      ▼
+5. PRINT (Qidi Q2)
+      ▼
+6. SCAN / RECONSTRUCT printed part (photogrammetry or depth sensor → point cloud)
+      ▼
+7. SHAPE DNA COMPARISON
+      │  Compute DNA of scanned part; compare to target DNA
+      │  Fitness = 1 / Σ(λ_target - λ_printed)²
+      ▼
+8. INVERSE ERROR COMPENSATION
+      │  If fitness < threshold: pre-deform CAD model to cancel expected error
+      │  Use KDTree (mathutils or scipy.spatial) for nearest-point mapping
+      ▼
+      └─ LOOP until fitness converges (evolutionary / gradient descent)
+```
+
+**Inverse Error Compensation implementation:**
+
+```python
+import numpy as np
+from scipy.spatial import KDTree
+
+def compensate_error(verts, gcode_points, alpha=0.8, dist_threshold=0.05):
+    """
+    Pre-deform mesh vertices to cancel expected print error.
+    verts: (V,3) numpy array of mesh vertices (world space)
+    gcode_points: (N,3) numpy array of G-code toolpath points
+    alpha: correction strength (0=no correction, 1=full correction)
+    """
+    kd = KDTree(gcode_points)
+    dists, idxs = kd.query(verts)
+    corrected = verts.copy()
+    mask = dists > dist_threshold
+    error_vecs = gcode_points[idxs[mask]] - verts[mask]
+    corrected[mask] -= error_vecs * alpha
+    return corrected
+
+def inject_dna_to_gcode(gcode_path, dna):
+    """Prepend Shape DNA to G-code header for traceability."""
+    dna_str = ",".join([f"{x:.4f}" for x in dna])
+    with open(gcode_path, 'r') as f:
+        content = f.readlines()
+    with open(gcode_path, 'w') as f:
+        f.write(f"; SHAPE_DNA: {dna_str}\n")
+        f.writelines(content)
+```
+
+---
+
+### 15.4 Blender Conformal UV (bpy API)
+
+When working inside Blender (via `apply_texture_bpy.py`), use Blender's built-in conformal unwrap rather than libIGL:
+
+```python
+import bpy, bmesh
+
+def apply_conformal_mapping(obj, uv_name="Conformal_DNA"):
+    """Apply conformal UV unwrap to obj. Works in Blender 4.x and 5.x."""
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.mode_set(mode='EDIT')
+    bm = bmesh.from_edit_mesh(obj.data)
+    # Ensure UV layer exists
+    if not bm.loops.layers.uv.get(uv_name):
+        bm.loops.layers.uv.new(uv_name)
+    # Select all for unwrap
+    for face in bm.faces:
+        face.select = True
+    bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.001)
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+def get_shape_dna_blender(obj, k=10):
+    """Compute Shape DNA from Blender mesh object using simple adjacency Laplacian.
+    For production use, export to numpy and use robust_laplacian instead."""
+    mesh = obj.data
+    n = len(mesh.vertices)
+    adj = np.zeros((n, n))
+    for edge in mesh.edges:
+        u, v = edge.vertices
+        adj[u, v] = adj[v, u] = 1.0
+    deg = np.diag(adj.sum(axis=1))
+    laplacian = deg - adj  # combinatorial Laplacian (not cotangent)
+    eigenvalues = np.linalg.eigvalsh(laplacian)
+    return eigenvalues[:k]
+    # NOTE: For high-quality DNA, use robust_laplacian on exported mesh, not this
+```
+
+**Note:** The simple combinatorial Laplacian (degree - adjacency) is NOT the cotangent Laplacian. It does not account for vertex areas or angles. Use only for fast approximation or in Blender where you can't easily import libIGL. For production-quality Shape DNA, export the mesh to numpy arrays and use `robust_laplacian.mesh_laplacian()`.
+
+---
+
+### 15.5 Texture Mapping Theory — Key Concepts
+
+From **SIGGRAPH 2017: Rethinking Texture Mapping** (Yuksel, Tarini, Lefebvre):
+
+**Core problem with UV maps:**
+- Creating UV maps is time-consuming, requires manual authoring
+- Distortions and seams degrade texture filtering quality
+- UV maps are tied to a specific mesh resolution — don't survive LOD changes
+- Any geometry change requires re-unwrapping
+
+**Alternatives and when to use them:**
+
+| Method | Best for | Notes |
+|--------|----------|-------|
+| Traditional UV | Most cases, hardware-accelerated | Still dominant for game assets |
+| LSCM / Conformal UV | Artwork requiring low distortion | Our approach for displacement maps |
+| Ptex (per-face textures) | Production VFX (Disney/Pixar) | No seams, per-quad resolution |
+| Mesh Colors | Direct per-vertex/edge color storage | No UV at all; interpolated at render |
+| PolyCube Maps | Geometry with box-like topology | Low-distortion for CAD parts |
+| Volume-encoded UV | Complex topology, no cuts | UV stored as 3D field in volume |
+
+**For QIDIStudio displacement workflow:** LSCM conformal mapping is the right choice — it minimizes angular distortion (critical for even displacement), handles arbitrary topology, and produces smooth seams that are easy to hide.
+
+---
+
+### 15.6 DDG Key Algorithms (CMU 15-458)
+
+From Carnegie Mellon's Discrete Differential Geometry course (K. Crane):
+
+#### Hodge Decomposition
+Any 1-form $\omega$ on a surface decomposes uniquely:
+$$\omega = d\alpha + \delta\beta + \gamma$$
+where $d\alpha$ is exact (gradient), $\delta\beta$ is co-exact (curl), $\gamma$ is harmonic.
+
+**Use in QIDIStudio:** Decompose a displacement vector field into its divergence-free and curl-free components before applying it. Helps prevent mesh folding.
+
+#### Vector Field Design (Trivial Connections)
+Design smooth tangent vector fields on surfaces by solving:
+$$\min_{\delta\beta} \|\delta\beta\|^2 \quad \text{s.t.} \quad d\delta\beta = u$$
+
+where $u$ encodes desired singularities. Used for designing principal stress directions for fiber orientation in FDM printing.
+
+#### Spectral Conformal Parameterization (SCP)
+Minimize conformal energy $E_C(z) = E_D(z) - A(z)$ where `A` is the area form. Find the minimum eigenvector of the energy matrix — this gives the least-distorted flattening.
+
+**Python:** `igl.lscm()` implements a closely related method. For true SCP, use the `buildConformalEnergy` + `solveInversePowerMethod` pattern from the CMU DDG exercises.
+
+---
+
+### 15.7 Install Requirements for This Stack
+
+Add to `memory/requirements.txt` for the geometry processing toolkit:
+
+```
+# Geometry processing stack (Sec. 15)
+libigl>=2.5.0
+robust_laplacian>=1.0.0
+trimesh[easy]>=4.0.0
+scipy>=1.11.0
+numpy>=1.24.0
+```
+
+**Python version compatibility:**
+- `libigl` 2.6.x: Python 3.8–3.13, prebuilt wheels available
+- `robust_laplacian` 1.0.0: Python 3.8–3.12, prebuilt wheels available; may need C++ build for 3.13
+- `trimesh[easy]`: Python 3.8+, fully pure Python core
+- All three work in `bpy_env` (Python 3.11) and `memory_env` (Python 3.13)
+
+**Quick validation:**
+```python
+import igl; print("libigl OK")
+import robust_laplacian; print("robust_laplacian OK")
+import trimesh; m = trimesh.creation.icosphere(); print(f"trimesh OK — icosphere: {len(m.vertices)} verts")
+```
+
+---
+
+### 15.8 Troubleshooting — Geometry Stack
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `igl.cotmatrix` gives wrong sign | libigl cotmatrix is negative semi-definite | Flip sign: use `-L` when you need positive semi-definite |
+| Shape DNA comparison gives nonsensical distances | Mixed sign conventions between libigl and robust_laplacian | Always use one library for a full pipeline; don't mix L matrices |
+| `eigsh` returns nan | Near-degenerate mesh (zero-area faces, duplicate verts) | Run `trimesh.repair.fix_normals + fill_holes`, or use `mollify_factor=1e-4` in robust_laplacian |
+| UV seams visible in displacement texture | Conformal map has too much angle distortion at boundary | Use LSCM (free boundary) instead of harmonic (fixed boundary) |
+| Blender `bpy.ops.uv.unwrap` fails silently | No faces selected before calling | Add `for face in bm.faces: face.select = True` before `bpy.ops.uv.unwrap()` |
+| Shape DNA comparison false positives | Using combinatorial Laplacian (degree-adjacency) instead of cotangent Laplacian | Use `robust_laplacian.mesh_laplacian()` for production DNA |
+| Inverse compensation diverges | alpha too high, or KDTree matching wrong points | Reduce alpha (try 0.3–0.5), visualize kd.query results first |
 
 ---
 
