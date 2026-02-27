@@ -22,13 +22,16 @@ Look above — you should see `━━━ QIDISTUDIO KNOWLEDGE BASE ━━━`.
 
 ## Memory Commands
 
+> All memory commands use the **universal memory venv**: `memory_env\Scripts\python.exe`
+
 | Purpose | Command |
 |---------|---------|
-| Compact manifest (all topics) | `python memory/inject.py` |
-| Full text dump (everything verbatim) | `python memory/inject.py --full` |
-| Semantic search | `python memory/inject.py --query "cmake build"` |
-| Re-index docs to LanceDB | `python memory/extract.py` |
-| Push prompt to LangSmith Hub | `python memory/push_prompt.py` |
+| Compact manifest (all topics) | `memory_env\Scripts\python.exe memory/inject.py` |
+| Full text dump (everything verbatim) | `memory_env\Scripts\python.exe memory/inject.py --full` |
+| Semantic search | `memory_env\Scripts\python.exe memory/inject.py --query "cmake build"` |
+| Re-index docs to LanceDB | `memory_env\Scripts\python.exe memory/extract.py` |
+| Push prompt to LangSmith Hub | `memory_env\Scripts\python.exe memory/push_prompt.py` |
+| Re-install deps | `.\memory_env\Scripts\python.exe -m pip install -r memory\requirements.txt` |
 
 ---
 
@@ -38,7 +41,8 @@ Look above — you should see `━━━ QIDISTUDIO KNOWLEDGE BASE ━━━`.
 - **Install dir** : `C:\QIDISrc\QIDIStudio\install_dir\`  
 - **bpy script**  : `resources\scripts\apply_texture_bpy.py`  
 - **Blender**     : `C:\Program Files\Blender Foundation\Blender 5.0\blender.exe`  
-- **Python 3.13** : `C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe`  
+- **Memory venv** : `memory_env\Scripts\python.exe` (LangSmith + LanceDB + sentence-transformers — use for ALL memory commands)
+- **Python 3.13** : `C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe` (general scripts, NOT memory)
 - **Python 3.11** : `bpy_env\Scripts\python.exe` (Blender bpy pip package, not for general use)
 
 **Build command:**
@@ -63,3 +67,6 @@ Append rows here — `memory/extract.py` auto-indexes them into LanceDB.
 | 2026-02-27 | LanceDB | PyArrow vs pandas | Use `tbl.to_arrow()` + PyArrow scanner for `get_all()`/`get_recent()`/`count()` | pandas not installed in Python 3.13 env; `to_pandas()` raises ImportError |
 | 2026-02-27 | Memory | inject.py confirmed working | Hook log shows "memory inject OK" since commit `ddcde11`; 58 chunks loaded at session start | All source docs chunked verbatim; grouped by source prefix in manifest output |
 | 2026-02-27 | Memory | precompact hook limitation | Hook can only inject JSON instruction to agent via stdout; agent must do file writes | Shell commands in precompact hook body are invisible to agent — only `additionalContext` JSON matters |
+| 2026-02-27 | LangSmith | push_prompt.py python env | Use `memory_env\Scripts\python.exe memory/push_prompt.py` — universal memory venv; NOT deepagents venv or Python 3.13 | memory_env is the single canonical venv for all LangSmith/LanceDB memory commands |
+| 2026-02-27 | LangSmith | Remote prompt confirmed live | `qidistudio-memory-agent` pushed successfully, org `073a725b-0613-4b53-9391-56f740a3e7ea`, rev `ace15015` | push_out.txt was stale (showed old tenant error); actual push was already fixed and working |
+| 2026-02-27 | tools_and_env | Universal memory venv | Created `memory_env\` at repo root with Python 3.13; install: `memory_env\Scripts\pip install -r memory\requirements.txt` | Replaces dependency on deepagents venv for all langsmith/lancedb/sentence-transformers operations |

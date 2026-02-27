@@ -2,7 +2,7 @@
 $ts      = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 $logFile = Join-Path $PSScriptRoot "precompact.log"
 $repo    = 'C:\Users\User\source\repos\QIDIStudio'
-$python  = 'C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe'
+$python  = Join-Path $repo 'memory_env\Scripts\python.exe'
 $inject  = Join-Path $repo 'memory\inject.py'
 
 Add-Content -Path $logFile -Value "$ts [UserPromptSubmit] fired"

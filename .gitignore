@@ -35,4 +35,7 @@ test.js
 /src/slic3r/QIDI/
 # API keys and local secrets
 .env
-
+# Python virtual environments
+.venv/
+bpy_env/
+memory_env/

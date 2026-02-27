@@ -2,7 +2,7 @@ $ts   = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 $date = Get-Date -Format 'yyyy-MM-dd'
 $repo = 'C:\Users\User\source\repos\QIDIStudio'
 $log  = Join-Path $repo '.github\hooks\precompact.log'
-$py   = 'C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe'
+$py   = Join-Path $repo 'memory_env\Scripts\python.exe'
 
 Add-Content -Path $log -Value "$ts [PreCompact] fired - running autonomous save"
 
@@ -46,7 +46,7 @@ Be specific — real values, real function names, real filenames. Not vague summ
 
 After writing, run in the scripts terminal:
   Set-Location C:\Users\User\source\repos\QIDIStudio
-  & 'C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe' memory\extract.py
+  & $py memory\extract.py
   git add -A
   git commit --allow-empty -m "docs: pre-compact session learnings [$date]"
 "@
