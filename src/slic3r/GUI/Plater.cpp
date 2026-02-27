@@ -1,5 +1,6 @@
 #include "Plater.hpp"
 #include <cstddef>
+#include <ctime>
 #include <algorithm>
 #include <fstream>
 #include <numeric>
@@ -20724,6 +20725,25 @@ wxArrayString get_all_camera_view_type() {
 //   <result_stl_path>.texture.json  →  { png, src_stl, tile_mm, relief, mode }
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Append a timestamped line to the persistent texture-pipeline debug log.
+/// Log is written to %TEMP%/qidi_texture.log and survives across runs so
+/// you can inspect it after a crash without a debugger attached.
+static void tex_log(const std::string& msg)
+{
+    namespace fs = boost::filesystem;
+    try {
+        const std::string log_path =
+            (fs::temp_directory_path() / "qidi_texture.log").string();
+        std::ofstream f(log_path, std::ios::app);
+        if (!f.is_open()) return;
+        std::time_t t = std::time(nullptr);
+        char buf[32];
+        std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
+        f << "[" << buf << "] " << msg << "\n";
+        f.flush();
+    } catch (...) {}
+}
+
 /// Locate the bpy_env Python interpreter used for displacement texturing.
 /// Search order:
 ///   1. QIDI_BPY_PYTHON env var (full path to python.exe / python binary)
@@ -20773,9 +20793,20 @@ bool Plater::can_adjust_texture_depth() const
 
 void Plater::apply_texture(ModelVolumeType type)
 {
-    if (!can_apply_texture()) return;
+    (void)type;  // retained for API stability; always uses "modifier" mode now
+    tex_log("apply_texture: entry");
+    if (!can_apply_texture()) {
+        tex_log("apply_texture: can_apply_texture() == false, aborting");
+        return;
+    }
+
+    // ── outer safety net ─────────────────────────────────────────────────────
+    // Any unhandled exception below will be caught here, logged to
+    // %TEMP%/qidi_texture.log and shown to the user instead of crashing.
+    try {
 
     const std::string bpy_python = find_bpy_python();
+    tex_log("apply_texture: bpy_python=" + bpy_python);
     if (bpy_python.empty()) {
         show_error(this,
             _L("bpy_env not found.\n\n"
@@ -20785,43 +20816,58 @@ void Plater::apply_texture(ModelVolumeType type)
         return;
     }
 
-    const int    obj_idx = p->get_selected_object_idx();
-    ModelObject* mo      = p->model.objects[obj_idx];
+    const int obj_idx = p->get_selected_object_idx();
+    tex_log("apply_texture: obj_idx=" + std::to_string(obj_idx)
+            + " model.objects.size=" + std::to_string(p->model.objects.size()));
+    if (obj_idx < 0 || obj_idx >= (int)p->model.objects.size()) {
+        tex_log("apply_texture: obj_idx out of range");
+        show_error(this, _L("No valid object selected."));
+        return;
+    }
+    ModelObject* mo = p->model.objects[obj_idx];
+    if (!mo) {
+        tex_log("apply_texture: ModelObject pointer is null");
+        show_error(this, _L("Internal error: null object."));
+        return;
+    }
 
-    // Capture 3D-canvas selection data BEFORE showing the dialog.
-    // ShowModal() returns only after the dialog window is destroyed; its
-    // WM_DESTROY triggers a focus event on the 3D canvas which clears the
-    // Selection object.  By the time ShowModal() returns the Selection is
-    // already empty, so any code that reads it afterwards will crash.
-    int instance_idx = -1;  // kept for adjust_texture_depth pattern parity
-    BoundingBoxf3 instance_bb;
-    Geometry::Transformation inst_transform;
-    Vec3d instance_offset = Vec3d::Zero();
+    // Validate selection before showing the dialog (gives a clear error instead
+    // of a crash if the menu fires without a selected object).
     {
         const Selection& sel = get_selection();
         const auto& inst_idxs = sel.get_instance_idxs();
         const auto& vol_idxs  = sel.get_volume_idxs();
+        tex_log("apply_texture: inst_idxs.size=" + std::to_string(inst_idxs.size())
+                + " vol_idxs.size=" + std::to_string(vol_idxs.size()));
         if (inst_idxs.empty() || vol_idxs.empty()) {
+            tex_log("apply_texture: empty selection");
             show_error(this, _L("Please select an object before applying a texture."));
             return;
         }
-        instance_idx    = *inst_idxs.begin();
-        instance_bb     = mo->instance_bounding_box(instance_idx);
         const GLVolume* gv = sel.get_volume(*vol_idxs.begin());
-        inst_transform  = gv->get_instance_transformation();
-        instance_offset = gv->get_instance_offset();
+        if (!gv) {
+            tex_log("apply_texture: GLVolume pointer is null");
+            show_error(this, _L("Please select an object before applying a texture."));
+            return;
+        }
     }
-    (void)instance_idx; // used only to compute instance_bb above
 
     // Show parameters dialog
     TextureParamsDialog dlg(wxGetApp().mainframe, TextureDialogMode::Apply);
-    if (dlg.ShowModal() != wxID_OK) return;
+    if (dlg.ShowModal() != wxID_OK) {
+        tex_log("apply_texture: user cancelled dialog");
+        return;
+    }
 
     const std::string png_path = dlg.get_png_path();
     const double      tile_mm  = dlg.get_tile_mm();
     const double      relief   = dlg.get_relief();
+    tex_log("apply_texture: png=" + png_path
+            + " tile_mm=" + std::to_string(tile_mm)
+            + " relief=" + std::to_string(relief));
 
     if (png_path.empty() || !boost::filesystem::exists(png_path)) {
+        tex_log("apply_texture: png not found: " + png_path);
         show_error(this, _L("Please select a valid texture image file."));
         return;
     }
@@ -20830,16 +20876,39 @@ void Plater::apply_texture(ModelVolumeType type)
     namespace fs = boost::filesystem;
     const std::string src_stl = (fs::temp_directory_path() /
         fs::unique_path("qidi_tex_src_%%%%-%%%%-%%%%-%%%%.stl")).string();
+    tex_log("apply_texture: exporting mesh to " + src_stl);
     {
-        TriangleMesh mesh = mo->mesh();
-        if (!Slic3r::store_stl(src_stl.c_str(), &mesh, true)) {
-            show_error(this, _L("Failed to export mesh for texture processing."));
+        try {
+            // Use raw_mesh() (object-local, no instance transforms) so bpy output
+            // is also in object-local space and can be added as a sub-volume directly.
+            TriangleMesh mesh = mo->raw_mesh();
+            {
+                BoundingBoxf3 bb = mesh.bounding_box();
+                tex_log("apply_texture: export mesh BB: ("
+                    + std::to_string(bb.min.x()) + "," + std::to_string(bb.min.y()) + "," + std::to_string(bb.min.z())
+                    + ") to (" + std::to_string(bb.max.x()) + "," + std::to_string(bb.max.y()) + "," + std::to_string(bb.max.z()) + ")");
+                tex_log("apply_texture: origin_translation=("
+                    + std::to_string(mo->origin_translation.x()) + ","
+                    + std::to_string(mo->origin_translation.y()) + ","
+                    + std::to_string(mo->origin_translation.z()) + ")");
+            }
+            if (!Slic3r::store_stl(src_stl.c_str(), &mesh, true)) {
+                tex_log("apply_texture: store_stl returned false");
+                show_error(this, _L("Failed to export mesh for texture processing."));
+                return;
+            }
+        } catch (std::exception& e) {
+            tex_log(std::string("apply_texture: mesh export threw: ") + e.what());
+            show_error(this, _L("Failed to export mesh: ") + e.what());
             return;
         }
     }
+    tex_log("apply_texture: mesh exported OK");
 
-    const std::string mode_str = (type == ModelVolumeType::NEGATIVE_VOLUME) ? "negative" :
-                                 (type == ModelVolumeType::MODEL_PART)       ? "part"     : "modifier";
+    // Always use "modifier" mode: bpy displaces the original mesh in-place so
+    // QIDIStudio ends up with a single part (the textured mesh) rather than a
+    // ghost child volume.  The `type` parameter is retained for API stability.
+    const std::string mode_str = "modifier";
     const std::string script   = (fs::path(Slic3r::resources_dir()) / "scripts" / "apply_texture_bpy.py").string();
 
     // Use a temp log file as the reliable IPC channel for SKIN_OUTPUT.
@@ -20862,9 +20931,11 @@ void Plater::apply_texture(ModelVolumeType type)
         tile_mm, relief,
         wxString::FromUTF8(log_path));
 
+    tex_log("apply_texture: launching bpy cmd=" + cmd.ToStdString());
     wxBusyCursor    busy;
     wxArrayString stdout_output;
-    ::wxExecute(cmd, stdout_output, wxEXEC_BLOCK | wxEXEC_HIDE_CONSOLE);
+    int exec_ret = ::wxExecute(cmd, stdout_output, wxEXEC_BLOCK | wxEXEC_HIDE_CONSOLE);
+    tex_log("apply_texture: wxExecute returned " + std::to_string(exec_ret));
 
     // Primary: parse SKIN_OUTPUT from the log file (written by --log).
     // Fallback: scan captured stdout in case --log write failed.
@@ -20875,8 +20946,13 @@ void Plater::apply_texture(ModelVolumeType type)
             result_stl = line.substr(prefix.size());
     };
     if (boost::filesystem::exists(log_path)) {
-        std::ifstream log_in(log_path);
-        for (std::string ln; std::getline(log_in, ln); ) parse_skin_output(ln);
+        {
+            std::ifstream log_in(log_path);
+            for (std::string ln; std::getline(log_in, ln); ) {
+                tex_log("  bpy: " + ln);  // dump full bpy log for diagnostics
+                parse_skin_output(ln);
+            }
+        } // log_in closed here before remove
         boost::filesystem::remove(log_path);
     }
     if (result_stl.empty()) {
@@ -20885,68 +20961,75 @@ void Plater::apply_texture(ModelVolumeType type)
     }
 
     if (result_stl.empty() || !boost::filesystem::exists(result_stl)) {
-        show_error(this, _L("Texture generation failed.\nCheck that bpy_env is installed correctly."));
+        tex_log("apply_texture: bpy produced no result_stl (empty=" +
+                std::string(result_stl.empty() ? "true" : "false") + " path=" + result_stl + ")");
+        // Dump any stdout bpy printed for diagnosis
+        for (const auto& ln : stdout_output)
+            tex_log("  bpy stdout: " + ln.ToStdString());
+        show_error(this, _L("Texture generation failed.\nSee %TEMP%\\qidi_texture.log for details."));
         return;
     }
+    tex_log("apply_texture: result_stl=" + result_stl);
 
-    // Load the displaced STL and add it directly as a child volume.
-    // We bypass ObjectList::load_from_files() because that function re-reads
-    // scene_selection() at call time.  The 3D canvas Selection is already
-    // cleared at this point (the TextureParamsDialog's WM_DESTROY fired a
-    // focus event before ShowModal() returned), so load_from_files would
-    // crash dereferencing an empty instance/volume index set.
-    // Instead we use the selection data captured before the dialog opened.
-    Model result_model;
+    // Load the displaced STL and replace the original volume's mesh in-place.
+    // The bpy output STL is in the same coordinate space as the input STL
+    // (produced by mo->raw_mesh(), which is object-local space).
     try {
-        result_model = Model::read_from_file(result_stl, nullptr, nullptr, LoadStrategy::LoadModel);
-    } catch (std::exception& e) {
-        show_error(this, _L("Failed to read texture mesh: ") + e.what());
+    TriangleMesh mesh;
+    {
+        Model tmp;
+        try {
+            tmp = Model::read_from_file(result_stl, nullptr, nullptr, LoadStrategy::LoadModel);
+        } catch (std::exception& e) {
+            tex_log(std::string("apply_texture: read_from_file threw: ") + e.what());
+            show_error(this, _L("Failed to read texture mesh: ") + e.what());
+            return;
+        }
+        if (tmp.objects.empty()) {
+            tex_log("apply_texture: loaded model has no objects");
+            show_error(this, _L("Texture mesh is empty. The bpy script may have failed silently."));
+            return;
+        }
+        mesh = tmp.objects[0]->raw_mesh();
+    }
+    {
+        BoundingBoxf3 bb = mesh.bounding_box();
+        tex_log("apply_texture: result mesh BB: ("
+            + std::to_string(bb.min.x()) + "," + std::to_string(bb.min.y()) + "," + std::to_string(bb.min.z())
+            + ") to (" + std::to_string(bb.max.x()) + "," + std::to_string(bb.max.y()) + "," + std::to_string(bb.max.z()) + ")");
+    }
+    tex_log("apply_texture: result mesh verts=" + std::to_string(mesh.its.vertices.size()));
+    if (mesh.its.vertices.empty()) {
+        tex_log("apply_texture: result mesh is empty — aborting");
+        show_error(this, _L("Texture mesh is empty. The bpy script may have failed silently."));
         return;
     }
 
-    bool has_instance = false;
-    bool has_origin_translation = mo->origin_translation != Vec3d::Zero();
-    for (auto obj : result_model.objects)
-        if (!obj->instances.empty()) { has_instance = true; break; }
-
-    if (!has_origin_translation) {
-        for (auto obj : result_model.objects) {
-            obj->center_around_origin();
-            Vec3d delta = instance_offset - obj->origin_translation;
-            for (auto vol : obj->volumes) vol->translate(delta);
+    // Find the first model-part volume to replace in-place (1-part result).
+    ModelVolume* target_vol     = nullptr;
+    int          target_vol_idx = -1;
+    for (int i = 0; i < (int)mo->volumes.size(); ++i) {
+        if (mo->volumes[i]->is_model_part()) {
+            target_vol     = mo->volumes[i];
+            target_vol_idx = i;
+            break;
         }
     }
-
-    result_model.add_default_instances();
-    TriangleMesh mesh = result_model.mesh();
-
-    ModelVolume* new_vol = mo->add_volume(std::move(mesh), type);
-    new_vol->name =
-        "Texture (" + mode_str + ") - " + fs::path(png_path).filename().string();
-    new_vol->config.set_key_value("extruder", new ConfigOptionInt(0));
-    new_vol->source.input_file  = result_stl;
-    new_vol->source.object_idx  = obj_idx;
-    new_vol->source.volume_idx  = int(mo->volumes.size()) - 1;
-
-    // Set volume transformation using the data captured before the dialog
-    {
-        const BoundingBoxf3 mesh_bb = new_vol->mesh().bounding_box();
-        if (has_instance || !has_origin_translation) {
-            new_vol->set_transformation(
-                Geometry::Transformation::volume_to_bed_transformation(inst_transform, mesh_bb));
-            const Vec3d offset =
-                Vec3d(instance_bb.max.x(), instance_bb.min.y(), instance_bb.min.z())
-                + 0.5 * mesh_bb.size() - instance_offset;
-            new_vol->set_offset(inst_transform.get_matrix_no_offset().inverse() * offset);
-        } else {
-            Vec3d off = new_vol->source.mesh_offset - mo->volumes.front()->source.mesh_offset;
-            if (mo->volumes.size() > 1)
-                off += mo->volumes.front()->get_offset();
-            new_vol->set_offset(off);
-        }
+    if (!target_vol) {
+        tex_log("apply_texture: no model-part volume found in object");
+        show_error(this, _L("No model part volume found to apply texture to."));
+        return;
     }
+    tex_log("apply_texture: replacing mesh on vol[" + std::to_string(target_vol_idx) + "]");
 
-    // Write sidecar so this volume can be depth-adjusted later
+    Plater::TakeSnapshot snapshot(this, std::string("Apply Texture"));
+    target_vol->set_mesh(std::move(mesh));
+    target_vol->calculate_convex_hull();
+    target_vol->set_new_unique_id();
+    target_vol->source.input_file = result_stl;
+    tex_log("apply_texture: mesh replaced in-place");
+
+    // Write sidecar so depth can be adjusted later
     {
         json j;
         j["png"]     = png_path;
@@ -20955,36 +21038,71 @@ void Plater::apply_texture(ModelVolumeType type)
         j["relief"]  = relief;
         j["mode"]    = mode_str;
         std::ofstream fout(result_stl + ".texture.json");
-        if (fout.is_open()) fout << j.dump(4);
+        if (fout.is_open()) {
+            fout << j.dump(4);
+            tex_log("apply_texture: sidecar written to " + result_stl + ".texture.json");
+        } else {
+            tex_log("apply_texture: WARNING — could not write sidecar JSON");
+        }
     }
 
-    // Refresh UI — mirrors the post-add sequence in load_generic_subobject
-    const auto items = wxGetApp().obj_list()->reorder_volumes_and_get_selection(
-        obj_idx, [new_vol](const ModelVolume* v) { return v == new_vol; });
-    if (type == ModelVolumeType::MODEL_PART)
-        get_view3D_canvas3D()->update_instance_printable_state_for_object((size_t)obj_idx);
-    wxGetApp().obj_list()->select_items(items);
-    wxGetApp().obj_list()->selection_changed();
-    wxGetApp().obj_list()->notify_instance_updated(obj_idx);
+    // Refresh UI — same pattern as EmbossJob: changed_object invalidates BB,
+    // calls ensure_on_bed, reloads 3D scene, and schedules background process.
+    tex_log("apply_texture: refreshing UI");
+    try {
+        changed_object(obj_idx);
+        tex_log("apply_texture: UI refresh complete");
+    } catch (std::exception& e) {
+        tex_log(std::string("apply_texture: UI refresh threw: ") + e.what());
+        // Non-fatal — mesh was replaced, just the canvas refresh failed
+    } catch (...) {
+        tex_log("apply_texture: UI refresh threw unknown exception (non-fatal)");
+    }
+
+    } catch (std::exception& e) {
+        tex_log(std::string("apply_texture: volume-add/transform block threw: ") + e.what());
+        show_error(this, wxString(_L("Texture apply failed: ")) + e.what()
+                   + _L("\n\nSee %TEMP%\\qidi_texture.log for details."));
+    }
+
+    } catch (std::exception& e) {
+        tex_log(std::string("apply_texture: UNHANDLED exception: ") + e.what());
+        show_error(this, wxString(_L("Texture apply failed (unhandled error): ")) + e.what()
+                   + _L("\n\nSee %TEMP%\\qidi_texture.log for details."));
+    } catch (...) {
+        tex_log("apply_texture: UNHANDLED unknown exception");
+        show_error(this, _L("Texture apply failed with an unknown error.\n\n"
+                             "See %TEMP%\\qidi_texture.log for details."));
+    }
+    tex_log("apply_texture: exit");
 }
 
 void Plater::adjust_texture_depth()
 {
-    if (!can_adjust_texture_depth()) return;
+    tex_log("adjust_texture_depth: entry");
+    if (!can_adjust_texture_depth()) {
+        tex_log("adjust_texture_depth: can_adjust_texture_depth() == false");
+        return;
+    }
+
+    try {
 
     const Selection&   sel = get_selection();
     const GLVolume*    gl  = sel.get_first_volume();
+    if (!gl) { tex_log("adjust_texture_depth: gl is null"); return; }
     const ModelVolume* vol = get_model_volume(*gl, sel.get_model()->objects);
-    if (!vol) return;
+    if (!vol) { tex_log("adjust_texture_depth: vol is null"); return; }
 
     // Read sidecar metadata
     const std::string sidecar_path = vol->source.input_file + ".texture.json";
+    tex_log("adjust_texture_depth: sidecar=" + sidecar_path);
     json meta;
     try {
         std::ifstream fin(sidecar_path);
         if (!fin.is_open()) throw std::runtime_error("cannot open sidecar");
         fin >> meta;
-    } catch (...) {
+    } catch (std::exception& e) {
+        tex_log(std::string("adjust_texture_depth: sidecar read threw: ") + e.what());
         show_error(this, _L("Failed to read texture metadata.\nTry re-applying the texture."));
         return;
     }
@@ -20994,12 +21112,16 @@ void Plater::adjust_texture_depth()
     const std::string mode_str = meta.value("mode",   "negative");
     const double      tile_mm  = meta.value("tile_mm", 15.0);
     const double      relief   = meta.value("relief",   1.2);
+    tex_log("adjust_texture_depth: png=" + png_path + " src_stl=" + src_stl
+            + " tile_mm=" + std::to_string(tile_mm) + " relief=" + std::to_string(relief));
 
     if (png_path.empty() || src_stl.empty()) {
+        tex_log("adjust_texture_depth: metadata incomplete");
         show_error(this, _L("Texture metadata is incomplete.\nTry re-applying the texture."));
         return;
     }
     if (!boost::filesystem::exists(src_stl)) {
+        tex_log("adjust_texture_depth: src_stl missing: " + src_stl);
         show_error(this,
             _L("The original source mesh for this texture no longer exists.\n"
                "Please re-apply the texture from scratch."));
@@ -21007,45 +21129,63 @@ void Plater::adjust_texture_depth()
     }
 
     const std::string bpy_python = find_bpy_python();
+    tex_log("adjust_texture_depth: bpy_python=" + bpy_python);
     if (bpy_python.empty()) {
-        show_error(this,
-            _L("bpy_env not found. Set QIDI_BPY_PYTHON environment variable."));
+        show_error(this, _L("bpy_env not found. Set QIDI_BPY_PYTHON environment variable."));
         return;
     }
 
-    // Capture canvas selection data BEFORE the dialog. Same issue as in
-    // apply_texture(): the dialog's WM_DESTROY clears the 3D canvas Selection,
-    // so anything that reads sel after ShowModal() returns will see stale data.
+    // Capture canvas selection data BEFORE the dialog.
     const int             obj_idx  = sel.get_object_idx();
     const ModelVolumeType vol_type = vol->type();
     const std::string     vol_name = vol->name;
     {
         const auto& inst_idxs = sel.get_instance_idxs();
         const auto& vol_idxs  = sel.get_volume_idxs();
+        tex_log("adjust_texture_depth: obj_idx=" + std::to_string(obj_idx)
+                + " inst_idxs.size=" + std::to_string(inst_idxs.size())
+                + " vol_idxs.size=" + std::to_string(vol_idxs.size()));
         if (obj_idx < 0 || inst_idxs.empty() || vol_idxs.empty()) {
+            tex_log("adjust_texture_depth: invalid selection");
             show_error(this, _L("Please select a texture volume before adjusting."));
             return;
         }
     }
-    const int   instance_idx   = *sel.get_instance_idxs().begin();
-    const GLVolume* gv          = sel.get_volume(*sel.get_volume_idxs().begin());
-    const Geometry::Transformation inst_transform  = gv->get_instance_transformation();
-    const Vec3d                    instance_offset = gv->get_instance_offset();
+    if (obj_idx >= (int)p->model.objects.size()) {
+        tex_log("adjust_texture_depth: obj_idx out of range");
+        return;
+    }
+    // Validate the selected GLVolume is accessible (not strictly needed for the
+    // new identity-transform path, but keeps the guard in place).
+    {
+        const GLVolume* gv = sel.get_volume(*sel.get_volume_idxs().begin());
+        if (!gv) {
+            tex_log("adjust_texture_depth: gv (selected volume) is null");
+            return;
+        }
+    }
 
     ModelObject* mo = p->model.objects[obj_idx];
+    if (!mo) { tex_log("adjust_texture_depth: mo is null"); return; }
 
     // Find the volume index in the model (still valid before delete)
     int model_vol_idx = -1;
     for (int i = 0; i < (int)mo->volumes.size(); ++i)
         if (mo->volumes[i] == vol) { model_vol_idx = i; break; }
+    tex_log("adjust_texture_depth: model_vol_idx=" + std::to_string(model_vol_idx));
 
     // Show adjust dialog pre-filled with current depth values
     TextureParamsDialog dlg(wxGetApp().mainframe, TextureDialogMode::Adjust,
                             png_path, tile_mm, relief);
-    if (dlg.ShowModal() != wxID_OK) return;
+    if (dlg.ShowModal() != wxID_OK) {
+        tex_log("adjust_texture_depth: user cancelled dialog");
+        return;
+    }
 
     const double new_tile = dlg.get_tile_mm();
     const double new_rel  = dlg.get_relief();
+    tex_log("adjust_texture_depth: new_tile=" + std::to_string(new_tile)
+            + " new_rel=" + std::to_string(new_rel));
 
     namespace fs             = boost::filesystem;
     const std::string script = (fs::path(Slic3r::resources_dir()) / "scripts" / "apply_texture_bpy.py").string();
@@ -21063,9 +21203,11 @@ void Plater::adjust_texture_depth()
         new_tile, new_rel,
         wxString::FromUTF8(log_path2));
 
+    tex_log("adjust_texture_depth: launching bpy cmd=" + cmd.ToStdString());
     wxBusyCursor  busy;
     wxArrayString stdout_output;
-    ::wxExecute(cmd, stdout_output, wxEXEC_BLOCK | wxEXEC_HIDE_CONSOLE);
+    int exec_ret = ::wxExecute(cmd, stdout_output, wxEXEC_BLOCK | wxEXEC_HIDE_CONSOLE);
+    tex_log("adjust_texture_depth: wxExecute returned " + std::to_string(exec_ret));
 
     std::string result_stl;
     auto parse_skin2 = [&result_stl](const std::string& line) {
@@ -21074,8 +21216,10 @@ void Plater::adjust_texture_depth()
             result_stl = line.substr(prefix.size());
     };
     if (boost::filesystem::exists(log_path2)) {
-        std::ifstream log_in2(log_path2);
-        for (std::string ln; std::getline(log_in2, ln); ) parse_skin2(ln);
+        {
+            std::ifstream log_in2(log_path2);
+            for (std::string ln; std::getline(log_in2, ln); ) parse_skin2(ln);
+        } // log_in2 closed here before remove
         boost::filesystem::remove(log_path2);
     }
     if (result_stl.empty()) {
@@ -21084,65 +21228,61 @@ void Plater::adjust_texture_depth()
     }
 
     if (result_stl.empty() || !boost::filesystem::exists(result_stl)) {
-        show_error(this, _L("Texture update failed."));
+        tex_log("adjust_texture_depth: bpy produced no result_stl");
+        for (const auto& ln : stdout_output)
+            tex_log("  bpy stdout: " + ln.ToStdString());
+        show_error(this, _L("Texture update failed.\nSee %TEMP%\\qidi_texture.log for details."));
         return;
     }
+    tex_log("adjust_texture_depth: result_stl=" + result_stl);
 
     // Remove the old texture volume
-    if (model_vol_idx >= 0)
+    if (model_vol_idx >= 0) {
+        tex_log("adjust_texture_depth: deleting old volume at idx=" + std::to_string(model_vol_idx));
         mo->delete_volume(model_vol_idx);   // vol pointer is now dangling
+    }
 
-    // Load the freshly displaced mesh directly (bypassing load_from_files for
-    // the same reason as apply_texture — canvas selection is stale by now).
-    Model result_model;
+    // Load the freshly displaced mesh directly.
+    // Input was mo->raw_mesh() (object-local), so bpy output is also object-local.
+    // Sub-volumes use identity transform — no correction needed.
+    TriangleMesh mesh;
+    {
+        Model tmp;
+        try {
+            tex_log("adjust_texture_depth: loading result model");
+            tmp = Model::read_from_file(result_stl, nullptr, nullptr, LoadStrategy::LoadModel);
+            tex_log("adjust_texture_depth: result model loaded — "
+                    + std::to_string(tmp.objects.size()) + " objects");
+        } catch (std::exception& e) {
+            tex_log(std::string("adjust_texture_depth: read_from_file threw: ") + e.what());
+            show_error(this, _L("Failed to read texture mesh: ") + e.what());
+            return;
+        }
+        if (tmp.objects.empty()) {
+            tex_log("adjust_texture_depth: loaded model has no objects");
+            show_error(this, _L("Texture mesh is empty."));
+            return;
+        }
+        mesh = tmp.objects[0]->raw_mesh();
+    }
+
     try {
-        result_model = Model::read_from_file(result_stl, nullptr, nullptr, LoadStrategy::LoadModel);
-    } catch (std::exception& e) {
-        show_error(this, _L("Failed to read texture mesh: ") + e.what());
+    tex_log("adjust_texture_depth: result mesh verts=" + std::to_string(mesh.its.vertices.size()));
+    if (mesh.its.vertices.empty()) {
+        tex_log("adjust_texture_depth: result mesh is empty — aborting");
+        show_error(this, _L("Texture mesh is empty."));
         return;
     }
 
-    bool has_instance = false;
-    bool has_origin_translation = mo->origin_translation != Vec3d::Zero();
-    for (auto obj : result_model.objects)
-        if (!obj->instances.empty()) { has_instance = true; break; }
-
-    if (!has_origin_translation) {
-        for (auto obj : result_model.objects) {
-            obj->center_around_origin();
-            Vec3d delta = instance_offset - obj->origin_translation;
-            for (auto v2 : obj->volumes) v2->translate(delta);
-        }
-    }
-
-    result_model.add_default_instances();
-    TriangleMesh mesh = result_model.mesh();
-
+    tex_log("adjust_texture_depth: calling mo->add_volume");
     ModelVolume* new_vol = mo->add_volume(std::move(mesh), vol_type);
     new_vol->name = vol_name;
     new_vol->config.set_key_value("extruder", new ConfigOptionInt(0));
     new_vol->source.input_file  = result_stl;
     new_vol->source.object_idx  = obj_idx;
     new_vol->source.volume_idx  = int(mo->volumes.size()) - 1;
-
-    // Recompute instance_bb from the model after delete (texture volume gone)
-    const BoundingBoxf3 instance_bb = mo->instance_bounding_box(instance_idx);
-    {
-        const BoundingBoxf3 mesh_bb = new_vol->mesh().bounding_box();
-        if (has_instance || !has_origin_translation) {
-            new_vol->set_transformation(
-                Geometry::Transformation::volume_to_bed_transformation(inst_transform, mesh_bb));
-            const Vec3d offset =
-                Vec3d(instance_bb.max.x(), instance_bb.min.y(), instance_bb.min.z())
-                + 0.5 * mesh_bb.size() - instance_offset;
-            new_vol->set_offset(inst_transform.get_matrix_no_offset().inverse() * offset);
-        } else {
-            Vec3d off = new_vol->source.mesh_offset - mo->volumes.front()->source.mesh_offset;
-            if (mo->volumes.size() > 1)
-                off += mo->volumes.front()->get_offset();
-            new_vol->set_offset(off);
-        }
-    }
+    // Sub-volumes use identity transform — mesh is already in object-local space.
+    tex_log("adjust_texture_depth: volume added");
 
     // Update sidecar with new depth values
     {
@@ -21153,19 +21293,49 @@ void Plater::adjust_texture_depth()
         j["relief"]  = new_rel;
         j["mode"]    = mode_str;
         std::ofstream fout(result_stl + ".texture.json");
-        if (fout.is_open()) fout << j.dump(4);
+        if (fout.is_open()) {
+            fout << j.dump(4);
+            tex_log("adjust_texture_depth: sidecar updated");
+        } else {
+            tex_log("adjust_texture_depth: WARNING — could not write sidecar");
+        }
     }
 
     // Refresh UI
-    const auto items = wxGetApp().obj_list()->reorder_volumes_and_get_selection(
-        obj_idx, [new_vol](const ModelVolume* v2) { return v2 == new_vol; });
-    if (vol_type == ModelVolumeType::MODEL_PART)
-        get_view3D_canvas3D()->update_instance_printable_state_for_object((size_t)obj_idx);
-    wxGetApp().obj_list()->select_items(items);
-    wxGetApp().obj_list()->selection_changed();
-    wxGetApp().obj_list()->notify_instance_updated(obj_idx);
+    tex_log("adjust_texture_depth: refreshing UI");
+    try {
+        const auto items = wxGetApp().obj_list()->reorder_volumes_and_get_selection(
+            obj_idx, [new_vol](const ModelVolume* v2) { return v2 == new_vol; });
+        if (vol_type == ModelVolumeType::MODEL_PART)
+            get_view3D_canvas3D()->update_instance_printable_state_for_object((size_t)obj_idx);
+        wxGetApp().obj_list()->select_items(items);
+        wxGetApp().obj_list()->selection_changed();
+        wxGetApp().obj_list()->notify_instance_updated(obj_idx);
+        tex_log("adjust_texture_depth: UI refresh complete");
+    } catch (std::exception& e) {
+        tex_log(std::string("adjust_texture_depth: UI refresh threw: ") + e.what());
+    } catch (...) {
+        tex_log("adjust_texture_depth: UI refresh threw unknown exception (non-fatal)");
+    }
 
     update();
+
+    } catch (std::exception& e) {
+        tex_log(std::string("adjust_texture_depth: volume-add/transform block threw: ") + e.what());
+        show_error(this, wxString(_L("Texture depth adjust failed: ")) + e.what()
+                   + _L("\n\nSee %TEMP%\\qidi_texture.log for details."));
+    }
+
+    } catch (std::exception& e) {
+        tex_log(std::string("adjust_texture_depth: UNHANDLED exception: ") + e.what());
+        show_error(this, wxString(_L("Texture depth adjust failed (unhandled): ")) + e.what()
+                   + _L("\n\nSee %TEMP%\\qidi_texture.log for details."));
+    } catch (...) {
+        tex_log("adjust_texture_depth: UNHANDLED unknown exception");
+        show_error(this, _L("Texture depth adjust failed with an unknown error.\n\n"
+                             "See %TEMP%\\qidi_texture.log for details."));
+    }
+    tex_log("adjust_texture_depth: exit");
 }
 
 }}    // namespace Slic3r::GUI

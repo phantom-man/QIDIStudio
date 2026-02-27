@@ -345,17 +345,41 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
     mod.mid_level            = mid_level
 
     # ── 6. Apply all modifiers ────────────────────────────────────────
-    # temp_override is required for bpy.ops.object.modifier_apply to work
-    # in headless/background mode — without it the operator silently no-ops.
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
-    with _ops_ctx(obj):
+    # Force a depsgraph update BEFORE evaluating.  In headless mode, newly
+    # created objects (like mapping_empty) don't enter the depsgraph until
+    # view_layer.update() is called.  Without this, the Displace modifier
+    # silently receives a null texture-coords object and produces zero
+    # displacement; the Subsurf also appears to have no effect in convert().
+    bpy.context.view_layer.update()
+
+    # Primary: bake via the depsgraph-evaluated mesh (most reliable headless path).
+    # This respects the full modifier stack including OBJECT texture coordinates.
+    try:
+        import bmesh as _bmesh  # bpy bundles bmesh; import here so name doesn't clash
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        obj_eval  = obj.evaluated_get(depsgraph)
+        bm = _bmesh.new()
+        bm.from_object(obj_eval, depsgraph)
+        bm.to_mesh(obj.data)
+        bm.free()
+        obj.data.update()
+        # Remove modifiers — they are now baked into the mesh data.
         for m in list(obj.modifiers):
-            try:
-                bpy.ops.object.modifier_apply(modifier=m.name)
-            except Exception as exc:
-                log.log(f"  WARNING: could not apply modifier '{m.name}': {exc}")
+            obj.modifiers.remove(m)
+        log.log(f"  Modifiers baked via depsgraph. Verts after: {len(obj.data.vertices)}")
+    except Exception as exc:
+        log.log(f"  WARNING: depsgraph bake failed ({exc}); falling back to convert()")
+        # Fallback: bpy.ops.object.convert — works for simple cases
+        bpy.ops.object.select_all(action="DESELECT")
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        try:
+            with _ops_ctx(obj):
+                bpy.ops.object.convert(target="MESH")
+            log.log(f"  Modifiers applied via convert. Verts after: {len(obj.data.vertices)}")
+        except Exception as exc2:
+            log.log(f"  WARNING: convert also failed: {exc2}; modifiers left on stack (depsgraph export)")
+            # _export_stl evaluates via depsgraph so modifiers will still apply at export time
 
     # ── 7. Post-process: merge doubles + recalculate normals ─────────
     # Subdivision on meshes with holes / sharp edges can create coincident
