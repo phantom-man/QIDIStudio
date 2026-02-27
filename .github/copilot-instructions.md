@@ -155,13 +155,34 @@ Do NOT recreate — the junction persists. Do NOT set `QIDI_BPY_PYTHON` env var 
 
 ## VS Code Agent Hooks
 
-Hooks live in `.github/hooks/` and fire at agent lifecycle points. All log to the shared audit file `.github/hooks/precompact.log` with timestamps.
+Hooks live in `.github/hooks/` and fire at agent lifecycle points. All log to `.github/hooks/precompact.log`.
 
 | File | Event | What it does |
 |------|-------|-------------|
-| `precompact.json` | `UserPromptSubmit` | Runs `prompt_submit_hook.ps1` → injects `"use Context7"` into every prompt via stdout JSON; logs to `precompact.log` |
-| `precompact.json` | `PreCompact` | `git add` + `git commit` of instructions + knowledge docs before context compacts; logs result to `precompact.log` |
-| `prompt_submit_hook.ps1` | — | PowerShell script: logs timestamp to `precompact.log`, outputs `{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"use Context7"}}` |
+| `precompact.json` | `UserPromptSubmit` | Runs `prompt_submit_hook.ps1` → injects `"use Context7"` into every prompt via stdout JSON |
+| `precompact.json` | `PreCompact` | Runs `precompact_hook.ps1` → injects "run Save This Protocol" instruction into the agent via stdout JSON |
+| `prompt_submit_hook.ps1` | — | Outputs `additionalContext: "use Context7"` as JSON |
+| `precompact_hook.ps1` | — | Outputs `additionalContext` ordering the agent to extract session learnings into `.md` files and commit |
+
+### CRITICAL: How Hook ↔ Agent Communication Works
+
+**A hook script MUST output JSON to stdout to communicate with the agent.** Shell-only actions (git commits, file writes) in the hook run silently and the agent never knows they happened.
+
+The required stdout format:
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreCompact",
+    "additionalContext": "<instruction injected into agent context>"
+  }
+}
+```
+
+VS Code reads this JSON from stdout and injects `additionalContext` as a message into the agent's context window. This is the ONLY way to instruct the agent from a hook.
+
+**What this means for PreCompact:** The hook cannot do the knowledge extraction itself — only the agent can read the conversation and extract learnings. The hook's job is to inject the instruction `"run Save This Protocol"` so the agent does it. The agent then writes the files and runs the git commit via terminal.
+
+**Do NOT** make `precompact_hook.ps1` do git commits directly — it will commit whatever is on disk at hook-fire time, BEFORE the agent has written any new content to the files. The agent must write first, then commit.
 
 **Verify hooks are loaded**: Chat view → right-click → Diagnostics → hooks section.
 
@@ -475,6 +496,14 @@ void MenuFactory::append_menu_item_add_texture(wxMenu* menu, ModelVolumeType typ
 
 - **`mid_level` for [0..1] PNG heightmaps** — Our armadillo PNG assets encode height as [0..1] greyscale (black = baseline, white = peak). The correct setting is `mid_level=0.0` with `strength=RELIEF_MM`. Using `mid_level=0.5` causes black areas to push INWARD (negative displacement) — correct for bidirectional emboss, wrong for pure relief. Formula: `delta = strength × (intensity − mid_level)`. With `mid_level=0.0` and a mostly-bright texture, net displacement is upward and visually clear. With `mid_level=0.5`, net displacement of an average-0.6 image is only 0.1×strength — very subtle.
 
+- **Blender 4.1+ API removal: `calc_normals_split()`** — This method was removed in Blender 4.1. Do NOT call `mesh.calc_normals_split()`. Face normals are available directly via `poly.normal` on each polygon object with no method call needed. This was a runtime `AttributeError` that crashed the script mid-pipeline.
+
+- **CAD STL topology problem — displacement spikes** — CAD parts exported to STL have long thin triangles radiating from holes, fillets, and boss features. SIMPLE subdivision preserves these shapes (both child triangles are still long and thin). The Displace modifier then spikes the tip of each thin triangle because the vertex normal there is influenced by adjacent near-vertical hole-edge faces. `direction='Z'` reduces but does NOT eliminate this. **Voxel Remesh fixes the topology but destroys holes entirely** — never use it on functional CAD parts. **Correct fix: build a vertex group `"TopFace"` selecting only faces with `poly.normal.z > 0.5`.** Walls, hole edges, and fillets are excluded (weight=0) and stay perfectly sharp. Only genuinely top-facing geometry gets displaced.
+
+- **Vertex group must be built AFTER subdivision is applied** — The `"TopFace"` vertex group is valid only for the current vertex set. Applying a SIMPLE SUBSURF modifier changes vertex count and indices. If you build the group before applying the modifier, the group is silently invalidated. Correct sequence: weld → add Subdiv modifier → `modifier_apply("Subdiv")` → build vertex group from `poly.normal.z > 0.5` → add Displace with `vertex_group="TopFace"` → `modifier_apply("Displace")`.
+
+- **Fail-fast: no bpy_env or Python fallback** — `apply_texture_bpy.py` hard-exits at startup (`sys.exit(1)`) if `IS_FULL_BLENDER=False`. There is no Python vertex-loop fallback (removed — it produced artifacts on real-world parts). `find_bpy_python()` in `Plater.cpp` only searches for `blender.exe` — it no longer checks `QIDI_BPY_PYTHON` env var or `bpy_env/Scripts/python.exe`. If Blender is not installed, the user sees an error dialog.
+
 ### Skin Assets
 
 `resources/assets/` — PNG heightmaps generated by `scripts/generate_skin_assets.py`.
@@ -753,3 +782,27 @@ Skills are in `.agents/skills/`. Load them with `read_file` on demand. All skill
 | `microservices-architect` | Decomposing monolithic build scripts |
 | `mcp-developer` | Building MCP servers for QIDIStudio tooling |
 | `fullstack-guardian` | Full-stack companion web UI |
+
+---
+
+## Session Learnings Log
+
+**Parsed by `memory/extract.py` → synced to LanceDB on every Save This run.**
+Append new rows here. Never delete rows. Categories: `bpy_pipeline` | `build_system` | `cpp_gotcha` | `hooks_and_memory` | `gcode_refiner` | `workflow` | `tools_and_env` | `architecture` | `general`
+
+| Date | Category | Topic | Decision | Rationale |
+|------|----------|-------|----------|-----------|
+| 2026-02-27 | bpy_pipeline | calc_normals_split removed Blender 4.1 | Do not call mesh.calc_normals_split(); use poly.normal directly on each polygon | Removed in Blender 4.1; causes AttributeError mid-pipeline crashing the script |
+| 2026-02-27 | bpy_pipeline | vertex group built after subdiv | Build TopFace vertex group AFTER applying SUBSURF modifier, not before | Indices change when modifier is applied; group built before subdiv is silently invalidated |
+| 2026-02-27 | bpy_pipeline | CAD STL topology displacement spikes | CAD parts have long thin triangles from holes/fillets; vertex group TopFace (normal.z > 0.5) is the fix; Voxel Remesh destroys holes | Only top-facing geometry gets displaced; walls, bores and fillets stay sharp |
+| 2026-02-27 | bpy_pipeline | mid_level=0.0 for [0..1] PNG heightmaps | Use mid_level=0.0 with strength=relief_mm; mid_level=0.5 causes inward displacement on dark areas | delta = strength × (intensity - mid_level); 0.0 → black=baseline, white=+relief; 0.5 halves effective range |
+| 2026-02-27 | bpy_pipeline | fail-fast no bpy_env fallback | apply_texture_bpy.py hard-exits if IS_FULL_BLENDER=False; find_bpy_python() only searches for blender.exe | bpy pip package cannot reliably apply modifiers in background mode; zero fallback policy |
+| 2026-02-27 | bpy_pipeline | depsgraph update before modifiers | Call bpy.context.view_layer.update() after linking new objects and BEFORE adding modifiers that reference them | Depsgraph not auto-updated in background mode; modifier sees null ref → silent zero displacement |
+| 2026-02-27 | bpy_pipeline | mm-scale Cycles lighting values | key=150000W at (150,-60,200), fill=40000W at (-80,120,60), world bg (0.15,0.15,0.15) strength=1.2 | scale_length=0.001 makes low-energy lights invisible; world strength>1.5 washes out all shadows |
+| 2026-02-27 | cpp_gotcha | wxEXEC_BLOCK not wxEXEC_SYNC | Use wxEXEC_BLOCK for Blender subprocess; wxEXEC_SYNC runs wx event loop which fires handlers that crash via stale Selection | wxEXEC_BLOCK = wxEXEC_SYNC OR wxEXEC_NOEVENTS; prevents scene_selection() null dereference |
+| 2026-02-27 | cpp_gotcha | ShowModal clears Selection before return | Capture instance_idx and transforms from Selection BEFORE ShowModal(); never dereference selection after dialog close | WM_DESTROY fires focus event on canvas clearing Selection BEFORE ShowModal() returns to caller |
+| 2026-02-27 | cpp_gotcha | menu item guard kills item at startup | Never guard append_menu_item_* with plater()==nullptr at registration; guard only inside lambdas | Menus built at startup before plater exists; top-level nullptr guard permanently drops the item |
+| 2026-02-27 | hooks_and_memory | PreCompact hook must output JSON | Hook script must write {"hookSpecificOutput":{"hookEventName":"PreCompact","additionalContext":"..."}} to stdout | VS Code injects additionalContext into agent context; shell-only actions (git commits) are invisible to agent |
+| 2026-02-27 | hooks_and_memory | LanceDB memory architecture | UserPromptSubmit calls memory/inject.py; PreCompact injects Save This instruction; agent writes .md → runs extract.py → git commit | Full loop: session → extract → LanceDB → inject next session |
+| 2026-02-27 | build_system | sync scripts to both dirs | Copy apply_texture_bpy.py to both C:\QIDISrc\QIDIStudio\resources\scripts\ AND install_dir\resources\scripts\ | CMake installs from build source; install_dir needs direct copy for immediate runtime testing |
+| 2026-02-27 | build_system | CMake 3.29 required | Use C:\CMake329\bin\cmake.exe (3.29.8); cmake 4.x removed backward compat for cmake_minimum_required < 3.5 | Alternative workaround: pass -DCMAKE_POLICY_VERSION_MINIMUM=3.5 to any cmake version |

@@ -1,6 +1,6 @@
 # QIDIStudio — Complete Engineering Knowledge Base
 
-_Maintained by: GitHub Copilot | Last updated: 2026-02-25 (Add Skin feature + triplanar projection + subdivide_to_size)_
+_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes)_
 
 This document captures all reverse-engineered knowledge about QIDIStudio's source code,
 build system, configuration, and 3MF format. It serves as the single source of truth
@@ -684,90 +684,96 @@ Fix: `set_volume_by_selection()` now compares `svg_file->path` between the incom
 
 **Limits:** X and Y clamped to `[1, 50]`; gap clamped to `[-50, 200]` mm; tile size `[0.1, 500]` mm. Gap row only shown when X > 1 or Y > 1.
 
-### Feature: "Add Skin" — Displacement Texture on Mesh
+### Feature: "Add Texture" — Displacement Texture on Mesh via Blender
 
-Adds a **"Add Skin…"** item to the 3D object right-click menu. The feature:
-1. Lets the user pick a PNG/JPG/SVG skin asset (e.g. dragon scales, damascus steel, chainmail)
-2. Runs `resources/scripts/apply_skin.py` as an external Python subprocess
-3. The script displaces the mesh vertices along surface normals by the skin heightmap
-4. The script writes a `_skin.3mf` adjacent to the source, preserving ALL slicer settings
-5. C++ redirects the object's `input_file` to the skin output, then calls `reload_from_disk()`
+_Last updated: 2026-02-27. Replaces old trimesh/apply_skin.py pipeline entirely._
 
-**C++ entry point:** `Plater::apply_skin_to_selection()` in `Plater.cpp`
+Adds **"Add Negative Part → Texture…"** and **"Add Part → Texture…"** items to the 3D object right-click menu. The feature:
+1. Lets the user pick a PNG skin asset (heightmap) and set tile size + relief depth
+2. Exports the model volume as a temp STL, runs `blender.exe --background --python apply_texture_bpy.py`
+3. Blender applies SIMPLE subdivision + Displace modifier (vertex group restricted to top faces)
+4. Script writes result STL; C++ loads it and replaces the original volume mesh in-place
+5. `ensure_on_bed()` auto-repositions after displacement shifts the Z centroid
 
-**Algorithm (`resources/scripts/apply_skin.py`):**
+**C++ entry points:** `Plater::apply_texture()`, `Plater::adjust_texture_depth()` in `Plater.cpp`
+
+**Script:** `resources/scripts/apply_texture_bpy.py`  
+**Invocation:** `"C:\Program Files\Blender Foundation\Blender 5.0\blender.exe" --background --python apply_texture_bpy.py -- model.stl skin.png --mode modifier --log out.txt`
+
+**Full pipeline (`_apply_displacement_blender()`):**
 
 ```
-Load 3MF mesh (trimesh)
-  → subdivide_to_size(max_edge=3.0mm)     # midpoint, no repositioning = no corner spikes
-  → triplanar displacement:
-       hmap_XY = tile(skin, sz_x, sz_y, tile_mm)   # top/bottom
-       hmap_XZ = tile(skin, sz_x, sz_z, tile_mm)   # front/back
-       hmap_YZ = tile(skin, sz_y, sz_z, tile_mm)   # left/right
-       for each vertex:
-           w_xy = |n_z|, w_xz = |n_y|, w_yz = |n_x|   # blend by normal direction
-           height = w_xy*sample(hmap_XY) + w_xz*sample(hmap_XZ) + w_yz*sample(hmap_YZ)
-           v' = v + n * height
-  → Copy original 3MF zip verbatim, replacing only 3D/3dmodel.model with displaced mesh
-  → Print "SKIN_OUTPUT: <path>" to log
+0. Weld duplicate verts (bmesh remove_doubles dist=0.001)  ← STL has 1 vert per tri
+1. SIMPLE SUBSURF modifier, adaptive level (≤50→4, ≤500→3, ≤5000→2, else→2)
+   → modifier_apply() IMMEDIATELY so vertex group is built on final vertex set
+1b. Build vertex group "TopFace": poly.normal.z > 0.5 → weight=1.0
+    Walls, hole edges, fillets (normal.z ≤ 0.5) get weight=0 → untouched by Displace
+2. Load PNG: colorspace="Non-Color", gamma corrected
+3. Create mapping Empty at origin, scale=(tile_size, tile_size, tile_size)
+   bpy.context.view_layer.update() — REQUIRED to register empty in depsgraph
+4. DISPLACE modifier:
+     texture_coords='OBJECT', texture_coords_object=empty
+     strength=relief_mm, mid_level=0.0, direction='NORMAL'
+     vertex_group="TopFace"
+5. modifier_apply("Displace")
+6. Export result to STL via pure-Python binary writer (no add-on needed)
+   Print "SKIN_OUTPUT: <path>" to stdout + log
 ```
 
-**C++ reload flow:**
-- After `wxExecute` returns 0, C++ reads `SKIN_OUTPUT:` from the log file
-- Sets `obj->input_file = skin_output_path` and `volumes[i]->source.input_file = skin_output_path`
-- Calls `reload_from_disk()` — existing infrastructure handles scene/UI refresh
-- This was critical: `delete_object + load_files` was tried first and FAILED silently (UI didn't refresh)
+**C++ reload flow (`apply_texture()`):**
+- Export `mo->raw_mesh()` to `%TEMP%\qidi_tex_src_*.stl`
+- Run Blender with `wxEXEC_BLOCK` (= `wxEXEC_SYNC | wxEXEC_NOEVENTS` — CRITICAL, see gotcha below)
+- Parse `SKIN_OUTPUT:` line from log file
+- Load result STL → find first `is_model_part()` volume → `vol->set_mesh(std::move(mesh))`
+- `vol->source.input_file = result_stl` — needed for `can_adjust_texture_depth()` check
+- Write sidecar JSON: `result_stl + ".texture.json"` with `{png, src_stl, tile_mm, relief, mode}`
+- `changed_object(obj_idx)` → `ensure_on_bed()` → reloads 3D scene
 
-**Key bugs fixed (2026-02-25):**
+**Why Blender instead of trimesh:**
+- Blender SIMPLE subdivision handles all edge cases cleanly (CAD parts, organic shapes)
+- Displace modifier evaluates per-polygon normals correctly; no vertex-loop artifacts
+- Vertex group support restricts displacement to top faces only (critical for CAD holes)
+- trimesh `subdivide_to_size` produced "cracked mud" on complex geometry; removed
 
-| Bug | Root cause | Fix |
-|-----|-----------|-----|
-| C++ loads original instead of skin | `reload_from_disk()` reads from `obj->input_file`, which still points to original | Redirect `input_file` → skin output before calling `reload_from_disk()` |
-| "Stretched single image" on side walls | Pure XY planar projection — vertical faces all get same U or V = degenerate | Triplanar projection: blend XY/XZ/YZ based on vertex normal direction |
-| Spike artifacts at cable notch corners | Loop subdivision reshapes sharp corners + averaged vertex normals get large displacements | `subdivide_to_size(max_edge)` midpoint-only subdivision preserves sharp geometry; `max_iter=6` caps vertex count at 64× original |
-| Relief nearly invisible (0.333mm) | Default relief 0.5mm × max heightmap 0.66 = too small for 0.4mm nozzle | Relief default 0.5 → **1.5mm** |
-| Tiles too small | Default tile 15mm → scales barely visible on larger objects | Tile default 15 → **30mm** |
-| Scale bodies flat, crevices raised ("cracked mud" look) | Image is dark-bodied: bright ridges displaced outward, dark scale bodies at zero | **Invert by default** — dark → high displacement so each scale becomes a raised dome |
-| Relief wasted (1.006mm actual vs 1.5mm requested) | Scale PNGs have compressed range (mean~53/255, max~0.67) — dividing by 255 wastes 33% of range | **Histogram stretch** `(arr - min) / (max - min)` normalizes to full [0,1] before applying relief |
-| 914K verts on 230mm lid (21MB output) | `max_iter=10` allows unlimited 2× doublings until max_edge reached | `max_iter=6` caps at 64× original triangle count |
-| **"No mesh objects found" — script produces useless output** | QIDIStudio stores each geometry in `3D/Objects/object_N.model`; script was reading only `3D/3dmodel.model` which contains component references, not mesh data | Scan ALL `*.model` entries in the zip; find `<object>` elements with `<mesh>` across all files |
-| **"Unable to reload" for multi-component models** | Only object[0] got displaced; remaining objects kept original vertex counts → mismatched geometry → QIDIStudio 3MF parse failure | Per-object displacement (each `<object>` XML element processed independently, global BB shared for consistent tile phase) |
-| **`foo_skin_skin.3mf`** on re-run | Output name always appended `_skin` without checking existing suffix | Strip `_skin` from stem before adding it; re-runs overwrite same file |
-| **XML `or` element lookup broken in Python 3.13** | `elem.find(ns) or elem.find(bare)` — `bool(Element)` is unreliable: empty element = False in old Python, always True in new | Replace all `or` fallbacks with explicit two-step `if x is None: x = y` |
+**Key bugs fixed / design decisions:**
 
-**CLI / script parameters:**
+| Bug / Finding | Root cause | Fix/Decision |
+|---|---|---|
+| Displacement spikes on CAD parts | Long thin triangles radiate from holes/fillets in STL; SIMPLE subdiv preserves them; Displace spikes each tip | Vertex group `TopFace` (normal.z > 0.5): walls and holes excluded entirely |
+| `calc_normals_split()` AttributeError | Removed in Blender 4.1+ | Use `poly.normal` directly (no method call needed) |
+| Voxel Remesh destroyed holes | Remesh treats geometry volumetrically, fills bores | Removed; vertex group instead |
+| `direction='NORMAL'` radial streaks | CAD edge-adjacent verts have non-upward normals; NORMAL mapping follows those | `direction='NORMAL'` is correct with vertex group — walls excluded so only truly top-facing normals displace |
+| Zero displacement despite correct script | Mapping Empty not in depsgraph when Displace modifier evaluates | `bpy.context.view_layer.update()` after linking Empty, BEFORE adding Displace modifier |
+| `mid_level=0.5` caused inward push | [0..1] PNG: dark=0→ delta=-0.5×strength (inward) | `mid_level=0.0`: black=baseline, white=+relief, no inward push |
+| Vertex group invalidated after subdiv | Group built on pre-subdiv vertices; apply changes indices | Apply Subdiv FIRST, then build vertex group on final vertex set |
+| bpy pip package silent zero displacement | `bpy.ops.object.convert()` unreliable in background mode for bpy package | Hard `sys.exit(1)` if `IS_FULL_BLENDER=False` — no fallback |
+| `wxEXEC_SYNC` crash during bpy execution | Sync runs wx event loop; paint/timer handlers access stale `scene_selection()` | Use `wxEXEC_BLOCK` (`= wxEXEC_SYNC \| wxEXEC_NOEVENTS`) — no event pumping |
+
+**CLI / script parameters (`apply_texture_bpy.py`):**
 
 ```bash
-apply_skin.py <model.3mf> <skin.png> [--tile-size 30] [--relief 1.5] [--max-edge 3.0]
-              [--invert | --no-invert] [--gamma 0.7]
+apply_texture_bpy.py <model.stl> <skin.png>
+    [--mode modifier|part|negative]   # always use modifier
+    [--tile-size 15]                   # texture repeat in mm (default 15)
+    [--relief 1.0]                     # displacement depth in mm (default 1.0)
+    [--invert]                         # invert heightmap direction
+    [--gamma 0.7]                      # power curve on texture before displacing
+    [--log <logfile>]                  # write log to file (C++ reads SKIN_OUTPUT: line)
 ```
 
-- `--tile-size`: tile pitch in mm (default **30**). Each tile is one copy of the skin image.
-- `--relief`: max displacement in mm (default 1.5). Must exceed nozzle diameter to be visible.
-- `--max-edge`: subdivide until all mesh edges ≤ this mm (default 3). Set 0 to skip.
-- `--invert / --no-invert`: invert heightmap before applying (default ON). Use `--no-invert` for images where white=raised.
-- `--gamma`: power curve 0..2 (default 0.7). <1 rounds scale domes, >1 sharpens crispness.
+**`_adaptive_subd_level()` table:**
 
-**Heightmap processing pipeline:**
-```
-Raw image L channel (0..255)
-  → /255 → float32 [0..1]
-  → histogram stretch: (arr - min) / (max - min)   ← uses full range; scale PNGs are dark (mean~0.2)
-  → invert: 1.0 - arr                              ← dark scale bodies → high; bright edges → low
-  → gamma: arr ** 0.7                              ← rounds dome profile (0.7 = gentle bell curve)
-  → scale: arr * relief_mm                         ← convert to mm
-```
-Why invert? Dragon/reptile scale images are rendered with **dark scale surfaces** and bright ridge/edge highlights. If you displace by the raw value, the bright edges get pushed out (looks like cracked mud/random noise). Inverted: the dark scale body becomes the raised dome — produces classic overlapping scale look.
+| Face count | Subdiv level | Rationale |
+|---|---|---|
+| ≤ 50 | 4 | Primitive test shapes |
+| ≤ 500 | 3 | Simple mechanical parts |
+| ≤ 5000 | 2 | Typical imported part |
+| > 5000 | 2 | Cap to avoid RAM explosion |
 
-Why histogram stretch? Scale PNGs often have max brightness ~0.67 (171/255). Without stretching, effective relief = `0.67 × 1.5mm = 1.0mm` instead of `1.5mm` — you silently lose 33% of depth.
-
-**Skin assets location:** `resources/assets/` (subfolders: `dragon_scales/`, `reptile_scales/`, etc.)
+**Skin assets location:** `resources/assets/` (subfolders: `armadillo_plates/`, `dragon_scales/`, etc.)  
 Assets are AI-generated PNGs (Vertex AI Imagen 3 or Replicate Flux Schnell) via `scripts/generate_skin_assets.py`.
 
-**Settings preservation in 3MF:**
-The Python script copies the entire original `.3mf` zip verbatim, replacing only `3D/3dmodel.model`.
-All of `Metadata/project_settings.config` (temperatures, fan settings, speeds, filament IDs) is preserved intact.
-This is critical — loading an `.stl` instead would silently reset all slicer settings to defaults.
+**Sidecar JSON** (`<result_stl>.texture.json`): `{png, src_stl, tile_mm, relief, mode}` — enables `adjust_texture_depth()` to re-run bpy on the original mesh. Note: `src_stl` is a `%TEMP%\qidi_tex_src_*.stl` — valid only for the current session. Long-term fix needed: save src_stl alongside the project.
 
 ### Planned Improvements
 
