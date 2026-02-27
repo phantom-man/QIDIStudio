@@ -292,6 +292,26 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
 
+    # ── 0. Weld vertices — CRITICAL for STL input ──────────────────
+    # STL files have NO shared vertices: every triangle is self-contained.
+    # Without welding, subdivision treats each triangle in isolation and
+    # displacement pulls the seam vertices apart → long spiky artifacts.
+    # Merge-by-distance connects the seams before any modifier runs.
+    try:
+        import bmesh as _bm_weld
+        bm_w = _bm_weld.new()
+        bm_w.from_mesh(obj.data)
+        before_w = len(bm_w.verts)
+        _bm_weld.ops.remove_doubles(bm_w, verts=bm_w.verts, dist=0.001)
+        after_w = len(bm_w.verts)
+        _bm_weld.ops.recalc_face_normals(bm_w, faces=bm_w.faces)
+        bm_w.to_mesh(obj.data)
+        bm_w.free()
+        obj.data.update()
+        log.log(f"  Welded STL vertices: {before_w} → {after_w} verts")
+    except Exception as exc:
+        log.log(f"  WARNING: pre-weld failed ({exc}); subdivision may produce seam artifacts")
+
     # ── 1. Subdivision (Simple — preserves hard edges) ──────────────
     sub_level = _adaptive_subd_level(obj)
     sub = obj.modifiers.new("Subd_tex", type="SUBSURF")
@@ -302,7 +322,7 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
     sub_idx = list(obj.modifiers).index(sub)
     if sub_idx != 0:
         obj.modifiers.move(sub_idx, 0)
-    log.log(f"  Subdivision level {sub_level} (base polys: {len(obj.data.polygons)})")
+    log.log(f"  Subdivision level {sub_level} (base polys: {len(obj.data.polygons)})")    
 
     # ── 2. Load image and apply gamma ────────────────────────────────
     img = bpy.data.images.load(skin_path)
@@ -381,27 +401,22 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
             log.log(f"  WARNING: convert also failed: {exc2}; modifiers left on stack (depsgraph export)")
             # _export_stl evaluates via depsgraph so modifiers will still apply at export time
 
-    # ── 7. Post-process: merge doubles + recalculate normals ─────────
-    # Subdivision on meshes with holes / sharp edges can create coincident
-    # vertices and flipped normals, producing non-manifold geometry that
-    # QIDIStudio rejects.  Merge-by-distance cleans this up.
-    # Works directly on mesh data from Object mode (no mode switch needed).
+    # ── 7. Post-process: recalculate normals ────────────────────────
+    # After displacement, some face normals may flip.  Recalculate to ensure
+    # they all point outward.  Skip remove_doubles here — we already welded
+    # before subdivision; running it again on the displaced mesh merges
+    # vertices that were correctly separated by displacement.
     try:
         import bmesh as _bm
         bm = _bm.new()
         bm.from_mesh(obj.data)
-        before = len(bm.verts)
-        _bm.ops.remove_doubles(bm, verts=bm.verts, dist=0.001)
         _bm.ops.recalc_face_normals(bm, faces=bm.faces)
-        after = len(bm.verts)
         bm.to_mesh(obj.data)
         bm.free()
         obj.data.update()
-        if before != after:
-            log.log(f"  Merged {before - after} duplicate verts ({after} remain)")
         log.log("  Normals recalculated")
     except Exception as exc:
-        log.log(f"  WARNING: post-process cleanup failed: {exc}")
+        log.log(f"  WARNING: post-process normal recalc failed: {exc}")
 
     log.log(f"  Displacement applied: relief={strength:.2f}mm "
             f"tile={tile_size}mm mid={mid_level} mode={mode}")
@@ -499,7 +514,11 @@ def main():
 
         if args.mode == "modifier":
             # ── MODIFIER: displace the original mesh in-place, then replace ──
-            _smart_uv_project(original_obj, log)
+            # NOTE: do NOT call _smart_uv_project here.
+            # We use OBJECT texture coordinates (not UV), so no UV data is needed.
+            # UV unwrapping marks seam edges in the mesh; when the subdivided mesh
+            # is baked back via bmesh.from_object(), those seam vertices are split
+            # and each side displaces slightly differently → long spike artifacts.
             _apply_displacement(
                 original_obj, args.skin_path,
                 args.tile_size, args.relief,
