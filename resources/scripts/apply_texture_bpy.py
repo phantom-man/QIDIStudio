@@ -760,8 +760,9 @@ def main():
 
         else:
             # ── PART / NEGATIVE: duplicate mesh, displace copy, export copy ──
-            # UV the original first so the duplicate inherits correct UV layout
-            _smart_uv_project(original_obj, log)
+            # UV is handled inside _apply_displacement_blender → _do_uv_unwrap
+            # (no pre-UV step needed here — the LSCM/conformal unwrap runs on
+            #  the copy after subdivision, not on the original).
 
             # Data-API duplicate — bpy.ops.object.duplicate() silently no-ops
             # in headless/background mode, causing displaced_obj to alias
