@@ -1,25 +1,30 @@
 """
-extract.py — Syncs three knowledge sources from copilot-instructions.md into LanceDB:
+extract.py — Indexes the ENTIRE knowledge base into LanceDB.
 
-  1. Session Learnings Log   — table rows of confirmed gotchas / decisions (category varies)
-  2. Protocols               — one row per ## ...Protocol section  (category: workflow)
-  3. Skills routing          — one row per skill trigger           (category: workflow)
+Sources processed:
+  .github/copilot-instructions.md  — every ## / ### section as a verbatim chunk
+  docs/QIDISTUDIO_KNOWLEDGE.md     — every ## / ### section
+  memory/langsmith_prompt.md       — every ## / ### section
 
-Also reads QIDISTUDIO_KNOWLEDGE.md for any learnings table there.
+Every heading becomes one LanceDB row:
+  topic    = heading text (short phrase)
+  decision = first non-code paragraph (≤500 chars, as a readable summary)
+  content  = FULL verbatim markdown text of the section (code blocks and all)
+  source   = "copilot-instructions/section" | "knowledge-doc/section" | etc.
+  category = inferred from topic/content keywords
 
-Run after the Save This Protocol writes new learnings:
+Run after any edit to the source docs:
   python memory/extract.py
 
-Idempotent — rows are upserted by topic, so re-running never creates duplicates.
-LangSmith tracing enabled if LANGCHAIN_TRACING_V2=true in .env.
+Idempotent — rows are upserted by topic, so re-running never duplicates.
 """
 
 import re
 import sys
+import textwrap
 from pathlib import Path
 from typing import Optional
 
-# Allow running from any cwd
 REPO_ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
@@ -30,19 +35,140 @@ import os
 os.environ.setdefault("LANGCHAIN_PROJECT", "QIDIStudio")
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────
+# ── Category inference ────────────────────────────────────────────────────
+
+def _infer_category(topic: str, text: str) -> str:
+    combined = (topic + " " + text[:300]).lower()
+    checks = [
+        ("bpy_pipeline",   ["blender", "bpy", "displacement", "texture", "apply_texture",
+                             "cycles", "depsgraph", "armadillo", "subdivision", "mid_level"]),
+        ("build_system",   ["cmake", "build", "msbuild", "deps", "sync", "install_dir",
+                             "pkgconfig", "perl", "openssl", "qtdir", "vcpkg"]),
+        ("cpp_gotcha",     ["wxwidget", "wx", "c++", "plater", "gui", "dialog", "menu",
+                             "selection", "showmodal", "wxexec", "takesnapshot"]),
+        ("hooks_and_memory",["langsmith", "langchain", "hook", "precompact", "memory",
+                              "lancedb", "prompt_submit", "additionalcontext", "userpromptsub"]),
+        ("gcode_refiner",  ["gcode", "refiner", "outer_wall", "asa", "m2 gear", "filament"]),
+        ("tools_and_env",  ["python", "venv", "bpy_env", "blender.exe", "terminal",
+                             "powershell", "pip install", "winget", "strawberry"]),
+        ("api_key",        ["api_key", "api key", "endpoint", "token", "secret", "lsv2_sk"]),
+        ("architecture",   ["architecture", "design", "pattern", "module", "interface",
+                             "two-repo", "fork", "pipeline"]),
+        ("workflow",       ["protocol", "convention", "standard", "rule", "skill",
+                             "save this", "fire-and-poll", "visual reference"]),
+    ]
+    for cat, keywords in checks:
+        if any(k in combined for k in keywords):
+            return cat
+    return "general"
+
+
+# ── Markdown chunking ─────────────────────────────────────────────────────
+
+def _first_para_summary(text: str, max_chars: int = 500) -> str:
+    """Extract the first non-heading, non-empty paragraph as a plain-text summary."""
+    # Remove code blocks first
+    no_code = re.sub(r'```.*?```', '[code block]', text, flags=re.DOTALL)
+    paras = [p.strip() for p in no_code.split('\n\n') if p.strip()]
+    # Skip heading lines
+    for p in paras:
+        if not p.startswith('#') and not p.startswith('|'):
+            # Strip inline markdown
+            clean = re.sub(r'\*\*([^*]+)\*\*', r'\1', p)
+            clean = re.sub(r'\*([^*]+)\*',     r'\1', clean)
+            clean = re.sub(r'`([^`]+)`',        r'\1', clean)
+            clean = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', clean)
+            clean = re.sub(r'\s+', ' ', clean).strip()
+            return clean[:max_chars]
+    return text[:max_chars]
+
+
+def _make_chunk(heading_path: str, content: str, source: str) -> dict:
+    """Build a single LanceDB row from a heading path and its full text content."""
+    summary  = _first_para_summary(content)
+    category = _infer_category(heading_path, content)
+    return {
+        "topic":     heading_path,
+        "decision":  summary,
+        "rationale": f"Full text in content field. Source: {source}",
+        "content":   content.strip(),
+        "category":  category,
+        "date":      None,
+        "source":    source,
+    }
+
+
+def extract_sections(path: Path, source_prefix: str) -> list[dict]:
+    """
+    Split a markdown file into chunks by ## headings.
+    Long ## sections (>2500 chars body) are further split by ### sub-headings.
+    Returns list of row dicts.
+    """
+    if not path.exists():
+        return []
+
+    text = path.read_text(encoding="utf-8")
+    rows: list[dict] = []
+
+    # Split on ## headings (keep the heading in each chunk)
+    sections = re.split(r'^(?=## )', text, flags=re.MULTILINE)
+
+    for section in sections:
+        section = section.strip()
+        if not section:
+            continue
+
+        lines        = section.splitlines()
+        heading_line = lines[0].strip()
+        heading_text = heading_line.lstrip('#').strip()
+        body         = '\n'.join(lines[1:]).strip()
+
+        # If body is long, sub-split on ### headings
+        if len(body) > 2500:
+            sub_sections = re.split(r'^(?=### )', body, flags=re.MULTILINE)
+            has_intro = sub_sections and not sub_sections[0].strip().startswith('###')
+
+            # Store the intro paragraph of the ## section (before first ###)
+            if has_intro and sub_sections[0].strip():
+                intro_content = f"{heading_line}\n\n{sub_sections[0].strip()}"
+                rows.append(_make_chunk(
+                    heading_text,
+                    intro_content,
+                    f"{source_prefix}/section",
+                ))
+                sub_sections = sub_sections[1:]
+
+            for sub in sub_sections:
+                sub = sub.strip()
+                if not sub:
+                    continue
+                sub_lines    = sub.splitlines()
+                sub_heading  = sub_lines[0].lstrip('#').strip()
+                sub_body     = '\n'.join(sub_lines[1:]).strip()
+                full_content = f"{heading_line}\n\n### {sub_heading}\n\n{sub_body}"
+                topic_path   = f"{heading_text} — {sub_heading}"
+                rows.append(_make_chunk(
+                    topic_path,
+                    full_content,
+                    f"{source_prefix}/section",
+                ))
+        else:
+            rows.append(_make_chunk(
+                heading_text,
+                section,
+                f"{source_prefix}/section",
+            ))
+
+    return rows
+
+
+# ── Learnings table extraction (structured rows) ──────────────────────────
 
 def _parse_learnings_table(md_text: str) -> list[dict]:
-    """
-    Parse a Markdown table with columns:
-      | Date | Category | Topic | Decision | Rationale |
-    or the 4-column variant:
-      | Date | Topic | Decision | Rationale |
-    Returns list of dicts with those keys (lowercase).
-    """
-    rows = []
-    in_table = False
-    header_cols: list[str] = []
+    """Parse a | Date | Category | Topic | Decision | Rationale | table."""
+    rows      = []
+    in_table  = False
+    h_cols: list[str] = []
 
     for line in md_text.splitlines():
         stripped = line.strip()
@@ -50,264 +176,127 @@ def _parse_learnings_table(md_text: str) -> list[dict]:
             if in_table:
                 break
             continue
-
         cells = [c.strip() for c in stripped.strip("|").split("|")]
-        # Header row
         if not in_table:
-            header_cols = [c.lower() for c in cells]
-            if "topic" in header_cols and "decision" in header_cols:
+            h_cols = [c.lower() for c in cells]
+            if "topic" in h_cols and "decision" in h_cols:
                 in_table = True
             continue
-
-        # Separator row
         if all(set(c) <= set("-: ") for c in cells):
             continue
-
-        if len(cells) < len(header_cols):
-            cells.extend([""] * (len(header_cols) - len(cells)))
-
-        row = dict(zip(header_cols, cells))
+        if len(cells) < len(h_cols):
+            cells.extend([""] * (len(h_cols) - len(cells)))
+        row = dict(zip(h_cols, cells))
         if row.get("topic") and row.get("decision"):
             rows.append(row)
 
     return rows
 
 
-def _infer_category(topic: str, decision: str) -> str:
-    """Heuristic category inference from topic/decision text."""
-    combined = (topic + " " + decision).lower()
-    if any(k in combined for k in ["blender", "bpy", "displacement", "texture", "apply_texture"]):
-        return "bpy_pipeline"
-    if any(k in combined for k in ["cmake", "build", "msb", "msbuild", "deps", "sync", "install_dir"]):
-        return "build_system"
-    if any(k in combined for k in ["wxwidget", "wx", "c++", "plater", "gui", "dialog", "menu", "selection"]):
-        return "cpp_gotcha"
-    if any(k in combined for k in ["langsmith", "langchain", "hook", "precompact", "memory", "lancedb"]):
-        return "hooks_and_memory"
-    if any(k in combined for k in ["gcode", "refiner", "feature type", "outer_wall", "asa"]):
-        return "gcode_refiner"
-    if any(k in combined for k in ["python", "venv", "bpy_env", "blender.exe", "terminal", "powershell"]):
-        return "tools_and_env"
-    if any(k in combined for k in ["api_key", "api key", "endpoint", "token", "secret"]):
-        return "api_key"
-    if any(k in combined for k in ["architecture", "design", "pattern", "module", "interface"]):
-        return "architecture"
-    if any(k in combined for k in ["workflow", "protocol", "convention", "standard", "rule"]):
-        return "workflow"
-    return "general"
-
-
-def extract_from_instructions(path: Optional[Path] = None) -> list[dict]:
-    """Parse Session Learnings Log table from copilot-instructions.md."""
-    path = path or REPO_ROOT / ".github" / "copilot-instructions.md"
+def extract_learnings_table(path: Path, source: str) -> list[dict]:
+    """Extract Session Learnings Log table rows as structured rows."""
     if not path.exists():
         return []
-    text = path.read_text(encoding="utf-8")
-
-    # Find the Session Learnings Log section
+    text  = path.read_text(encoding="utf-8")
     match = re.search(r"## Session Learnings Log(.+?)(?=^## |\Z)", text, re.DOTALL | re.MULTILINE)
     if not match:
         return []
 
-    return _parse_learnings_table(match.group(1))
-
-
-def extract_from_knowledge(path: Optional[Path] = None) -> list[dict]:
-    """Parse Session Learnings Log table from QIDISTUDIO_KNOWLEDGE.md if present."""
-    path = path or REPO_ROOT / "docs" / "QIDISTUDIO_KNOWLEDGE.md"
-    if not path.exists():
-        return []
-    text = path.read_text(encoding="utf-8")
-
-    match = re.search(r"## Session Learnings Log(.+?)(?=^## |\Z)", text, re.DOTALL | re.MULTILINE)
-    if not match:
-        return []
-
-    return _parse_learnings_table(match.group(1))
-
-
-# ── Protocol extraction ────────────────────────────────────────────────────
-
-_PROTOCOL_NAMES = [
-    "Save This",
-    "Visual Reference Log",
-    "Amazon Link Fetching",
-    "Fire-and-Poll",
-    "Async Terminal Output",
-    "Two-Repo Layout",
-]
-
-def extract_protocols(path: Optional[Path] = None) -> list[dict]:
-    """
-    Parse named protocol sections from copilot-instructions.md.
-    Returns one row per protocol with category='workflow'.
-
-    Each row: { topic, decision, rationale, category, date, source }
-    """
-    path = path or REPO_ROOT / ".github" / "copilot-instructions.md"
-    if not path.exists():
-        return []
-    text = path.read_text(encoding="utf-8")
-
-    rows: list[dict] = []
-
-    # Find every ## heading that contains "Protocol" or matches known names
-    section_re = re.compile(
-        r'^(#{1,3} .+?(?:Protocol|Layout|Procedure|Workflow).+?)\n(.*?)(?=^#{1,3} |\Z)',
-        re.MULTILINE | re.DOTALL | re.IGNORECASE,
-    )
-
-    for m in section_re.finditer(text):
-        heading = m.group(1).strip().lstrip("#").strip().strip('"').strip("'")
-        body    = m.group(2).strip()
-
-        if not body:
+    parsed = _parse_learnings_table(match.group(1))
+    rows   = []
+    for r in parsed:
+        topic    = (r.get("topic")     or "").strip()
+        decision = (r.get("decision")  or "").strip()
+        rationale= (r.get("rationale") or "").strip()
+        category = (r.get("category")  or "").strip() or _infer_category(topic, decision)
+        dt       = (r.get("date")      or "").strip() or None
+        if not topic or not decision:
             continue
-
-        # First non-empty, non-heading paragraph = summary
-        paragraphs = [p.strip() for p in body.split("\n\n") if p.strip()]
-        first_para = paragraphs[0] if paragraphs else ""
-
-        # Collapse newlines in para for clean storage
-        decision  = re.sub(r'\s+', ' ', first_para)[:400]
-        # Steps = remaining text, compacted
-        steps_raw = "\n\n".join(paragraphs[1:4]) if len(paragraphs) > 1 else ""
-        rationale = re.sub(r'\s+', ' ', steps_raw)[:600] if steps_raw else f"See {path.name} §{heading}"
-
         rows.append({
-            "topic":     f"protocol: {heading}",
+            "topic":     topic,
             "decision":  decision,
             "rationale": rationale,
-            "category":  "workflow",
-            "date":      None,
-            "source":    "copilot-instructions/protocol",
+            "content":   f"**{topic}**\n{decision}\n\nRationale: {rationale}",
+            "category":  category,
+            "date":      dt,
+            "source":    source,
         })
-
     return rows
 
 
-# ── Skills routing extraction ──────────────────────────────────────────────
+# ── Sync to LanceDB ───────────────────────────────────────────────────────
 
-def extract_skills(path: Optional[Path] = None) -> list[dict]:
-    """
-    Parse the Skills section from copilot-instructions.md.
-    Each 'Trigger | Skill' table row becomes one LanceDB row so the agent gets
-    prompted to load the right skill file when the topic matches.
-
-    Returns rows with category='workflow'.
-    """
-    path = path or REPO_ROOT / ".github" / "copilot-instructions.md"
-    if not path.exists():
-        return []
-
-    text = path.read_text(encoding="utf-8")
-
-    # Find the Skills section block
-    match = re.search(r'## Skills.+?(?=^## |\Z)', text, re.DOTALL | re.MULTILINE)
-    if not match:
-        return []
-
-    skills_block = match.group(0)
-    rows: list[dict] = []
-
-    # Each table row looks like: | trigger text | `skill-name` |
-    row_re = re.compile(r'^\|\s*(.+?)\s*\|\s*`([^`]+)`\s*\|', re.MULTILINE)
-
-    for m in row_re.finditer(skills_block):
-        trigger    = m.group(1).strip()
-        skill_name = m.group(2).strip()
-
-        # Skip header rows
-        if trigger.lower() in ("trigger", "skill", "when"):
-            continue
-
-        rows.append({
-            "topic":     f"skill: {skill_name}",
-            "decision":  f"Load the '{skill_name}' skill when: {trigger}",
-            "rationale": f"Skill file: .agents/skills/{skill_name}/SKILL.md — read it with read_file before acting",
-            "category":  "workflow",
-            "date":      None,
-            "source":    "copilot-instructions/skills",
-        })
-
-    return rows
-
-
-def sync_to_lancedb(rows: list[dict], source: str = "copilot-instructions") -> tuple[int, int]:
-    """Upsert all rows into LanceDB. Returns (inserted, skipped)."""
+def sync_to_lancedb(rows: list[dict]) -> tuple[int, int]:
+    """Upsert all rows. Returns (inserted, skipped)."""
     from memory.store import upsert_learning
 
-    inserted = 0
-    skipped  = 0
-
+    inserted = skipped = 0
     for row in rows:
-        topic    = (row.get("topic")     or "").strip()
-        decision = (row.get("decision")  or "").strip()
-        rationale= (row.get("rationale") or "").strip()
-        category = (row.get("category")  or "").strip() or _infer_category(topic, decision)
-        dt       = (row.get("date")      or "").strip() or None
-        src      = row.get("source")     or source
-
-        if not topic or not decision:
+        topic = (row.get("topic") or "").strip()
+        if not topic:
             skipped += 1
             continue
-
         try:
             upsert_learning(
-                topic=topic,
-                decision=decision,
-                rationale=rationale,
-                category=category,
-                source=src,
-                learning_date=dt,
+                topic        = topic,
+                decision     = (row.get("decision")  or "").strip(),
+                rationale    = (row.get("rationale") or "").strip(),
+                category     = (row.get("category")  or "general").strip(),
+                source       = (row.get("source")    or "unknown"),
+                learning_date= row.get("date"),
+                content      = (row.get("content")   or "").strip(),
             )
             inserted += 1
         except Exception as e:
-            print(f"  [WARN] Failed to upsert '{topic[:50]}': {e}", file=sys.stderr)
+            print(f"  [WARN] Failed to upsert '{topic[:60]}': {e}", file=sys.stderr)
             skipped += 1
 
     return inserted, skipped
 
 
-def main():
-    print("QIDIStudio Memory Extractor")
+# ── Main ──────────────────────────────────────────────────────────────────
+
+def main() -> None:
+    print("QIDIStudio Memory Extractor — full knowledge base indexing")
     print(f"Repo: {REPO_ROOT}")
     print()
 
     all_rows: list[dict] = []
+    sources = [
+        (REPO_ROOT / ".github" / "copilot-instructions.md", "copilot-instructions"),
+        (REPO_ROOT / "docs"    / "QIDISTUDIO_KNOWLEDGE.md", "knowledge-doc"),
+        (REPO_ROOT / "memory"  / "langsmith_prompt.md",     "langsmith-prompt"),
+    ]
 
-    # 1. Session Learnings Log in copilot-instructions.md
-    rows1 = extract_from_instructions()
-    print(f"  copilot-instructions.md (learnings)  : {len(rows1)} rows")
-    all_rows.extend(rows1)
+    for path, prefix in sources:
+        # Full-text section chunks
+        chunks = extract_sections(path, prefix)
+        print(f"  {path.name:<35} sections : {len(chunks)}")
+        all_rows.extend(chunks)
 
-    # 2. Session Learnings Log in QIDISTUDIO_KNOWLEDGE.md
-    rows2 = extract_from_knowledge()
-    print(f"  QIDISTUDIO_KNOWLEDGE.md  (learnings) : {len(rows2)} rows")
-    all_rows.extend(rows2)
+        # Structured learnings table rows (if present)
+        learnings = extract_learnings_table(path, f"{prefix}/learnings")
+        if learnings:
+            print(f"  {path.name:<35} learnings: {len(learnings)}")
+            all_rows.extend(learnings)
 
-    # 3. Protocol sections
-    rows3 = extract_protocols()
-    print(f"  copilot-instructions.md  (protocols) : {len(rows3)} rows")
-    all_rows.extend(rows3)
+    print(f"\nTotal rows to sync: {len(all_rows)}")
 
-    # 4. Skills routing table
-    rows4 = extract_skills()
-    print(f"  copilot-instructions.md  (skills)    : {len(rows4)} rows")
-    all_rows.extend(rows4)
+    # Deduplicate by topic (last wins)
+    seen:   dict[str, dict] = {}
+    for r in all_rows:
+        seen[r["topic"]] = r
+    deduped = list(seen.values())
+    print(f"After dedup        : {len(deduped)}")
 
-    if not all_rows:
-        print("\nNo content found. Check that 'Session Learnings Log' table and '## Skills' section exist in copilot-instructions.md.")
-        return
-
-    print(f"\nSyncing {len(all_rows)} rows to LanceDB...")
-    inserted, skipped = sync_to_lancedb(all_rows)
+    print("\nSyncing to LanceDB (this loads the embedding model — ~15s on first run)...")
+    inserted, skipped = sync_to_lancedb(deduped)
     print(f"  Inserted/updated : {inserted}")
     print(f"  Skipped (empty)  : {skipped}")
 
-    # Report final row count
     from memory.store import count as store_count
-    print(f"  Total in store   : {store_count()}")
+    n = store_count()
+    print(f"  Total in store   : {n}")
     print("\nDone.")
 
 

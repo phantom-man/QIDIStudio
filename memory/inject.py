@@ -1,17 +1,19 @@
 """
-inject.py — Called by the UserPromptSubmit hook.
+inject.py — Called by the UserPromptSubmit hook to load the full knowledge base.
 
-Queries LanceDB for recent + relevant session learnings and outputs JSON
-that VS Code injects as additionalContext into the next agent prompt.
+Modes:
+  (default)       Compact manifest: all topic+decision rows, grouped by source.
+                  Gives the agent the full map of what's in memory.
+  --full          Dump all content verbatim (complete text of every chunk).
+  --query <text>  Semantic search → return full content of matching chunks.
+  --count         Just print row count and exit (for health checks).
 
-Usage (from hook):
-  python memory/inject.py [--query "some topic"]
+VS Code hook usage (default — compact manifest):
+  python memory/inject.py
 
-Output (stdout):
-  JSON in VS Code hook format:
-  {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "..."}}
+Agent usage (get full text of a topic):
+  python memory/inject.py --query "cmake build command"
 
-Falls back gracefully if LanceDB not initialised or dependencies missing.
 """
 
 import sys
@@ -19,111 +21,153 @@ import json
 import argparse
 from pathlib import Path
 
-# Allow running from any directory
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
 
-def _build_context(learnings: list[dict]) -> str:
-    if not learnings:
-        return ""
+# ── Formatters ────────────────────────────────────────────────────────────
+
+def _format_manifest(rows: list[dict]) -> str:
+    """
+    Compact overview: one bullet per row showing topic + decision.
+    Groups by source prefix so the agent sees the structure of the knowledge base.
+    """
+    if not rows:
+        return "use Context7\n[memory store is empty — run: python memory/extract.py]"
 
     lines = [
-        "--- PERSISTENT MEMORY (from previous sessions) ---",
-        "Treat these as confirmed facts. Do not re-investigate or contradict them without explicit evidence.",
+        "━━━ QIDISTUDIO KNOWLEDGE BASE (loaded from LanceDB) ━━━",
+        "Every section below is stored verbatim. For full text run:",
+        "  python memory/inject.py --query '<topic>'",
         "",
     ]
 
-    # Separate protocols, skill routing, and general learnings
-    protocols: list[dict] = []
-    skills:    list[dict] = []
-    rest:      list[dict] = []
+    # Group by source prefix (copilot-instructions, knowledge-doc, etc.)
+    by_source: dict[str, list[dict]] = {}
+    for r in rows:
+        src = r.get("source", "unknown")
+        # Shorten to prefix before /
+        prefix = src.split("/")[0]
+        by_source.setdefault(prefix, []).append(r)
 
-    for r in learnings:
-        topic = r.get("topic", "")
-        if topic.startswith("protocol:"):
-            protocols.append(r)
-        elif topic.startswith("skill:"):
-            skills.append(r)
-        else:
-            rest.append(r)
+    for src, src_rows in by_source.items():
+        label = {
+            "copilot-instructions": "AGENT RULES & PROTOCOLS",
+            "knowledge-doc":        "QIDISTUDIO KNOWLEDGE",
+            "langsmith-prompt":     "LANGSMITH SYSTEM PROMPT",
+        }.get(src, src.upper())
+        lines.append(f"┌─ {label} ({len(src_rows)} chunks)")
 
-    # ── Protocols section ─────────────────────────────────────────
-    if protocols:
-        lines.append("[PROTOCOLS — steps to follow]")
-        for r in protocols:
-            name     = r.get("topic", "").removeprefix("protocol:").strip()
+        for r in src_rows:
+            topic    = r.get("topic",    "")
             decision = r.get("decision", "")
-            lines.append(f"  • {name}: {decision[:200]}")
-        lines.append("")
+            # Truncate decision to ~120 chars
+            if len(decision) > 120:
+                decision = decision[:117] + "..."
+            lines.append(f"│  • {topic}")
+            if decision and decision != topic:
+                lines.append(f"│    → {decision}")
+        lines.append("│")
 
-    # ── Skills routing section ────────────────────────────────────
-    if skills:
-        lines.append("[SKILLS — load these skill files when relevant]")
-        for r in skills:
-            name     = r.get("topic", "").removeprefix("skill:").strip()
-            decision = r.get("decision", "")
-            path     = r.get("rationale", "")
-            lines.append(f"  • {name}: {decision[:180]}")
-            if path:
-                lines.append(f"    → {path[:120]}")
-        lines.append("")
-
-    # ── Engineering learnings grouped by category ─────────────────
-    if rest:
-        lines.append("[ENGINEERING LEARNINGS]")
-        by_cat: dict[str, list[dict]] = {}
-        for r in rest:
-            cat = r.get("category", "general")
-            by_cat.setdefault(cat, []).append(r)
-
-        for cat, rows in by_cat.items():
-            lines.append(f"  [{cat.upper().replace('_', ' ')}]")
-            for r in rows:
-                topic     = r.get("topic",     "")
-                decision  = r.get("decision",  "")
-                rationale = r.get("rationale", "")
-                dt        = r.get("date",      "")
-                suffix    = f" — {rationale}" if rationale else ""
-                lines.append(f"    • {topic} ({dt}): {decision}{suffix}")
-            lines.append("")
-
-    lines.append("--- END PERSISTENT MEMORY ---")
+    lines.append("━━━ END KNOWLEDGE BASE MANIFEST ━━━")
     lines.append("use Context7")
     return "\n".join(lines)
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--query", default="", help="Semantic query to find relevant memories")
-    parser.add_argument("--n-recent", type=int, default=20,  help="Max recent learnings to include")
-    parser.add_argument("--n-similar", type=int, default=10, help="Max semantically similar learnings")
-    parser.add_argument("--days", type=int, default=90, help="How many days back to search recent")
+def _format_full(rows: list[dict]) -> str:
+    """Verbatim full text of every chunk, separated by dividers."""
+    if not rows:
+        return "use Context7\n[memory store is empty]"
+
+    lines = [
+        "━━━ QIDISTUDIO FULL KNOWLEDGE BASE ━━━",
+        f"({len(rows)} chunks — complete verbatim content)",
+        "",
+    ]
+
+    current_source = None
+    for r in rows:
+        src = r.get("source", "")
+        if src != current_source:
+            current_source = src
+            lines.append(f"\n{'='*60}")
+            lines.append(f"SOURCE: {src}")
+            lines.append('='*60)
+        lines.append(f"\n--- {r.get('topic', '')} ---")
+        lines.append(r.get("content") or r.get("decision", ""))
+
+    lines.append("\n━━━ END KNOWLEDGE BASE ━━━")
+    lines.append("use Context7")
+    return "\n".join(lines)
+
+
+def _format_query_results(rows: list[dict], query: str) -> str:
+    """Full content of semantically matching chunks."""
+    if not rows:
+        return f"No results for '{query}'\nuse Context7"
+
+    lines = [
+        f"━━━ KNOWLEDGE BASE QUERY: '{query}' ({len(rows)} matches) ━━━",
+        "",
+    ]
+    for i, r in enumerate(rows, 1):
+        lines.append(f"[{i}] {r.get('topic', '')}  ({r.get('source', '')})")
+        lines.append("-" * 60)
+        lines.append(r.get("content") or r.get("decision", ""))
+        lines.append("")
+
+    lines.append("━━━ END QUERY RESULTS ━━━")
+    lines.append("use Context7")
+    return "\n".join(lines)
+
+
+# ── Main ──────────────────────────────────────────────────────────────────
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="QIDIStudio knowledge injection")
+    parser.add_argument("--full",    action="store_true", help="Dump all content verbatim")
+    parser.add_argument("--query",   default="",          help="Semantic search query")
+    parser.add_argument("--n",       type=int, default=8, help="Number of results for --query")
+    parser.add_argument("--count",   action="store_true", help="Print row count and exit")
     args = parser.parse_args()
 
     context = ""
     try:
-        from memory.store import get_recent, query_similar
+        from memory.store import get_all, query_similar, count as store_count
 
-        learnings = get_recent(n=args.n_recent, days=args.days)
+        if args.count:
+            n = store_count()
+            output = {"hookSpecificOutput": {
+                "hookEventName":   "UserPromptSubmit",
+                "additionalContext": f"LanceDB rows: {n}",
+            }}
+            print(json.dumps(output))
+            return
 
-        # If a query topic was passed, merge in similar results
         if args.query.strip():
-            similar = query_similar(args.query, n=args.n_similar)
-            seen_ids = {r.get("id") for r in learnings}
-            for r in similar:
-                if r.get("id") not in seen_ids:
-                    learnings.append(r)
-                    seen_ids.add(r.get("id"))
+            matches = query_similar(args.query, n=args.n)
+            context = _format_query_results(matches, args.query)
 
-        context = _build_context(learnings)
+        elif args.full:
+            rows    = get_all()
+            context = _format_full(rows)
+
+        else:
+            # Default: compact manifest of all rows
+            rows    = get_all()
+            context = _format_manifest(rows)
+
     except Exception as e:
-        # Graceful degradation — still inject Context7 directive
-        context = f"use Context7\n[memory module unavailable: {e}]"
+        # Fail gracefully — still inject Context7 hint
+        context = (
+            "use Context7\n"
+            f"[memory module error: {e}]\n"
+            "[Run: python memory/extract.py  to initialise the knowledge store]"
+        )
 
     output = {
         "hookSpecificOutput": {
-            "hookEventName": "UserPromptSubmit",
-            "additionalContext": context if context else "use Context7",
+            "hookEventName":    "UserPromptSubmit",
+            "additionalContext": context,
         }
     }
     print(json.dumps(output))

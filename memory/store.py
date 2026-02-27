@@ -1,17 +1,18 @@
 """
-store.py — LanceDB vector store for QIDIStudio session learnings.
+store.py — LanceDB vector store for QIDIStudio knowledge base.
 
 Table schema:
   id          : str  — UUID
   date        : str  — YYYY-MM-DD
   category    : str  — domain bucket (see CATEGORIES)
-  topic       : str  — short phrase, e.g. "calc_normals_split removed in Blender 4.1"
-  decision    : str  — what was decided/discovered
-  rationale   : str  — why it matters
-  source      : str  — "copilot-instructions" | "knowledge-doc" | "session"
-  vector      : List[float]  — 384-dim sentence-transformers embedding
+  topic       : str  — short phrase / section heading
+  decision    : str  — summary / first paragraph
+  rationale   : str  — why it matters / source note
+  content     : str  — FULL verbatim text of the chunk (code blocks and all)
+  source      : str  — e.g. "copilot-instructions/section", "session", "protocol"
+  vector      : List[float]  — 384-dim sentence-transformers embedding of topic+decision
 
-Embedding model: all-MiniLM-L6-v2 (runs locally, no API key required)
+Embedding model: all-MiniLM-L6-v2 (local, no API key)
 """
 
 import os
@@ -24,7 +25,6 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parents[1] / ".env")
 
-# ── LanceDB setup ─────────────────────────────────────────────────────────
 import lancedb
 import pyarrow as pa
 from sentence_transformers import SentenceTransformer
@@ -35,22 +35,21 @@ EMBED_DIMS    = int(os.getenv("LANCEDB_EMBEDDING_DIMS", "384"))
 EMBED_MODEL   = "all-MiniLM-L6-v2"
 
 CATEGORIES = [
-    "bpy_pipeline",      # Blender/apply_texture_bpy.py specifics
-    "build_system",      # CMake, MSBuild, deps, sync workflow
-    "cpp_gotcha",        # C++ / wxWidgets pitfalls
-    "api_key",           # confirmed API values / endpoints
-    "hooks_and_memory",  # VS Code hooks, PreCompact, Save This Protocol
-    "gcode_refiner",     # GCodeRefiner post-processor
-    "workflow",          # agent/user workflow conventions
-    "tools_and_env",     # Python envs, Blender paths, terminal names
-    "architecture",      # system design decisions
-    "general",           # catch-all
+    "bpy_pipeline",
+    "build_system",
+    "cpp_gotcha",
+    "api_key",
+    "hooks_and_memory",
+    "gcode_refiner",
+    "workflow",
+    "tools_and_env",
+    "architecture",
+    "general",
 ]
 
-# Lazily loaded so import is fast
 _embedder: Optional[SentenceTransformer] = None
-_db: Optional[lancedb.LanceDBConnection] = None
-_table = None
+_db       = None
+_table    = None
 
 
 def _get_embedder() -> SentenceTransformer:
@@ -70,6 +69,19 @@ def _get_db():
     return _db
 
 
+_SCHEMA = pa.schema([
+    pa.field("id",        pa.string()),
+    pa.field("date",      pa.string()),
+    pa.field("category",  pa.string()),
+    pa.field("topic",     pa.string()),
+    pa.field("decision",  pa.string()),
+    pa.field("rationale", pa.string()),
+    pa.field("content",   pa.string()),   # ← full verbatim text
+    pa.field("source",    pa.string()),
+    pa.field("vector",    pa.list_(pa.float32(), EMBED_DIMS)),
+])
+
+
 def _get_table():
     global _table
     if _table is not None:
@@ -78,48 +90,43 @@ def _get_table():
     db = _get_db()
     existing = db.table_names()
 
-    if LANCEDB_TABLE not in existing:
-        schema = pa.schema([
-            pa.field("id",        pa.string()),
-            pa.field("date",      pa.string()),
-            pa.field("category",  pa.string()),
-            pa.field("topic",     pa.string()),
-            pa.field("decision",  pa.string()),
-            pa.field("rationale", pa.string()),
-            pa.field("source",    pa.string()),
-            pa.field("vector",    pa.list_(pa.float32(), EMBED_DIMS)),
-        ])
-        _table = db.create_table(LANCEDB_TABLE, schema=schema)
+    if LANCEDB_TABLE in existing:
+        t = db.open_table(LANCEDB_TABLE)
+        # Schema migration: if 'content' column missing, drop and recreate
+        if "content" not in t.schema.names:
+            db.drop_table(LANCEDB_TABLE)
+            _table = db.create_table(LANCEDB_TABLE, schema=_SCHEMA)
+        else:
+            _table = t
     else:
-        _table = db.open_table(LANCEDB_TABLE)
+        _table = db.create_table(LANCEDB_TABLE, schema=_SCHEMA)
 
     return _table
 
 
 def embed(text: str) -> list[float]:
-    """Embed a string with the local sentence-transformers model."""
     return _get_embedder().encode(text, normalize_embeddings=True).tolist()
 
 
 def upsert_learning(
     topic: str,
     decision: str,
-    rationale: str,
+    rationale: str = "",
     category: str = "general",
     source: str = "session",
     learning_date: Optional[str] = None,
+    content: str = "",
     existing_id: Optional[str] = None,
 ) -> str:
     """
-    Insert or replace a learning row.
-    Uses topic as the dedup key — if a row with the same topic exists, replace it.
+    Insert or replace a row. Topic is the dedup key.
+    `content` holds the full verbatim text of the chunk.
     Returns the row id.
     """
-    table = _get_table()
-    row_id = existing_id or str(uuid.uuid4())
+    table    = _get_table()
+    row_id   = existing_id or str(uuid.uuid4())
     row_date = learning_date or date.today().isoformat()
 
-    # Embed the combined text for semantic search
     embed_text = f"{topic}: {decision}. {rationale}"
     vector = embed(embed_text)
 
@@ -130,86 +137,72 @@ def upsert_learning(
         "topic":     topic,
         "decision":  decision,
         "rationale": rationale,
+        "content":   content or decision,
         "source":    source,
         "vector":    vector,
     }
 
-    # Check for existing row with same topic → delete then re-insert
     try:
         table.delete(f"topic = '{topic.replace(chr(39), chr(39)*2)}'")
     except Exception:
-        pass  # table may be empty; safe to ignore
+        pass
 
     table.add([row])
     return row_id
 
 
 def query_similar(query_text: str, n: int = 10, category: Optional[str] = None) -> list[dict]:
-    """
-    Retrieve the n most semantically similar learnings.
-    Optionally filter by category.
-    """
-    table = _get_table()
+    """Retrieve the n most semantically similar rows."""
+    table  = _get_table()
     vector = embed(query_text)
 
     try:
         q = table.search(vector).limit(n)
         if category:
             q = q.where(f"category = '{category}'")
-        results = q.to_list()
+        return q.to_list()
     except Exception:
-        results = []
+        return []
 
-    return results
+
+def get_all(source_filter: Optional[str] = None) -> list[dict]:
+    """Return every row, optionally filtered by source prefix."""
+    try:
+        rows = _get_table().to_arrow().to_pylist()
+        if source_filter:
+            rows = [r for r in rows if str(r.get("source", "")).startswith(source_filter)]
+        return sorted(rows, key=lambda r: (r.get("source", ""), r.get("topic", "")))
+    except Exception:
+        return []
 
 
 def get_recent(n: int = 30, days: int = 90) -> list[dict]:
-    """Return the n most recently added learnings (by date string, descending)."""
-    table = _get_table()
+    """Return rows with a date set, sorted newest-first, limited to `n`."""
     try:
+        rows = _get_table().to_arrow().to_pylist()
         from datetime import timedelta
         cutoff = (date.today() - timedelta(days=days)).isoformat()
-        rows = (
-            table.search()
-                 .where(f"date >= '{cutoff}'")
-                 .limit(n)
-                 .to_list()
-        )
+        dated = [r for r in rows if (r.get("date") or "") >= cutoff]
+        return sorted(dated, key=lambda r: r.get("date", ""), reverse=True)[:n]
     except Exception:
-        try:
-            rows = table.to_pandas().tail(n).to_dict("records")
-        except Exception:
-            rows = []
-
-    # Sort by date descending
-    return sorted(rows, key=lambda r: r.get("date", ""), reverse=True)
+        return []
 
 
 def count() -> int:
-    """Return total number of stored learnings."""
     try:
-        return len(_get_table().to_pandas())
+        return _get_table().count_rows()
     except Exception:
-        return 0
+        try:
+            return len(_get_table().to_arrow().to_pylist())
+        except Exception:
+            return 0
 
 
 if __name__ == "__main__":
-    # Quick smoke test
-    print(f"LanceDB at: {Path(__file__).parents[1] / LANCEDB_PATH}")
-    print(f"Table: {LANCEDB_TABLE}")
-    print(f"Existing rows: {count()}")
-
-    test_id = upsert_learning(
-        topic="store.py smoke test",
-        decision="LanceDB initialised and write/read confirmed working",
-        rationale="Validates memory module is operational",
-        category="hooks_and_memory",
-        source="smoke_test",
-    )
-    print(f"Wrote test row: {test_id}")
-    print(f"Total rows now: {count()}")
-
-    results = query_similar("LanceDB test", n=3)
-    print(f"Query returned {len(results)} results")
+    print(f"LanceDB at : {Path(__file__).parents[1] / LANCEDB_PATH}")
+    print(f"Table      : {LANCEDB_TABLE}")
+    print(f"Rows       : {count()}")
+    results = query_similar("cmake build command", n=3)
+    print(f"Sample query 'cmake build command' → {len(results)} results")
     for r in results:
-        print(f"  [{r.get('category')}] {r.get('topic')} — {r.get('date')}")
+        print(f"  [{r.get('category')}] {r.get('topic')[:80]}")
