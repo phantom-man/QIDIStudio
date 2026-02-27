@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import os
+import uuid
 from pathlib import Path
 from typing import Annotated, Any, Literal, TypedDict
 
@@ -39,7 +40,7 @@ from typing_extensions import NotRequired
 # ── Env ───────────────────────────────────────────────────────────────────────
 
 REPO_ROOT = Path(__file__).parents[1]
-load_dotenv(REPO_ROOT / ".env")
+load_dotenv(REPO_ROOT / ".env", override=True)
 
 
 # ── State schema ─────────────────────────────────────────────────────────────
@@ -232,9 +233,48 @@ def synthesize(state: OrchestratorState) -> OrchestratorState:
     return {"final_response": content}
 
 
+# ── Checkpointer (PostgresSaver) ─────────────────────────────────────────────
+
+_checkpointer: Any = None
+
+
+def _build_checkpointer() -> Any:
+    """
+    Build a PostgresSaver backed by our local Postgres instance.
+    Connection string is read from PG_DSN env var (set in .env).
+    Falls back gracefully to MemorySaver if postgres is unavailable.
+    """
+    try:
+        from langgraph.checkpoint.postgres import PostgresSaver
+        from psycopg_pool import ConnectionPool
+
+        dsn = os.environ.get("PG_DSN", "postgresql://postgres:d1204l0723@localhost:5432/postgres")
+        pool = ConnectionPool(
+            conninfo=dsn,
+            max_size=10,
+            kwargs={"autocommit": True},
+            open=True,
+        )
+        saver = PostgresSaver(pool)
+        saver.setup()   # idempotent — creates langgraph_checkpoints tables if needed
+        return saver
+    except Exception as exc:
+        import warnings
+        warnings.warn(
+            f"PostgresSaver unavailable ({exc}), falling back to MemorySaver (state is NOT persistent).",
+            stacklevel=2,
+        )
+        from langgraph.checkpoint.memory import MemorySaver
+        return MemorySaver()
+
+
 # ── Build graph ────────────────────────────────────────────────────────────────
 
 def build_graph() -> Any:
+    global _checkpointer
+    if _checkpointer is None:
+        _checkpointer = _build_checkpointer()
+
     builder_graph = StateGraph(OrchestratorState)
 
     # Nodes
@@ -255,7 +295,7 @@ def build_graph() -> Any:
 
     builder_graph.add_edge("synthesize", END)
 
-    return builder_graph.compile()
+    return builder_graph.compile(checkpointer=_checkpointer)
 
 
 # ── Public interface ──────────────────────────────────────────────────────────
@@ -263,24 +303,45 @@ def build_graph() -> Any:
 _graph: Any = None
 
 
-def run(request: str) -> str:
+def run(request: str, thread_id: str | None = None) -> str:
     """
     Run the director-agent fleet on a user request.
     Returns the synthesised final response as a string.
 
+    Args:
+        request:   User instruction for the agent fleet.
+        thread_id: Conversation thread identifier. Pass the same ID across calls
+                   to resume a checkpointed session. Auto-generated if None.
+
     Example:
         result = run("Research whether our CMake fix for QIDINetwork.cpp is in the fork")
         print(result)
+
+        # Resume same thread (state persisted in Postgres):
+        result2 = run("Now apply the fix", thread_id=tid)
     """
     global _graph
     if _graph is None:
         _graph = build_graph()
 
-    final_state = _graph.invoke({"user_request": request, "tasks": [], "results": []})
-    return final_state.get("final_response", "No response synthesized.")
+    tid = thread_id or str(uuid.uuid4())
+    config = {"configurable": {"thread_id": tid}}
+    final_state = _graph.invoke(
+        {"user_request": request, "tasks": [], "results": []},
+        config=config,
+    )
+    response = final_state.get("final_response", "No response synthesized.")
+    return f"[thread:{tid}] {response}"
 
 
 if __name__ == "__main__":
     import sys
-    q = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "What is the current build status?"
-    print(run(q))
+    args = sys.argv[1:]
+    # Optional --thread <id> flag
+    tid = None
+    if "--thread" in args:
+        idx = args.index("--thread")
+        tid = args[idx + 1]
+        args = args[:idx] + args[idx + 2:]
+    q = " ".join(args) if args else "What is the current build status?"
+    print(run(q, thread_id=tid))
