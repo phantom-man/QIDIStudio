@@ -361,17 +361,24 @@ def _compute_shape_dna(obj, k: int = 10, log: "Logger | None" = None):
 
 def _adaptive_subd_level(obj) -> int:
     """
-    Choose a subdivision level so result stays under ~300K triangles.
-    Each Simple-Subd level = 4× triangles.
-    Real-world STL parts need level 2+ to avoid visible triangle edges
-    through displacement — long thin triangles from CAD meshing are
-    still long after level 1, showing as diagonal streaks.
+    Choose a subdivision level so the result stays under ~400K triangles.
+    Each Simple-Subd level multiplies tri count by 4.
+
+    Formula: level = floor(log4(TARGET / n)), clamped [0, 4].
+    This means:
+      - High-poly meshes (organic scans, detailed dragons) → level 0 or 1
+        (already dense enough for smooth displacement; no need to explode to 6M)
+      - Typical CAD STL imports (coarse triangulation) → level 2-3
+        (needs subdivision to avoid diagonal-streak artifacts from long thin tris)
     """
+    import math
+    TARGET = 400_000   # max output triangles
     n = len(obj.data.polygons)
-    if   n <= 50:    return 4   # primitive test geometry
-    elif n <= 500:   return 3
-    elif n <= 5000:  return 2   # typical imported part — was 1, bumped to 2
-    else:            return 2   # large mesh — cap at 2 to avoid RAM issues
+    if n == 0:
+        return 0
+    raw   = math.log(TARGET / n, 4)
+    level = max(0, min(4, int(raw)))
+    return level
 
 
 def _auto_projection(obj, log: Logger) -> tuple:
@@ -611,18 +618,21 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
 
     # ── 2. Simple Subdivision ─────────────────────────────────────────────
     sub_level = _adaptive_subd_level(obj)
-    subd = obj.modifiers.new("Subdiv", type='SUBSURF')
-    subd.subdivision_type = 'SIMPLE'
-    subd.levels            = sub_level
-    subd.render_levels     = sub_level
-    log.log(f"  Subdiv modifier: Simple ×{sub_level}")
-    with bpy.context.temp_override(
-        active_object=obj, object=obj,
-        selected_objects=[obj], selected_editable_objects=[obj],
-    ):
-        bpy.ops.object.modifier_apply(modifier="Subdiv")
-    obj.data.update()
-    log.log(f"  Subdiv applied: {len(obj.data.vertices)} verts")
+    if sub_level > 0:
+        subd = obj.modifiers.new("Subdiv", type='SUBSURF')
+        subd.subdivision_type = 'SIMPLE'
+        subd.levels            = sub_level
+        subd.render_levels     = sub_level
+        log.log(f"  Subdiv modifier: Simple ×{sub_level}")
+        with bpy.context.temp_override(
+            active_object=obj, object=obj,
+            selected_objects=[obj], selected_editable_objects=[obj],
+        ):
+            bpy.ops.object.modifier_apply(modifier="Subdiv")
+        obj.data.update()
+        log.log(f"  Subdiv applied: {len(obj.data.vertices)} verts")
+    else:
+        log.log(f"  Subdiv: skipped (mesh already dense — {len(obj.data.vertices)} verts)")
 
     # ── 3. Vertex group (optional) ────────────────────────────────────────
     vgroup_name = ""
