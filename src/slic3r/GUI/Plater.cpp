@@ -20744,20 +20744,46 @@ static void tex_log(const std::string& msg)
     } catch (...) {}
 }
 
-/// Locate the bpy_env Python interpreter used for displacement texturing.
+/// Locate the texture interpreter: full Blender (preferred) or bpy_env Python (fallback).
 /// Search order:
-///   1. QIDI_BPY_PYTHON env var (full path to python.exe / python binary)
-///   2. <resources_dir>/../bpy_env/Scripts/python.exe  (production layout)
+///   1. QIDI_BLENDER_EXE env var (path to blender.exe)
+///   2. C:\Program Files\Blender Foundation\Blender *\blender.exe  (Windows install)
+///   3. QIDI_BPY_PYTHON env var (path to bpy_env python.exe)
+///   4. <resources_dir>/../bpy_env/Scripts/python.exe  (production layout)
 static std::string find_bpy_python()
 {
     namespace fs = boost::filesystem;
 
-    // Override via environment variable
+#ifdef _WIN32
+    // 1. Explicit Blender override
+    const char* env_bl = std::getenv("QIDI_BLENDER_EXE");
+    if (env_bl && *env_bl && fs::exists(env_bl))
+        return env_bl;
+
+    // 2. Standard Blender install under "Program Files\Blender Foundation\Blender *"
+    {
+        const fs::path base = "C:\\Program Files\\Blender Foundation";
+        if (fs::is_directory(base)) {
+            for (const fs::directory_entry& entry : fs::directory_iterator(base)) {
+                const fs::path exe = entry.path() / "blender.exe";
+                if (fs::exists(exe)) return exe.string();
+            }
+        }
+    }
+#else
+    // 2. Blender in common Unix locations
+    for (const char* p : {"/usr/bin/blender", "/usr/local/bin/blender",
+                           "/Applications/Blender.app/Contents/MacOS/Blender"}) {
+        if (fs::exists(p)) return p;
+    }
+#endif
+
+    // 3. Override via environment variable (bpy_env)
     const char* env_py = std::getenv("QIDI_BPY_PYTHON");
     if (env_py && *env_py && fs::exists(env_py))
         return env_py;
 
-    // Standard layout: bpy_env/ next to resources/
+    // 4. Standard layout: bpy_env/ next to resources/
     const fs::path res = fs::path(Slic3r::resources_dir());
 #ifdef _WIN32
     const fs::path bpy = res.parent_path() / "bpy_env" / "Scripts" / "python.exe";
@@ -20766,6 +20792,17 @@ static std::string find_bpy_python()
 #endif
     if (fs::exists(bpy)) return bpy.string();
     return "";
+}
+
+/// Returns true when the interpreter path is blender.exe rather than python.exe.
+/// The command format differs: blender uses  "blender --background --python script -- args"
+/// while python uses                          "python script args"
+static bool interp_is_blender(const std::string& path)
+{
+    std::string name = boost::filesystem::path(path).filename().string();
+    // ASCII tolower — path component is always ASCII
+    for (char& c : name) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return name.find("blender") != std::string::npos;
 }
 
 /// Return true if the volume was created by the texture pipeline
@@ -20809,10 +20846,10 @@ void Plater::apply_texture(ModelVolumeType type)
     tex_log("apply_texture: bpy_python=" + bpy_python);
     if (bpy_python.empty()) {
         show_error(this,
-            _L("bpy_env not found.\n\n"
-               "Place bpy_env/ next to the resources/ folder, or set the\n"
-               "QIDI_BPY_PYTHON environment variable to the full path of\n"
-               "bpy_env/Scripts/python.exe (Windows) or bpy_env/bin/python."));
+            _L("Blender not found and bpy_env not found.\n\n"
+               "Install Blender from https://www.blender.org/download/ (any version ≥ 4.0),\n"
+               "or set QIDI_BLENDER_EXE to the full path of blender.exe,\n"
+               "or place bpy_env/ next to the resources/ folder."));
         return;
     }
 
@@ -20921,17 +20958,32 @@ void Plater::apply_texture(ModelVolumeType type)
     const std::string log_path = (fs::temp_directory_path() /
         fs::unique_path("qidi_tex_log_%%%%-%%%%-%%%%-%%%%.txt")).string();
 
-    const wxString cmd = wxString::Format(
-        "\"%s\" \"%s\" \"%s\" \"%s\" --mode %s --tile-size %.1f --relief %.2f --log \"%s\"",
-        wxString::FromUTF8(bpy_python),
-        wxString::FromUTF8(script),
-        wxString::FromUTF8(src_stl),
-        wxString::FromUTF8(png_path),
-        wxString::FromUTF8(mode_str),
-        tile_mm, relief,
-        wxString::FromUTF8(log_path));
+    // Build command: blender needs  "blender --background --python script -- args"
+    //                python  needs  "python script args"
+    wxString cmd;
+    if (interp_is_blender(bpy_python)) {
+        cmd = wxString::Format(
+            "\"%s\" --background --python \"%s\" -- \"%s\" \"%s\" --mode %s --tile-size %.1f --relief %.2f --log \"%s\"",
+            wxString::FromUTF8(bpy_python),
+            wxString::FromUTF8(script),
+            wxString::FromUTF8(src_stl),
+            wxString::FromUTF8(png_path),
+            wxString::FromUTF8(mode_str),
+            tile_mm, relief,
+            wxString::FromUTF8(log_path));
+    } else {
+        cmd = wxString::Format(
+            "\"%s\" \"%s\" \"%s\" \"%s\" --mode %s --tile-size %.1f --relief %.2f --log \"%s\"",
+            wxString::FromUTF8(bpy_python),
+            wxString::FromUTF8(script),
+            wxString::FromUTF8(src_stl),
+            wxString::FromUTF8(png_path),
+            wxString::FromUTF8(mode_str),
+            tile_mm, relief,
+            wxString::FromUTF8(log_path));
+    }
 
-    tex_log("apply_texture: launching bpy cmd=" + cmd.ToStdString());
+    tex_log("apply_texture: launching cmd=" + cmd.ToStdString());
     wxBusyCursor    busy;
     wxArrayString stdout_output;
     int exec_ret = ::wxExecute(cmd, stdout_output, wxEXEC_BLOCK | wxEXEC_HIDE_CONSOLE);
@@ -21131,7 +21183,7 @@ void Plater::adjust_texture_depth()
     const std::string bpy_python = find_bpy_python();
     tex_log("adjust_texture_depth: bpy_python=" + bpy_python);
     if (bpy_python.empty()) {
-        show_error(this, _L("bpy_env not found. Set QIDI_BPY_PYTHON environment variable."));
+        show_error(this, _L("Blender not found. Install Blender ≥ 4.0 or set QIDI_BLENDER_EXE environment variable."));
         return;
     }
 
@@ -21193,17 +21245,32 @@ void Plater::adjust_texture_depth()
     const std::string log_path2 = (fs::temp_directory_path() /
         fs::unique_path("qidi_tex_log_%%%%-%%%%-%%%%-%%%%.txt")).string();
 
-    const wxString cmd = wxString::Format(
-        "\"%s\" \"%s\" \"%s\" \"%s\" --mode %s --tile-size %.1f --relief %.2f --log \"%s\"",
-        wxString::FromUTF8(bpy_python),
-        wxString::FromUTF8(script),
-        wxString::FromUTF8(src_stl),
-        wxString::FromUTF8(png_path),
-        wxString::FromUTF8(mode_str),
-        new_tile, new_rel,
-        wxString::FromUTF8(log_path2));
+    // Build command: blender needs  "blender --background --python script -- args"
+    //                python  needs  "python script args"
+    wxString cmd;
+    if (interp_is_blender(bpy_python)) {
+        cmd = wxString::Format(
+            "\"%s\" --background --python \"%s\" -- \"%s\" \"%s\" --mode %s --tile-size %.1f --relief %.2f --log \"%s\"",
+            wxString::FromUTF8(bpy_python),
+            wxString::FromUTF8(script),
+            wxString::FromUTF8(src_stl),
+            wxString::FromUTF8(png_path),
+            wxString::FromUTF8(mode_str),
+            new_tile, new_rel,
+            wxString::FromUTF8(log_path2));
+    } else {
+        cmd = wxString::Format(
+            "\"%s\" \"%s\" \"%s\" \"%s\" --mode %s --tile-size %.1f --relief %.2f --log \"%s\"",
+            wxString::FromUTF8(bpy_python),
+            wxString::FromUTF8(script),
+            wxString::FromUTF8(src_stl),
+            wxString::FromUTF8(png_path),
+            wxString::FromUTF8(mode_str),
+            new_tile, new_rel,
+            wxString::FromUTF8(log_path2));
+    }
 
-    tex_log("adjust_texture_depth: launching bpy cmd=" + cmd.ToStdString());
+    tex_log("adjust_texture_depth: launching cmd=" + cmd.ToStdString());
     wxBusyCursor  busy;
     wxArrayString stdout_output;
     int exec_ret = ::wxExecute(cmd, stdout_output, wxEXEC_BLOCK | wxEXEC_HIDE_CONSOLE);

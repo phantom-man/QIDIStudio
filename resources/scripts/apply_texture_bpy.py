@@ -37,6 +37,31 @@ except ImportError:
     sys.exit(1)
 
 
+def _detect_full_blender() -> bool:
+    """True when running under a full blender.exe installation (not the bpy pip package).
+
+    Full Blender has a proper GL/viewport context so:
+      - bpy.ops.object.convert(target='MESH') reliably applies modifiers
+      - The Displace modifier evaluates correctly via the depsgraph
+      - No vertex splitting occurs (unlike bmesh.from_object with UV seams)
+
+    The bpy pip package lacks these guarantees even in background mode.
+    """
+    try:
+        bp = bpy.app.binary_path
+        if bp and os.path.basename(bp).lower().startswith("blender"):
+            return True
+    except Exception:
+        pass
+    # Fallback: blender sets sys.argv[0] to the launcher path
+    if sys.argv and os.path.basename(sys.argv[0]).lower().startswith("blender"):
+        return True
+    return False
+
+
+IS_FULL_BLENDER: bool = _detect_full_blender()
+
+
 # ── argument parsing ──────────────────────────────────────────────────────
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
@@ -275,11 +300,113 @@ def _adaptive_subd_level(obj) -> int:
     else:            return 1
 
 
+def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
+                                relief: float, invert: bool, gamma: float,
+                                log: Logger, *, mode: str = "modifier"):
+    """
+    Full-Blender displacement pipeline — Displace modifier + CC subdivision.
+
+    Only called when IS_FULL_BLENDER is True (running under blender.exe).
+
+    Approach:
+      0. Weld duplicate verts (STL has one copy per tri)
+      1. Catmull-Clark SUBSURF modifier (stays on stack until convert)
+      2. Load PNG → bpy.data.textures (type='IMAGE')
+      3. Add a mapping Empty scaled to tile_size so one texture repeat = tile_size mm
+         (OBJECT texture coords → vertex pos / tile_size → seamless tiling)
+      4. Displace modifier with texture_coords='OBJECT' → no UV map → no seam verts
+      5. bpy.ops.object.convert(target='MESH') → applies both modifiers in-place
+         (reliable in full Blender; unreliable in bpy pip package)
+
+    No UV map, no bmesh.from_object(), no vertex splitting.
+    """
+    import bmesh
+
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
+
+    # ── 0. Weld ──────────────────────────────────────────────────────
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    before_w = len(bm.verts)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.001)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(obj.data)
+    bm.free()
+    obj.data.update()
+    log.log(f"  Welded: {before_w}→{len(obj.data.vertices)} verts")
+
+    # ── 1. Catmull-Clark Subdivision Surface modifier ─────────────────
+    sub_level = _adaptive_subd_level(obj)
+    subd = obj.modifiers.new("Subdiv", type='SUBSURF')
+    subd.subdivision_type = 'CATMULL_CLARK'
+    subd.levels = sub_level
+    subd.render_levels = sub_level
+    log.log(f"  Subdiv modifier: Catmull-Clark ×{sub_level}")
+
+    # ── 2. Load texture ──────────────────────────────────────────────
+    img = bpy.data.images.load(skin_path)
+    img.colorspace_settings.name = "Non-Color"
+    _gamma_correct_image(img, gamma, log)
+    W, H = img.size[0], img.size[1]
+    log.log(f"  Texture loaded: {W}×{H}px  tile_size={tile_size}mm")
+
+    tex = bpy.data.textures.new("SkinTexture", type='IMAGE')
+    tex.image = img
+
+    # ── 3. Mapping Empty — one full texture tile = tile_size mm ──────
+    # With texture_coords='OBJECT', Blender maps vertex world positions
+    # into the empty's local space.  Scaling the empty to tile_size means
+    # a vertex at (x, y, z) maps to (x/tile_size, y/tile_size, z/tile_size).
+    # The texture repeats every 1.0 unit → seamless tiling every tile_size mm.
+    empty = bpy.data.objects.new("TexMap", None)
+    bpy.context.collection.objects.link(empty)
+    empty.scale = (tile_size, tile_size, tile_size)
+    bpy.context.view_layer.update()   # register empty so depsgraph sees it
+    log.log(f"  Mapping empty: scale={tile_size}mm (registered in depsgraph)")
+
+    # ── 4. Displace modifier ─────────────────────────────────────────
+    if mode == "negative":
+        strength  = -abs(relief)
+        mid_level = 0.0
+    else:
+        strength  = (-relief if invert else relief)
+        mid_level = 0.5
+
+    disp = obj.modifiers.new("Displace", type='DISPLACE')
+    disp.texture             = tex
+    disp.texture_coords      = 'OBJECT'
+    disp.texture_coords_object = empty
+    disp.strength            = strength
+    disp.mid_level           = mid_level
+    disp.direction           = 'NORMAL'
+    log.log(f"  Displace modifier: strength={strength:.2f}mm  mid={mid_level:.1f}  coords=OBJECT")
+
+    # ── 5. Apply modifier stack via ops.object.convert ────────────────
+    # In full Blender this bakes Subdiv + Displace into obj.data.
+    # No bmesh.from_object() → no UV-seam vertex splitting.
+    with bpy.context.temp_override(
+        active_object=obj, object=obj,
+        selected_objects=[obj], selected_editable_objects=[obj],
+    ):
+        bpy.ops.object.convert(target='MESH')
+
+    log.log(f"  Modifier applied: {len(obj.data.vertices)} verts post-convert")
+    log.log(f"  Done: relief={strength:.2f}mm tile={tile_size}mm mode={mode}")
+
+
 def _apply_displacement(obj, skin_path: str, tile_size: float,
                         relief: float, invert: bool, gamma: float,
                         log: Logger, *, mode: str = "modifier"):
     """
-    Pure-Python box-mapped displacement — topology-agnostic, zero UV seams.
+    Dispatch to the full-Blender or fallback displacement path.
+
+    Full Blender (IS_FULL_BLENDER=True):
+      → _apply_displacement_blender(): Displace modifier + CC subdivision
+        + bpy.ops.object.convert() — reliable, no seam artifacts.
+
+    bpy pip package (IS_FULL_BLENDER=False):
+      → Pure-Python box-mapped displacement — topology-agnostic, zero UV seams.
 
     Works identically on flat plates, vertical walls, tubes, tapered shapes,
     and any other geometry because it uses NO UV MAP whatsoever.
@@ -305,6 +432,12 @@ def _apply_displacement(obj, skin_path: str, tile_size: float,
     No UV map → no seam edges → no vertex splits → no streaks.
     No Displace modifier → no bmesh.from_object() → no topology distortion.
     """
+    # ── dispatch to full-Blender path when available ─────────────────
+    if IS_FULL_BLENDER:
+        return _apply_displacement_blender(
+            obj, skin_path, tile_size, relief, invert, gamma, log, mode=mode
+        )
+
     import bmesh
     try:
         import numpy as np
