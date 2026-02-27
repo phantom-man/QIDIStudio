@@ -307,6 +307,8 @@ if("${QDT_RELEASE_TO_PUBLIC}" STREQUAL "1")
 
 Right-click menu items that apply a PNG displacement texture to the skin of a selected 3D part using Blender's headless rendering pipeline.
 
+**Deep research doc**: `docs/displacement-texture-research.md` — covers `DisplaceModifier` full API, `ImageTexture`/`Texture` API, tri-planar mapping theory, Book of Shaders noise/pattern math, render setup for mm-scale Cycles scenes, and the correct `mid_level`/`strength`/`colorspace` settings for our pipeline.
+
 ### Status (as of 2026-02-26)
 
 | Step | Status |
@@ -468,6 +470,10 @@ void MenuFactory::append_menu_item_add_texture(wxMenu* menu, ModelVolumeType typ
 - **Displacement shifts part's Z center** — With `mid_level=0.5` and relief=1.0, white pixel areas are raised by +0.5mm in the normal direction, dark areas lowered by -0.5mm. For a mostly-bright texture (like armadillo scales), the net Z centroid of the part SHIFTS upward by several mm. This is correct behavior — `changed_object()` calls `ensure_on_bed()` which auto-repositions on the bed after texture apply.
 
 - **`_negative` mode duplicate-object bug** — In the legacy `--mode negative` and `--mode part` paths, `original_obj.copy()` creates a new object that is linked to the collection but not always accessible via `view_layer` in headless mode. This caused `obj.select_set(True)` to silently fail and `convert()` to no-op on the wrong object. **Avoided entirely** by always using `--mode modifier` which displaces the original imported object (definitely in the view layer).
+
+- **Cycles render "all black" in mm-scale scenes** — `scene.unit_settings.scale_length = 0.001` means 1 blender unit = 1mm. Area lights at `energy=5` are effectively invisible at this scale. **Fix: set `energy=1000–2000` for area lights in mm-scale Cycles scenes.** Also add a World background node (`ShaderNodeBackground` with strength 0.3–0.5) to provide ambient fill; without it, unlit areas are pure black.
+
+- **`mid_level` for [0..1] PNG heightmaps** — Our armadillo PNG assets encode height as [0..1] greyscale (black = baseline, white = peak). The correct setting is `mid_level=0.0` with `strength=RELIEF_MM`. Using `mid_level=0.5` causes black areas to push INWARD (negative displacement) — correct for bidirectional emboss, wrong for pure relief. Formula: `delta = strength × (intensity − mid_level)`. With `mid_level=0.0` and a mostly-bright texture, net displacement is upward and visually clear. With `mid_level=0.5`, net displacement of an average-0.6 image is only 0.1×strength — very subtle.
 
 ### Skin Assets
 
