@@ -93,11 +93,11 @@ def _parse_args() -> argparse.Namespace:
                    help="Path for the log file (optional)")
     p.add_argument("--projection",
                    choices=["conformal", "lscm", "object"],
-                   default="conformal",
+                   default="object",
                    help=("UV projection for texture wrapping: "
-                         "conformal=Smart-UV-Project (default, works on any topology), "
-                         "lscm=Least-Squares Conformal Maps (angle-preserving, best for smooth organic shapes), "
-                         "object=world-space box-map (legacy, no UV needed)"))
+                         "object=world-space box-map (default, no UV seams, safe on any topology), "
+                         "conformal=Smart-UV-Project (angle-based islands, may spike at seams on CAD parts), "
+                         "lscm=Least-Squares Conformal Maps (angle-preserving, best for smooth organic shapes)"))
     p.add_argument("--full-surface",
                    dest="full_surface",
                    action="store_true",
@@ -436,7 +436,7 @@ def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger):
 def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
                                 relief: float, invert: bool, gamma: float,
                                 log: Logger, *, mode: str = "modifier",
-                                projection: str = "conformal",
+                                projection: str = "object",
                                 full_surface: bool = True):
     """
     Full-Blender displacement pipeline — Displace modifier + Simple subdivision.
@@ -577,7 +577,7 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
 def _apply_displacement(obj, skin_path: str, tile_size: float,
                         relief: float, invert: bool, gamma: float,
                         log: Logger, *, mode: str = "modifier",
-                        projection: str = "conformal",
+                        projection: str = "object",
                         full_surface: bool = True):
     """Thin wrapper — always delegates to the full-Blender pipeline."""
     _apply_displacement_blender(
