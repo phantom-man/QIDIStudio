@@ -84,29 +84,33 @@ def _make_llm(model: str, temperature: float = 0.0, **kwargs: Any) -> ChatGoogle
 
 # ── Agent factory ─────────────────────────────────────────────────────────────
 
+# Built-in Gemini tool specs — passed at model construction so LangGraph's
+# tool-count validator only sees our custom LangChain tools.
+_GEMINI_SEARCH_TOOLS = [{"google_search": {}}, {"url_context": {}}]
+_GEMINI_CODE_TOOLS   = [{"code_execution": {}}]
+
+
 def make_researcher() -> Any:
     """
-    Researcher: Gemini 2.5 Flash + Google Search + URL Context (built-in Gemini tools)
+    Researcher: Gemini 2.5 Flash + Google Search + URL Context (built-in, constructor-level)
     plus our local memory_read / file_read tools.
     """
-    llm = _make_llm("gemini-2.5-flash")
-    # Bind built-in Gemini tools for live search
-    llm_with_search = llm.bind_tools([
-        {"google_search": {}},
-        {"url_context": {}},
-    ])
+    # Built-in tools configured at model level — not via bind_tools — so
+    # LangGraph create_react_agent only counts RESEARCHER_TOOLS.
+    llm = _make_llm("gemini-2.5-flash",
+                    model_kwargs={"tools": _GEMINI_SEARCH_TOOLS})
     system = load_prompt("researcher")
-    return create_react_agent(llm_with_search, tools=RESEARCHER_TOOLS, prompt=system)
+    return create_react_agent(llm, tools=RESEARCHER_TOOLS, prompt=system)
 
 
 def make_builder() -> Any:
     """
     Builder: Gemini 2.5 Pro + Code Execution (best for complex implementation).
     """
-    llm = _make_llm("gemini-2.5-pro")
-    llm_with_code = llm.bind_tools([{"code_execution": {}}])
+    llm = _make_llm("gemini-2.5-pro",
+                    model_kwargs={"tools": _GEMINI_CODE_TOOLS})
     system = load_prompt("builder")
-    return create_react_agent(llm_with_code, tools=BUILDER_TOOLS, prompt=system)
+    return create_react_agent(llm, tools=BUILDER_TOOLS, prompt=system)
 
 
 def make_verifier() -> Any:
