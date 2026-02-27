@@ -20778,19 +20778,9 @@ static std::string find_bpy_python()
     }
 #endif
 
-    // 3. Override via environment variable (bpy_env)
-    const char* env_py = std::getenv("QIDI_BPY_PYTHON");
-    if (env_py && *env_py && fs::exists(env_py))
-        return env_py;
-
-    // 4. Standard layout: bpy_env/ next to resources/
-    const fs::path res = fs::path(Slic3r::resources_dir());
-#ifdef _WIN32
-    const fs::path bpy = res.parent_path() / "bpy_env" / "Scripts" / "python.exe";
-#else
-    const fs::path bpy = res.parent_path() / "bpy_env" / "bin" / "python";
-#endif
-    if (fs::exists(bpy)) return bpy.string();
+    // No fallback to bpy_env — the Python package does not support the
+    // Displace modifier pipeline and produces artifacts on complex geometry.
+    // Fail fast: return empty → caller shows a clear install-Blender error.
     return "";
 }
 

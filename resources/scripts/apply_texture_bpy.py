@@ -61,6 +61,12 @@ def _detect_full_blender() -> bool:
 
 IS_FULL_BLENDER: bool = _detect_full_blender()
 
+if not IS_FULL_BLENDER:
+    print("ERROR: apply_texture_bpy.py must be run via blender.exe --background --python.", flush=True)
+    print("ERROR: The bpy pip package does not support the Displace modifier pipeline.", flush=True)
+    print("ERROR: Install Blender from https://www.blender.org/download/ (version >= 4.0)", flush=True)
+    sys.exit(1)
+
 
 # ── argument parsing ──────────────────────────────────────────────────────
 def _parse_args() -> argparse.Namespace:
@@ -339,10 +345,10 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     # ── 1. Catmull-Clark Subdivision Surface modifier ─────────────────
     sub_level = _adaptive_subd_level(obj)
     subd = obj.modifiers.new("Subdiv", type='SUBSURF')
-    subd.subdivision_type = 'CATMULL_CLARK'
+    subd.subdivision_type = 'SIMPLE'   # midpoint-only — holes stay crisp, no diagonal normals
     subd.levels = sub_level
     subd.render_levels = sub_level
-    log.log(f"  Subdiv modifier: Catmull-Clark ×{sub_level}")
+    log.log(f"  Subdiv modifier: Simple ×{sub_level}")
 
     # ── 2. Load texture ──────────────────────────────────────────────
     img = bpy.data.images.load(skin_path)
@@ -371,7 +377,7 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
         mid_level = 0.0
     else:
         strength  = (-relief if invert else relief)
-        mid_level = 0.5
+        mid_level = 0.0  # [0..1] PNG heightmaps: black=baseline, white=+relief; no inward push
 
     disp = obj.modifiers.new("Displace", type='DISPLACE')
     disp.texture             = tex
@@ -379,8 +385,8 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     disp.texture_coords_object = empty
     disp.strength            = strength
     disp.mid_level           = mid_level
-    disp.direction           = 'NORMAL'
-    log.log(f"  Displace modifier: strength={strength:.2f}mm  mid={mid_level:.1f}  coords=OBJECT")
+    disp.direction           = 'NORMAL'  # safe with SIMPLE subd (no diagonal normals)
+    log.log(f"  Displace modifier: strength={strength:.2f}mm  mid={mid_level:.1f}  coords=OBJECT dir=NORMAL")
 
     # ── 5. Apply modifiers individually via modifier_apply ───────────
     # ops.object.modifier_apply is more reliable in background mode than
@@ -401,172 +407,14 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
 def _apply_displacement(obj, skin_path: str, tile_size: float,
                         relief: float, invert: bool, gamma: float,
                         log: Logger, *, mode: str = "modifier"):
+    """Thin wrapper — always delegates to the full-Blender pipeline.
+
+    The script now hard-fails at startup if IS_FULL_BLENDER is False,
+    so this function is guaranteed to be called only under blender.exe.
+    The Python box-map fallback has been removed (it produced artifacts
+    on complex real-world parts).
     """
-    Dispatch to the full-Blender or fallback displacement path.
-
-    Full Blender (IS_FULL_BLENDER=True):
-      → _apply_displacement_blender(): Displace modifier + CC subdivision
-        + bpy.ops.object.convert() — reliable, no seam artifacts.
-
-    bpy pip package (IS_FULL_BLENDER=False):
-      → Pure-Python box-mapped displacement — topology-agnostic, zero UV seams.
-
-    Works identically on flat plates, vertical walls, tubes, tapered shapes,
-    and any other geometry because it uses NO UV MAP whatsoever.
-
-    Algorithm:
-      0. Weld vertices (STL has one vertex copy per triangle face)
-      1. Subdivide via bmesh.ops.subdivide_edges — pure bmesh, no modifier
-      2. Load image pixels into numpy array (with gamma)
-      3. For each vertex:
-           • Determine dominant normal axis (|nx| vs |ny| vs |nz|)
-           • Project vertex world position onto the perpendicular plane
-             using that axis → 2D texture coordinate (u, v)
-           • Scale by 1/tile_size so 1 tile = tile_size mm
-           • Bilinear-sample the image with tiling (frac(u), frac(v))
-           • Displace along vertex normal by (pixel − mid_level) × strength
-      4. Recalculate face normals
-
-    Box mapping with HARD axis selection (no blending):
-      Flat top face   → all normals are Z-dominant → pure Z projection → clean
-      Vertical wall   → all normals are X or Y dominant → pure planar → clean
-      Tapered surface → each vertex independently picks its strongest axis
-                        → no blend region, no patch boundaries
-    No UV map → no seam edges → no vertex splits → no streaks.
-    No Displace modifier → no bmesh.from_object() → no topology distortion.
-    """
-    # ── dispatch to full-Blender path when available ─────────────────
-    if IS_FULL_BLENDER:
-        return _apply_displacement_blender(
-            obj, skin_path, tile_size, relief, invert, gamma, log, mode=mode
-        )
-
-    import bmesh
-    try:
-        import numpy as np
-        HAS_NP = True
-    except ImportError:
-        HAS_NP = False
-        log.log("  WARNING: numpy not found; falling back to slow pixel loop")
-
-    bpy.context.view_layer.objects.active = obj
-    obj.select_set(True)
-
-    # ── 0. Weld ──────────────────────────────────────────────────────
-    bm = bmesh.new()
-    bm.from_mesh(obj.data)
-    before_w = len(bm.verts)
-    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.001)
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    bm.to_mesh(obj.data)
-    bm.free()
-    obj.data.update()
-    after_w = len(obj.data.vertices)
-    log.log(f"  Welded: {before_w}→{after_w} verts")
-
-    # ── 1. Subdivide via bmesh.ops ───────────────────────────────────
-    sub_level = _adaptive_subd_level(obj)
-    bm = bmesh.new()
-    bm.from_mesh(obj.data)
-    for _ in range(sub_level):
-        bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=1, use_grid_fill=True)
-    bm.normal_update()
-    bm.to_mesh(obj.data)
-    bm.free()
-    obj.data.update()
-    log.log(f"  Subdivided ×{sub_level} (bmesh.ops): {len(obj.data.vertices)} verts")
-
-    # ── 2. Load texture pixels ───────────────────────────────────────
-    img = bpy.data.images.load(skin_path)
-    img.colorspace_settings.name = "Non-Color"
-    _gamma_correct_image(img, gamma, log)
-    W, H = img.size[0], img.size[1]
-    if HAS_NP:
-        px = np.array(img.pixels[:], dtype=np.float32).reshape(H, W, 4)
-    else:
-        px_flat = list(img.pixels[:])
-    log.log(f"  Texture loaded: {W}×{H}px  tile_size={tile_size}mm")
-
-    def sample(u: float, v: float) -> float:
-        """Bilinear sample with repeat tiling."""
-        u = u % 1.0
-        v = v % 1.0
-        if u < 0.0: u += 1.0
-        if v < 0.0: v += 1.0
-        fx = u * (W - 1)
-        fy = v * (H - 1)
-        x0, y0 = int(fx), int(fy)
-        x1 = min(x0 + 1, W - 1)
-        y1 = min(y0 + 1, H - 1)
-        tx, ty = fx - x0, fy - y0
-        if HAS_NP:
-            c00 = float(px[y0, x0, 0])
-            c10 = float(px[y0, x1, 0])
-            c01 = float(px[y1, x0, 0])
-            c11 = float(px[y1, x1, 0])
-        else:
-            def _i(yy, xx): return (yy * W + xx) * 4
-            c00 = px_flat[_i(y0, x0)]
-            c10 = px_flat[_i(y0, x1)]
-            c01 = px_flat[_i(y1, x0)]
-            c11 = px_flat[_i(y1, x1)]
-        return c00*(1-tx)*(1-ty) + c10*tx*(1-ty) + c01*(1-tx)*ty + c11*tx*ty
-
-    # ── 3. Box-map displacement ──────────────────────────────────────
-    # For each vertex pick the axis whose |normal component| is largest.
-    # Use the other two axes as planar texture coordinates, scaled by
-    # 1/tile_size so 1 tile = tile_size mm.
-    #
-    #   Z-dominant (flat top/bottom):  u = x/tile_size,  v = y/tile_size
-    #   Y-dominant (front/back wall): u = x/tile_size,  v = z/tile_size
-    #   X-dominant (left/right wall): u = y/tile_size,  v = z/tile_size
-    #
-    # Hard selection — no blending — so there is never a gradient patch
-    # between two projection zones.
-
-    if mode == "negative":
-        mid_level = 0.0
-        strength  = -abs(relief)
-    else:
-        mid_level = 0.5
-        strength  = (-relief if invert else relief)
-
-    mesh = obj.data
-    displaced = 0
-    for v in mesh.vertices:
-        n  = v.normal
-        ax, ay, az = abs(n.x), abs(n.y), abs(n.z)
-        x, y, z = v.co.x, v.co.y, v.co.z
-
-        if az >= ax and az >= ay:          # Z-dominant: top/bottom faces
-            u = x / tile_size
-            vc = y / tile_size
-        elif ay >= ax:                     # Y-dominant: front/back walls
-            u = x / tile_size
-            vc = z / tile_size
-        else:                              # X-dominant: left/right walls
-            u = y / tile_size
-            vc = z / tile_size
-
-        pixel_val = sample(u, vc)
-        disp = (pixel_val - mid_level) * strength
-        v.co.x += n.x * disp
-        v.co.y += n.y * disp
-        v.co.z += n.z * disp
-        displaced += 1
-
-    mesh.update()
-    log.log(f"  Box-mapped: {displaced} verts displaced  "
-            f"strength={strength:.2f}mm mid={mid_level}")
-
-    # ── 4. Recalculate face normals ──────────────────────────────────
-    bm = bmesh.new()
-    bm.from_mesh(mesh)
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    bm.to_mesh(mesh)
-    bm.free()
-    mesh.update()
-    log.log(f"  Done: relief={strength:.2f}mm tile={tile_size}mm mode={mode}")
+    _apply_displacement_blender(obj, skin_path, tile_size, relief, invert, gamma, log, mode=mode)
 
 
 def _export_stl(obj, out_path: str, log: Logger):
