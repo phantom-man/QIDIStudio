@@ -786,6 +786,70 @@ Assets are AI-generated PNGs (Vertex AI Imagen 3 or Replicate Flux Schnell) via 
 
 ---
 
+## 14. Development Tooling & Memory System
+
+### LanceDB Persistent Memory
+
+Session knowledge is stored in a local LanceDB vector DB at `data/lancedb/`, table `qidistudio_learnings`.
+
+| Property | Value |
+|----------|-------|
+| Embedding model | `all-MiniLM-L6-v2` (sentence-transformers), 384-dim |
+| Total chunks | 58 (as of 2026-02-27) |
+| Sources indexed | `copilot-instructions.md`, `QIDISTUDIO_KNOWLEDGE.md`, `memory/langsmith_prompt.md` |
+
+**Key commands:**
+```powershell
+# Re-index all source docs:
+& 'C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe' memory/extract.py
+
+# Inject manifest into prompt / run query:
+& 'C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe' memory/inject.py
+& 'C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe' memory/inject.py --query "blender pipeline"
+
+# Push system prompt to LangSmith Hub:
+& 'C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe' memory/push_prompt.py
+```
+
+### LangSmith Hub — Known Gotchas
+
+**Gotcha 1: Tenant mismatch when using handle prefix**
+- `client.push_prompt("damienfosborn/prompt-name", ...)` → `Cannot create a prompt for another tenant. Current tenant: None`
+- Fix: Use **simple name** (no `handle/` prefix) + pass `workspace_id` to `Client()`:
+  ```python
+  ws_id  = os.getenv("LANGSMITH_WORKSPACE_ID")  # "073a725b-..."
+  client = Client(api_key=api_key, workspace_id=ws_id)
+  client.push_prompt("qidistudio-memory-agent", object=prompt)
+  ```
+
+**Gotcha 2: 409 "Nothing to commit" is not an error**
+- LangSmith returns HTTP 409 when the pushed prompt is identical to what's already stored.
+- Treat it as success: `if "409" in str(exc) and "Nothing to commit" in str(exc): print("OK, up to date")`
+
+**Gotcha 3: ChatPromptTemplate placeholder**
+- Use `("placeholder", "{messages}")` not `("human", "{input}")` — placeholder accepts a full message list.
+
+### LanceDB API Gotchas
+
+**Gotcha: `list_tables()` returns `ListTablesResponse` (Pydantic model), not a list**
+- `"my_table" in db.list_tables()` fails silently — always evaluates False.
+- Fix: `tbl_names = [t.name for t in db.list_tables()]` or `db.list_tables().tables`
+
+**Gotcha: pandas not available in Python 3.13 env**
+- `tbl.to_pandas()` raises `ImportError`.
+- Fix: Use `tbl.to_arrow()` + PyArrow scanner for all query operations.
+
+### Hooks Architecture
+
+| Hook | File | What it does |
+|------|------|--------------|
+| UserPromptSubmit | `.github/hooks/prompt_submit_hook.ps1` | Calls `memory/inject.py`; outputs manifest as `additionalContext` |
+| PreCompact | `.github/hooks/precompact_hook.ps1` | Outputs "Save This Protocol" JSON instruction to agent |
+
+**Critical**: Hook shell commands are NOT visible to the agent. Only the JSON `additionalContext` output reaches the agent. All file writes must be done by the agent itself, not the hook script.
+
+---
+
 ## Appendix A: Windows Registration (Post-Build)
 
 After building, register with Windows (no installer needed):

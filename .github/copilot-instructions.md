@@ -55,3 +55,11 @@ Append rows here — `memory/extract.py` auto-indexes them into LanceDB.
 
 | Date | Category | Topic | Decision | Rationale |
 |------|----------|-------|----------|-----------|
+| 2026-02-27 | PowerShell | Em-dash in double-quoted strings | Replace `—` (U+2014) with plain `-` everywhere in .ps1 hooks | PS parser chokes on Unicode dash in double-quoted strings — encoding mismatch |
+| 2026-02-27 | LangSmith | Hub push tenant error | Use simple name `"qidistudio-memory-agent"` (no `handle/` prefix) + `Client(api_key=k, workspace_id=ws_id)` | Handle prefix triggers cross-tenant auth; workspace_id resolves owner from env |
+| 2026-02-27 | LangSmith | Hub 409 response | Treat "409 Nothing to commit" as success, not error | LangSmith returns 409 when prompt is identical to what's already on Hub |
+| 2026-02-27 | LangSmith | ChatPromptTemplate messages | Use `("placeholder", "{messages}")` not `("human", "{input}")` | deepagents hub_manager.py pattern; placeholder accepts full message list |
+| 2026-02-27 | LanceDB | list_tables() return type | `db.list_tables()` returns `ListTablesResponse` (Pydantic model) — access via `.tables` attr | Not a plain list; `in` check on it fails silently, causing table to be re-created |
+| 2026-02-27 | LanceDB | PyArrow vs pandas | Use `tbl.to_arrow()` + PyArrow scanner for `get_all()`/`get_recent()`/`count()` | pandas not installed in Python 3.13 env; `to_pandas()` raises ImportError |
+| 2026-02-27 | Memory | inject.py confirmed working | Hook log shows "memory inject OK" since commit `ddcde11`; 58 chunks loaded at session start | All source docs chunked verbatim; grouped by source prefix in manifest output |
+| 2026-02-27 | Memory | precompact hook limitation | Hook can only inject JSON instruction to agent via stdout; agent must do file writes | Shell commands in precompact hook body are invisible to agent — only `additionalContext` JSON matters |
