@@ -409,7 +409,13 @@ def _auto_projection(obj, log: Logger) -> tuple:
     # Measure with the tighter (30°) threshold to classify the mesh type.
     MEASURE_RAD = 0.5236   # 30° — the CAD seam threshold
     ORGANIC_RAD = 1.0472   # 60° — the organic seam threshold
-    CAD_THRESH  = 0.15     # >15% of edges ≥ 30° → prismatic/CAD geometry
+    CAD_THRESH  = 0.35     # >35% of edges ≥ 30° → prismatic/CAD geometry
+    # 0.35 calibration:
+    #   Organic creature parts with joint stubs (claw feet, limbs): ~25% → organic ✓
+    #   Dragon body:                                                  ~4%  → organic ✓
+    #   Mechanical/box parts (flat panels):                          ~70%+ → CAD    ✓
+    #   0.15 was too low — creature joint transitions pushed organic
+    #   parts into CAD mode, causing starburst seam fans at junctions.
 
     bm = bmesh.new()
     bm.from_mesh(obj.data)
