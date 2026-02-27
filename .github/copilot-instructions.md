@@ -364,7 +364,13 @@ apply_texture_bpy.py  <model_stl>  <skin_asset>
 
 Outputs: `SKIN_OUTPUT: <path>` to stdout. C++ parses this line.
 
-**Invocation:** `bpy_env\Scripts\python.exe resources\scripts\apply_texture_bpy.py model.stl skin.png --mode modifier --log out.txt`
+**Invocation (full Blender — primary):** `"C:\Program Files\Blender Foundation\Blender 5.0\blender.exe" --background --python resources\scripts\apply_texture_bpy.py -- model.stl skin.png --mode modifier --log out.txt`
+
+**Invocation (bpy_env — fallback):** `bpy_env\Scripts\python.exe resources\scripts\apply_texture_bpy.py model.stl skin.png --mode modifier --log out.txt`
+
+**Blender 5.0 installed at:** `C:\Program Files\Blender Foundation\Blender 5.0\blender.exe`
+
+**Startup time:** ~30s for Blender cold-start. App shows busy cursor during this time — this is normal.
 
 ### C++ Wiring Summary
 
@@ -372,7 +378,7 @@ Outputs: `SKIN_OUTPUT: <path>` to stdout. C++ parses this line.
 
 **Modified files:**
 - `GUI_Factories.hpp/cpp` — `append_menu_item_add_texture()`, `append_menu_item_adjust_texture_depth()`
-- `Plater.hpp/cpp` — `apply_texture()`, `adjust_texture_depth()`, `can_apply_texture()`, `can_adjust_texture_depth()`, `find_bpy_python()` (static), `volume_is_texture()` (static)
+- `Plater.hpp/cpp` — `apply_texture()`, `adjust_texture_depth()`, `can_apply_texture()`, `can_adjust_texture_depth()`, `find_bpy_python()` (also finds blender.exe), `interp_is_blender()`, `volume_is_texture()` (all static)
 
 **`apply_texture()` logic (current — 1-part result):**
 1. Export `mo->raw_mesh()` to temp STL
@@ -387,7 +393,22 @@ Outputs: `SKIN_OUTPUT: <path>` to stdout. C++ parses this line.
 
 **Sidecar JSON** (`<result_stl>.texture.json`) stores `{png, src_stl, tile_mm, relief, mode}` — enables re-adjustment. `src_stl` is a `%TEMP%\qidi_tex_src_*.stl` — valid only for current session.
 
-**`find_bpy_python()` search order:** `QIDI_BPY_PYTHON` env var → `<resources_dir>/../bpy_env/Scripts/python.exe`
+**`find_bpy_python()` search order (now also finds full Blender):**
+1. `QIDI_BLENDER_EXE` env var → blender.exe
+2. `C:\Program Files\Blender Foundation\Blender *\blender.exe` (iterates versioned subdirs, takes first match)
+3. `QIDI_BPY_PYTHON` env var → python.exe
+4. `<resources_dir>/../bpy_env/Scripts/python.exe`
+
+**`interp_is_blender(path)`** — returns true if the filename contains "blender". Controls command format:
+- Blender: `"blender.exe" --background --python "script.py" -- args`
+- Python: `"python.exe" "script.py" args`
+
+**Displacement path in `apply_texture_bpy.py`:**
+- `IS_FULL_BLENDER = _detect_full_blender()` — checks `bpy.app.binary_path` and `sys.argv[0]`
+- If True → `_apply_displacement_blender()`: CC subdivision SUBSURF modifier + Displace modifier (OBJECT coords, scaled Empty) + `bpy.ops.object.convert(target='MESH')`
+- If False → `_apply_displacement()` pure-Python box mapping fallback
+
+**Why full Blender is needed:** The bpy pip package's `bpy.ops.object.convert()` unreliably applies modifiers in background mode. Full Blender has proper context → Displace modifier applies cleanly, no UV seam vertex splits.
 
 ### Key Gotchas
 
