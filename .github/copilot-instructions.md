@@ -51,18 +51,21 @@
 Full protocol: `docs/AGENT_PROTOCOL.md` — read it before invoking any sub-agent.
 
 **When to invoke the fleet** (use `agents/orchestrator.run(request, thread_id?)`):
+
 - Live web research needed (library API, upstream commit check, external bug lookup) → `researcher`
 - Complex multi-file C++/Python/CMake implementation → `builder` + `verifier`
 - Session learnings to persist in LanceDB → `scribe`
 - Any combination of the above in one logical task → full fleet (director decomposes automatically)
 
 **When NOT to invoke the fleet**:
+
 - Single-file reads/edits → direct tools
 - Git operations → GitKraken tools
 - Question answered by the LanceDB manifest already in context → answer directly
 - Anything satisfiable in ≤ 3 tool calls → do it directly
 
 **How to invoke** (in a Python code snippet or terminal):
+
 ```python
 import sys; sys.path.insert(0, r'C:\Users\User\source\repos\QIDIStudio')
 from agents.orchestrator import run
