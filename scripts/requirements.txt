@@ -30,5 +30,9 @@ python-dotenv>=1.0.0
 # ── Optional: Laplacian smoothing for scale-tip topology ─────────────────────
 # open3d>=0.18.0
 
+# ── Optional: cylindrical-projection cross-section analysis (apply_skin.py) ──
+# Used by _pick_projector() for the convex-hull IQ test; gracefully absent.
+# shapely>=2.0.0
+
 # ── GCodeRefiner ─────────────────────────────────────────────────────────────
 # No pip dependencies — pure Python stdlib (argparse, re, pathlib, dataclasses)

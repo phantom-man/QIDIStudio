@@ -5,13 +5,12 @@ set -x
 #  -h $HOSTNAME \
 #  If there's problems with the X display, try this
 #  -v /tmp/.X11-unix:/tmp/.X11-unix \
-#  or 
+#  or
 #  -v $HOME/.Xauthority:/root/.Xauthority \
 #  You also need to run "xhost +" on your host system
-# QIDI Studio also require the parent directory for the configuration directory to be present to start
-#  to prevent your local machines's QIDI studio config passed to docker container when you map your home directory, add:
-# -v :SHOME/.config/QIDIStudio
-set -x
+# QIDI Studio also requires the parent directory for the config directory to exist.
+#  To prevent your local QIDI Studio config being passed to the container, add:
+#  -v :/home/$USER/.config/QIDIStudio
 docker run \
   `# Use the hosts networking.  Printer wifi and also dbus communication` \
   --net=host \
@@ -32,4 +31,4 @@ docker run \
   `# Remove container when it is finished` \
   --rm \
   `# Pass all parameters from this script to the qidi ENTRYPOINT binary` \
-  qidistudio $* 
+  qidistudio "$@"

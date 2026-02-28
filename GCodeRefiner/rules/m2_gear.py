@@ -39,6 +39,8 @@ RULE_ID          = "m2_gear"
 RULE_DESCRIPTION = "M2 module gear — tooth geometry + layer bonding optimization"
 RULE_VERSION     = "1.0.0"
 
+FAN_MAX = 255  # 0–255 scale; 255 = 100% fan speed
+
 
 # ---------------------------------------------------------------------------
 # Per-feature parameter overrides
@@ -101,7 +103,7 @@ OVERRIDES = {
     TYPE_BRIDGE: {
         "speed_mm_s":  20,
         "nozzle_temp":  265,
-        "fan":          255,  # 100%
+        "fan":          FAN_MAX,  # 100%
         "flow_ratio": 0.90,
         "accel":      1500,
         "comment":    "M2 bridge: max fan, under-extrude",

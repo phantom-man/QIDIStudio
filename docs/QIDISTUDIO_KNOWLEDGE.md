@@ -1,6 +1,6 @@
 # QIDIStudio — Complete Engineering Knowledge Base
 
-_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh)_
+_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, _DebugSession, ai_debug_pipeline.py, §15.14)_
 
 This document captures all reverse-engineered knowledge about QIDIStudio's source code,
 build system, configuration, and 3MF format. It serves as the single source of truth
@@ -700,6 +700,8 @@ Adds **"Add Negative Part → Texture…"** and **"Add Part → Texture…"** it
 
 **Script:** `resources/scripts/apply_texture_bpy.py`  
 **Invocation:** `"C:\Program Files\Blender Foundation\Blender 5.0\blender.exe" --background --python apply_texture_bpy.py -- model.stl skin.png --mode modifier --log out.txt`
+
+**Dev workflow (single source of truth):** See §Appendix D. After one-time junction setup, the workspace file IS what QIDIStudio executes — no Copy-Item, no rebuild. Standalone test: `scripts\run_texture_pipeline.ps1 -Model <stl> -Skin <png> -Output <stl>`. For debugpy attach: add `-Debug` flag.
 
 **Full pipeline (`_apply_displacement_blender()`):**
 
@@ -1477,6 +1479,507 @@ Tighter than the 0.1% threshold from the previous phone case doc — 0.05 mm abs
 
 ---
 
+### 15.11 Polymorphic Mesh Topology Classifier (apply_texture_bpy.py)
+
+_Implemented 2026-02-28. Replaces the single-heuristic `_auto_projection()` function._
+
+#### Problem it solves
+
+The old `_auto_projection()` used only **one feature** (sharp-edge fraction >= 35%) to distinguish CAD from organic meshes.  This failed for:
+- Ornamental flat panels (elvish back shell) where dense channels push sharp fraction below 35% → misclassified as organic → LSCM UV → spike fans
+- Tall cylindrical bottles that happen to have many hard edges → misclassified as CAD → OBJECT coords → stretched pattern
+- Any new part type that doesn't fit the 35% heuristic
+
+**Core principle:** Stop modifying code per part — measure the mesh's intrinsic topology and dispatch to the correct strategy automatically (Wadler 1998, The Expression Problem).
+
+#### Three-feature classifier
+
+| Feature | How measured | What it detects |
+|---------|-------------|----------------|
+| `sharp_fraction` | % of dihedral edges ≥ 30° | CAD / prismatic indicator |
+| `z_ratio` | Z-span / max(X-span, Y-span) | Flat shell vs tall/revolution |
+| `curvature_std` | Std-dev of per-vertex Gaussian angle-deficit K_v | Organic curved vs flat |
+
+Gaussian angle-deficit: `K_v = 2π − Σ(interior angles at v across incident faces)`.  Flat vertex → K≈0.  Curved/corner vertex → K≠0.  (Source: CMU 15-458 DDG §6.)
+
+#### MeshClass enum
+
+```python
+class MeshClass(Enum):
+    FLAT_SHELL  = auto()   # z_ratio < 0.25  → lid, back panel, tray
+    PRISMATIC   = auto()   # sharp_frac >= 0.35  → enclosure, box
+    REVOLUTION  = auto()   # z_ratio >= 1.0, low sharp  → bottle, vase
+    ORGANIC     = auto()   # everything else  → dragon, figurine
+```
+
+#### UV strategy dispatch (match/case, PEP 634)
+
+```python
+match sig.mesh_class:
+    case MeshClass.FLAT_SHELL | MeshClass.PRISMATIC:
+        projection = 'object'   # world-space XY box-map, no UV seams
+        full_surface = False    # top-facing faces only
+    case MeshClass.REVOLUTION:
+        projection = 'lscm'     # conformal UV, 30° seams
+        full_surface = True
+    case MeshClass.ORGANIC:
+        projection = 'lscm'     # conformal UV, 60° seams
+        full_surface = True
+```
+
+#### Classification thresholds
+
+| Class | Rule | Rationale |
+|-------|------|----------|
+| FLAT_SHELL | z_ratio < 0.25 | Any plate thinner than 25% of its footprint is a shell |
+| REVOLUTION | z_ratio >= 1.0 AND sharp < 0.20 | Taller than wide, smooth → cylindrical |
+| PRISMATIC | sharp_frac >= 0.35 | High hard-edge density → box/enclosure CAD |
+| ORGANIC | everything else | Low sharp, moderate height → curved freeform |
+
+FLAT_SHELL takes precedence over all (checked first in match block).
+
+#### Session log
+
+```
+sharp_fraction, z_ratio, K_std → MeshClass → coords + full_surface
+elvish_back_shell: sharp=38%, z_ratio=0.12  → FLAT_SHELL → OBJECT, top-face
+dragon_body:       sharp=4%,  z_ratio=0.55  → ORGANIC    → LSCM 60°, full
+bottle:            sharp=8%,  z_ratio=1.8   → REVOLUTION → LSCM 30°, full
+enclosure:         sharp=71%, z_ratio=0.40  → PRISMATIC  → OBJECT, top-face
+```
+
+#### References
+
+- Reuter 2006 — Shape DNA: spectral geometry for shape recognition
+- Lévy et al. 2002 — Least Squares Conformal Maps for automatic texture atlas generation
+- Wadler 1998 — The Expression Problem (open/closed dispatch)
+- CMU 15-458 DDG §6 — Discrete Gaussian curvature (angle-deficit)
+- Chazal 2009 — Persistence-based Shape Descriptors (Euler characteristic)
+- docs/Shape Classification for Transformation Methods.md — absorbed 2026-02-28
+- docs/Advanced Python Transform Pipelines.md — absorbed 2026-02-28
+- docs/Spectral Shape Analysis and Transforms.md — absorbed 2026-02-28 (Euler char, spectral verification)
+- docs/Geometric Shape Classification via Spectral DNA.md — absorbed 2026-02-28 (eigenvalue ratio λ₁/λ₂)
+
+#### Spectral Verification Details (from new papers)
+
+`_compute_shape_dna()` now accepts `expected_class: MeshClass` and logs a `*** TOPOLOGY MISMATCH ***` line if the DNA contradicts the classifier:
+
+| λ₁/λ₂ ratio | Interpretation | Expected class |
+|-------------|---------------|---------------|
+| > 0.85 | Degenerate eigenvalue pair → rotational symmetry | `REVOLUTION` |
+| 0.50–0.85 | Moderate asymmetry | `ORGANIC` |
+| < 0.50 | Strong asymmetry, spread spectrum | `FLAT_SHELL` / `PRISMATIC` |
+
+**How to use for debugging:** Run apply texture, open `%TEMP%\qidi_texture.log`, search for `TOPOLOGY MISMATCH`. If found, inspect the three feature values (`sharp`, `z_ratio`, `χ`) to determine which threshold needs adjusting.
+
+#### Euler characteristic as tiebreaker
+
+χ = V − E + F is computed before `bm.free()` and stored in `TopologySignature.euler_characteristic`:
+- REVOLUTION dispatch now requires `euler_char <= 0` (annular manifold — has a through-hole)
+- Tall smooth mesh with χ > 0 → classified as ORGANIC (e.g. figurine on pedestal), not REVOLUTION
+- Phone cases with multiple cutouts have χ << 0 but are already caught by FLAT_SHELL (z_ratio < 0.25) first
+
+---
+
+### 15.12 Strategy Pattern — Polymorphic Dispatch Architecture
+
+_Source: docs/PhD Research Project Architecture Guide.md, absorbed 2026-02-28._
+
+The current `MeshClass` enum + `match/case` dispatch in `_classify_mesh_topology()` IS the Strategy Pattern — each `MeshClass` value selects a distinct transformation strategy. The formal ABC version below shows the canonical PhD-level structure for any future expansion.
+
+#### SRC Layout (canonical project structure)
+
+```
+resources/scripts/
+├── apply_texture_bpy.py       # Entry point — orchestrates the pipeline
+├── core/
+│   ├── laplacian.py           # Spectral DNA & heat diffusion (future split-out)
+│   └── parameterize.py        # LSCM & ARAP algorithms
+├── classification/
+│   └── heuristics.py          # TopologySignature + MeshClass (future split-out)
+└── io/
+    └── blender_api.py         # bpy wrappers (future split-out)
+```
+
+Currently all logic lives in `apply_texture_bpy.py`. The SRC layout above is the target split for when the script exceeds ~1500 lines.
+
+#### Formal Strategy Pattern (future refactor target)
+
+```python
+from abc import ABC, abstractmethod
+
+class ProjectionStrategy(ABC):
+    """Each MeshClass maps to one ProjectionStrategy subclass."""
+    @abstractmethod
+    def unwrap(self, bm, obj, log) -> None:  # modifies UV layer in-place
+        pass
+
+class FlatObjectProjection(ProjectionStrategy):
+    """FLAT_SHELL + PRISMATIC: OBJECT projection (no UV unwrap needed)."""
+    def unwrap(self, bm, obj, log):
+        log("Strategy: FlatObjectProjection")
+        # texture_coords='OBJECT' — handled by Displace modifier directly
+
+class LscmProjection(ProjectionStrategy):
+    """REVOLUTION + ORGANIC: LSCM conformal unwrap + UV texture coords."""
+    def __init__(self, seam_angle_rad: float):
+        self.seam_angle_rad = seam_angle_rad
+    def unwrap(self, bm, obj, log):
+        log(f"Strategy: LscmProjection seam={math.degrees(self.seam_angle_rad):.0f}deg")
+        # mark_seams → unwrap(method='CONFORMAL') → texture_coords='UV'
+```
+
+The `match/case` dispatcher in `_classify_mesh_topology()` returns the `TopologySignature`, which then selects the strategy. This is **Open/Closed**: adding a new `MeshClass` value only requires adding a new strategy subclass and one `case` arm — the pipeline orchestrator never changes.
+
+#### Property-Based Testing with Hypothesis
+
+_Source: PhD Research Project Architecture Guide.md §III. Install: `pip install hypothesis` in bpy_env._
+
+For the spectral DNA computation — which must be invariant to mesh rotation — property-based tests are the correct methodology:
+
+```python
+# tests/test_shape_dna.py
+from hypothesis import given, strategies as st
+import numpy as np
+
+@given(st.floats(min_value=-180, max_value=180),
+       st.floats(min_value=-180, max_value=180))
+def test_spectral_invariance_under_rotation(yaw_deg, pitch_deg):
+    """
+    Shape DNA (λ eigenvalues) must be invariant to rigid rotation.
+    Ref: Reuter 2006 — Shape DNA is isometry-invariant.
+    """
+    mesh = load_test_mesh()  # canonical reference mesh
+    dna_original = calculate_shape_dna(mesh)
+    mesh_rotated = rotate_mesh(mesh, yaw_deg, pitch_deg)
+    dna_rotated = calculate_shape_dna(mesh_rotated)
+    assert np.allclose(dna_original, dna_rotated, atol=1e-4)
+```
+
+#### Google-Style Docstrings (enforced in apply_texture_bpy.py)
+
+All functions added to `apply_texture_bpy.py` use Google-style docstrings with the mathematical "Why":
+
+```python
+def _classify_mesh_topology(obj, log) -> TopologySignature:
+    """Classifies mesh topology using 4 geometric features.
+
+    Args:
+        obj: Blender Object with mesh data.
+        log: Callable accepting a string; writes to pipeline log.
+
+    Returns:
+        TopologySignature frozen dataclass containing MeshClass and
+        all raw feature values for downstream debugging.
+
+    Note:
+        Feature 1: sharp_fraction — edges with dihedral >= 30deg / total edges.
+        Feature 2: z_ratio — Z-span / max(X-span, Y-span). > 1.0 = tall part.
+        Feature 3: curvature_std — std-dev of discrete Gaussian curvature
+            K_v = 2pi - sum(interior angles). Meyer et al. 2003.
+        Feature 4: euler_characteristic — chi = V-E+F. chi <= 0 = annular
+            manifold (has through-holes). Chazal 2009.
+    """
+```
+
+---
+
+### 15.13 Hybrid C++/Python Debugging
+
+_Sources: docs/Debugging C++ and Python Systems.md, docs/PhD-Level Hybrid Debugging Workflow.md. Absorbed 2026-02-28._
+
+QIDIStudio is a hybrid system: C++ (`Plater.cpp`) invokes Python (`apply_texture_bpy.py`) via `wxExecute`. The **Abstraction Gap** — Python's debugger cannot see the C++ heap; C++ debuggers see Python objects only as opaque `PyObject*` — is bridged via the techniques below.
+
+#### Applied: faulthandler (already in apply_texture_bpy.py)
+
+```python
+import faulthandler, sys
+faulthandler.enable(file=sys.stderr, all_threads=True)
+```
+
+Added immediately after imports. If Blender's C++ geometry kernel segfaults during Displace modifier evaluation or bmesh operations, Python dumps the last Python frame to stderr before dying. The stderr of the Blender subprocess is captured by QIDIStudio in `tex_log` — so the crash traceback appears in `%TEMP%\qidi_texture.log`.
+
+#### Debug Build (Windows)
+
+When hunting geometry bugs that only appear in Release builds, use `scripts\debug_build.ps1`:
+
+```powershell
+.\scripts\debug_build.ps1
+```
+
+What it does:
+- Configures CMake with `CMAKE_BUILD_TYPE=RelWithDebInfo` (optimized + debug symbols `/Zi`)
+- Enables MSVC AddressSanitizer (`/fsanitize=address`) to catch buffer overruns in mesh processing
+- Output goes to `C:\QIDISrc\QIDIStudio\build_debug\`
+
+MSVC ASan equivalent of GCC's `-fsanitize=address`: add `/fsanitize=address` to `CMAKE_CXX_FLAGS`. Requires VS 2019 16.9+ or VS 2022.
+
+#### Mixed-Mode Debugging (C++ stepping from Python callsite)
+
+For stepping from `Plater.cpp`'s `wxExecute` call into C++ geometry code:
+1. Open the project in full Visual Studio (not VS Code)
+2. Project → Properties → Debugging → **Debugger Type: Mixed**
+3. Set breakpoint in C++ (`Plater.cpp apply_texture()`) and Python (`apply_texture_bpy.py _apply_displacement_blender()`)
+4. VS will context-switch between Python frames and C++ frames in the same call stack view
+
+#### debugpy Attach (Python-only, most common)
+
+For Blender Python-only debugging (no C++ stepping needed):
+```powershell
+.\scripts\run_texture_pipeline.ps1 -Model model.stl -Skin skin.png -Output out.stl -Debug
+# VS Code: Run & Debug -> Python: Remote Attach -> localhost:5678
+```
+`-Debug` sets `QIDI_BPY_DEBUG=1` which triggers `debugpy.listen(5678); debugpy.wait_for_client()` inside the script.
+
+#### Golden Buffer Dump (geometry crash isolation)
+
+When a geometry crash only reproduces inside a specific mesh:
+
+```python
+# Add to _apply_displacement_blender() before the crashing modifier_apply call:
+import numpy as np
+verts = np.array([v.co for v in obj.data.vertices])
+np.save(r'C:\Temp\crash_verts.npy', verts)
+faces = np.array([list(p.vertices) for p in obj.data.polygons], dtype=object)
+np.save(r'C:\Temp\crash_faces.npy', faces)
+log("CRASH_DUMP: saved verts/faces to C:\\Temp\\crash_*.npy")
+```
+
+Then reproduce in a standalone Python script without Blender overhead.
+
+#### Debugging Bibliography (applied to this codebase)
+
+| Resource | Applied where |
+|---|---|
+| faulthandler (Python stdlib) | `apply_texture_bpy.py` — catches C++/bpy segfaults |
+| debugpy + VS Code Remote Attach | `run_texture_pipeline.ps1 -Debug` flag |
+| MSVC `/fsanitize=address` | `scripts/debug_build.ps1` CMake config |
+| Mixed-Mode Debugging (VS) | Full Visual Studio, Debugger Type=Mixed |
+| GDB `py-bt` | Linux/Mac dev machines only |
+| Golden Buffer Dump | Inline npy export before crashing bpy call |
+
+---
+
+### 15.14 Vision-in-the-Loop (ViL) — Autonomous AI Debug Architecture
+
+_Absorbed 2026-02-28. Sources: AI-Driven Visual Debugging Orchestration.md, AI Debugging Visual Geometry Pipeline.md. External refs: GPT-4V (arXiv 2303.08774), Keenan Crane CMU 15-458 DDG Spring 2024, VQA (visualqa.org)._
+
+#### Concept
+
+ViL is a self-directed debug loop that requires **no human operator**:
+
+```
+Observe  →  Orient  →  Decide  →  Act
+ (JSON       (compare     (identify    (edit
+  telemetry   vs expected  threshold    classifier
+  + PNGs)     class)       anomaly)     code)
+```
+
+This is Boyd's OODA loop applied to geometric ML.  GPT-4V (arXiv 2303.08774) validates that
+multimodal models can reason over image+JSON inputs to produce corrective text — here the
+"image" is the curvature heatmap PNG and the "JSON" is the telemetry record.
+
+#### Infrastructure
+
+**`apply_texture_bpy.py` additions (2026-02-28)**
+
+| Symbol | Purpose |
+|---|---|
+| `_DebugSession` dataclass | Accumulates `stages` list; created in `main()` when `--debug-snapshots` is set |
+| `_export_debug_snapshot()` | Writes stage JSON + rolling `session_summary.json`; called at `post_weld`, `post_classify`, `post_displace` |
+| `_render_curvature_heatmap()` | EEVEE vertex-colour render of Gaussian K_v; activated by `--render-heatmap` |
+| `--debug-snapshots` argparse flag | Activates telemetry export |
+| `--snapshots-dir` argparse flag | Output directory (default: same dir as `--log`) |
+
+#### JSON Telemetry Schema
+
+Each stage writes one JSON file `{stage}.json` and a rolling `session_summary.json`:
+
+```json
+{
+  "model":     "/path/to/source.3mf",
+  "skin":      "/path/to/skin.png",
+  "timestamp": "2026-02-28T15:30:00",
+  "stage":     "post_classify",
+  "mesh_class": "FLAT_SHELL",
+  "features": {
+    "sharp_fraction":       0.12,
+    "z_ratio":              0.08,
+    "curvature_std":        0.03,
+    "euler_characteristic": -4
+  },
+  "projection":     "object",
+  "full_surface":   false,
+  "seam_angle_deg": 30.0,
+  "geometry": {
+    "verts":   9248,
+    "polys":   18432,
+    "bbox_mm": [72.4, 148.3, 8.2]
+  },
+  "heatmap_png": null,
+  "weld_before": 18432,
+  "weld_after":  9248
+}
+```
+
+#### Autonomous Debug Script
+
+**`scripts/ai_debug_pipeline.py`** — run `python scripts/ai_debug_pipeline.py` from any Python.
+
+```
+Usage:
+  python scripts/ai_debug_pipeline.py                   # all test cases
+  python scripts/ai_debug_pipeline.py --case poco_x6_phone_case
+  python scripts/ai_debug_pipeline.py --render-heatmap  # include EEVEE PNGs (slow)
+```
+
+Writes `scripts/debug_runs/<run_id>/ai_debug_report.txt` and `.json`.
+The AI reads `ai_debug_report.txt` in a subsequent session to generate targeted threshold edits.
+
+#### Test Case Registry
+
+| Name | 3MF Path | Expected Class | Notes |
+|---|---|---|---|
+| `poco_x6_phone_case` | `3DPrinting/PhoneCase/STL/protection-poco-x6.3mf` | `FLAT_SHELL` | 148×73×8 mm flat slab |
+| `elvish_tpu_inner` | `3DPrinting/PhoneCase/STL/elvish_tpu_inner.3mf` | `FLAT_SHELL` | Ornamental flat back panel |
+| `vacuum_nozzle_lower` | `3DPrinting/VacuumNozzle/STL/vacuum_nozzle_lower.3mf` | `REVOLUTION` | Rotational body, tall cylinder |
+| `vacuum_crevice_nozzle` | `3DPrinting/VacuumNozzle/STL/vacuum_crevice_nozzle.3mf` | `PRISMATIC` | Tapered rectangular prism |
+
+All 3MF files are in `C:\Users\User\source\repos\3DPrinting\` — used READ-ONLY.
+
+#### How the AI Uses This
+
+1. Run `python scripts/ai_debug_pipeline.py` → writes `ai_debug_report.txt`
+2. Open the report — see PASS/FAIL for each case with measured feature values
+3. If FAIL: the report supplies a **REMEDIATION HINT** naming which threshold to edit in `_classify_mesh_topology()`
+4. Edit the threshold → re-run pipeline → confirm pass
+
+No Blender UI, no human action needed.  The AI is both the test runner and the code editor.
+
+#### Curvature Heatmap (optional)
+
+`_render_curvature_heatmap()` computes discrete Gaussian curvature K_v = 2π − Σ(interior angles)
+per vertex and stores it as a Blender vertex-colour layer `"CurvatureMap"`.  An overhead
+orthographic EEVEE render produces a PNG:
+
+- **Blue** = K ≈ 0 (flat/planar vertex)
+- **Red**  = K > 0 (convex — sphere-like)
+- **Green** = K < 0 (saddle — hyperbolic)
+
+This is the same Gaussian curvature used in the `curvature_std` classifier feature,
+making the image a direct visual confirmation of what the classifier measured.
+
+Refs: Chazal 2009 (Spectral Shape Analysis), CMU 15-458 DDG §6 (discrete curvature).
+
+---
+
+### 15.15 UV Diagnostic Debugging — Jacobian Heatmap & Texture Critic
+
+_Implemented 2026-02-28. Sources: docs/AI Debugging 3D Texture Mapping.md, docs/AI Debugging Texture Mapping Glitches.md. External refs: Lévy 2002 (LSCM), Sander 2001 (L2 stretch), Nimier-David 2019 (Mitsuba 2 differentiable rendering), Crane 2024 (CMU 15-458 DDG)._
+
+#### Concept
+
+The "Geometric Microscope" pattern (docs/AI Debugging Texture Mapping Glitches.md §I):
+Convert conformal mapping errors into **visual signals** (checkerboard distortion) + **metric signals**
+(UV stretch / Dirichlet energy) that an AI can reason over without a human in the loop.
+
+Key insight from Lévy 2002: LSCM minimises Dirichlet energy
+$$E_D(\psi) = \int_M |\nabla\psi|^2 \, dA$$
+When $E_D > 2.0$, the projection mode is wrong for the mesh topology.  The AI computes $E_D$
+per-pipeline-run without any rendering required.
+
+#### New Infrastructure (2026-02-28)
+
+**`resources/shaders/uv_diagnostic.glsl`** (new file)
+
+GLSL fragment shader implementing the Jacobian heatmap from docs/AI Debugging Texture Mapping Glitches.md §I.
+Three modes via `u_visualMode` uniform:
+
+| Mode | Value | Description |
+|---|---|---|
+| `CHECKERBOARD` | 0.0 | 8×8 procedural grid; aspect-ratio drift > 15% = high $E_D$ |
+| `HEATMAP`      | 1.0 | `dFdx`/`dFdy` Jacobian approximation; green=conformal, red=compression, blue=expansion |
+| `HYBRID`       | 2.0 | 50/50 blend weighted by local distortion magnitude |
+
+Colour semantics (HEATMAP mode):
+- **Green** = $\log_2(|dx|/|dy|) \approx 0$ — conformal (angle-preserving)
+- **Red**   = $\log_2 > 0$ — compression zone (camera island, tight corners)
+- **Blue**  = $\log_2 < 0$ — expansion zone (long flat backs)
+- **Yellow ring** = threshold boundary at 15% drift ($|\log_2| \approx 0.20$)
+
+**`apply_texture_bpy.py` additions**
+
+| Symbol | Purpose |
+|---|---|
+| `_render_checkerboard_diagnostic()` | EEVEE render using Blender Checker Texture node; 8×8 grid; shows UV island boundaries as non-square cells |
+| `_calculate_uv_stretch_metrics()` | Per-face L2 area stretch; returns `mean_stretch`, `max_stretch`, `dirichlet_energy`, `high_energy_frac` |
+| `--render-heatmap` argparse flag | Activates both curvature heatmap AND checkerboard render at each debug stage |
+| `checker_png` JSON field | Path to checkerboard diagnostic PNG in each stage record |
+| `uv_stretch` JSON field | Stretch metrics dict in `post_displace` stage record |
+
+The `uv_stretch` block is computed even without `--render-heatmap` — it is always populated at
+`post_displace` whenever a UV layer exists (LSCM mode).
+
+**`scripts/ai_texture_critic.py`** (new file)
+
+Autonomous texture quality analyser.  Reads `session_summary.json`, applies the diagnostic
+decision tree, writes `ai_texture_critic_report.txt`:
+
+```
+IF uv_stretch.high_energy_frac > 0.20   → seam placement issue
+IF uv_stretch.dirichlet_energy  > 2.0   → wrong projection (LSCM vs OBJECT)
+IF uv_stretch.max_stretch       > 5.0   → collapsed UV island
+IF mesh_class == REVOLUTION and χ > 0   → Euler characteristic tiebreaker failure
+IF mean_stretch < 0.5 or > 3.0         → tile_size calibration issue
+```
+
+Each issue includes:
+- **severity**: ERROR / WARNING / INFO
+- **root_cause**: what geometric invariant is violated
+- **remediation**: specific line of code or threshold to change
+
+```
+# Run after --debug-snapshots pipeline
+python scripts/ai_texture_critic.py /tmp/snaps/session_summary.json
+```
+
+#### UV Stretch Mathematics
+
+Per-face normalised area stretch (Sander 2001 L2 metric, simplified):
+$$s_i = \frac{A_{3D,i} \cdot A_{UV,\text{total}}}{A_{UV,i} \cdot A_{3D,\text{total}}}$$
+
+Normalised Dirichlet energy:
+$$E_D = \frac{1}{A_{3D,\text{total}}} \sum_i \max\!\left(s_i,\, \frac{1}{s_i}\right) \cdot A_{3D,i}$$
+
+$E_D = 1.0$ → perfect isometric map.  $E_D > 2.0$ → significant conformal distortion.
+
+#### Complete Debugging Workflow
+
+```
+1. blender.exe --background --python apply_texture_bpy.py -- \n   model.stl skin.png --debug-snapshots --render-heatmap --snapshots-dir /tmp/snaps
+
+2. python scripts/ai_texture_critic.py /tmp/snaps/
+   → reads session_summary.json, writes ai_texture_critic_report.txt
+
+3. AI reads report, identifies failing check, applies specific code edit
+   → e.g. lowers sharp_fraction threshold 0.35→0.25 in _classify_mesh_topology()
+
+4. python scripts/ai_debug_pipeline.py  # re-run all test cases
+   → confirms pass/fail regression.
+```
+
+#### Bibliography
+
+| Source | Concept | Application |
+|---|---|---|
+| Lévy 2002 (ALICE LORIA) | LSCM — UV mapping that minimises $E_D$ | Primary UV algorithm in pipeline |
+| Sander 2001 | L2 stretch metric $\Gamma^2 = (a^2+b^2+c^2+d^2)/2A$ | `_calculate_uv_stretch_metrics()` |
+| Nimier-David 2019 (Mitsuba 2) | Differentiable rendering — gradients of rendering w.r.t. UV params | Conceptual foundation for inverse-rendering debug |
+| Crane 2024 CMU 15-458 | DDG §7 conformal parameterisation, SCP algorithm | Seam strategy + Euler characteristic tiebreaker |
+| Taubin 1995 | Non-shrinking Laplacian smoothing | Seam-boundary blending post-displacement |
+
+---
+
 ## Appendix A: Windows Registration (Post-Build)
 
 After building, register with Windows (no installer needed):
@@ -1523,6 +2026,47 @@ Set-ItemProperty -Path $uninstPath -Name 'DisplayIcon'    -Value "$exe,0"
 | Nozzle | 0.4mm hardened steel |
 | Bed size | 270×270×256mm |
 | Firmware | Klipper, CoreXY |
+
+## Appendix D: Dev Workflow — NTFS Junction (Single Source of Truth)
+
+**Problem:** `resources_dir()` resolves at runtime to `install_dir\resources\` (`QIDIStudio.cpp:~L8000`: `path_to_binary.parent_path() / "resources"`). Without intervention, edits to workspace scripts are invisible to QIDIStudio until copied.
+
+**Solution:** Replace `install_dir\resources\scripts\` with an NTFS directory junction pointing at `workspace\resources\scripts\`. The OS redirects transparently — Blender executes the workspace file directly. No Python involved in the redirect. VS Code debugger breakpoints fire on the workspace file.
+
+**One-time setup (after every clean build):**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\dev_setup.ps1
+```
+
+What it does:
+1. Derives workspace root from `$PSScriptRoot` — no hardcoded workspace path
+2. Checks `install_dir\resources\` exists (build must have run)
+3. Removes the real `install_dir\resources\scripts\` directory
+4. Creates NTFS junction: `install_dir\resources\scripts` → `workspace\resources\scripts`
+5. Idempotent — safe to re-run; already-correct junction is a no-op
+
+**Only hardcoded value:** `$InstallDir = "C:\QIDISrc\QIDIStudio\install_dir"` at top of `dev_setup.ps1`. Change once per machine if your build output is elsewhere.
+
+**Standalone Blender invocation (no QIDIStudio needed):**
+
+```powershell
+.\scripts\run_texture_pipeline.ps1 -Model model.stl -Skin skin.png -Output out.stl
+```
+
+Blender discovery order (mirrors Plater.cpp `find_bpy_python()`):
+1. `$env:QIDI_BLENDER_EXE` (explicit override)
+2. Scan `%ProgramFiles%\Blender Foundation\` for newest `blender.exe`
+
+**Debugpy attach workflow:**
+```powershell
+.\scripts\run_texture_pipeline.ps1 -Model model.stl -Skin skin.png -Output out.stl -Debug
+# Then in VS Code: Run & Debug -> Python: Remote Attach -> localhost:5678
+```
+
+**Scope of junction:** All files under `resources\scripts\` are covered automatically — any new script added to the workspace folder is immediately live.
+
+---
 
 ## Appendix C: `ConfigOptionMode` Enum (verbatim from Config.hpp)
 

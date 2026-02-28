@@ -1,7 +1,11 @@
 # Agent Memory Wiring — How to Wire a VS Code AI Agent with Persistent Memory
 
 _Authored by GitHub Copilot (Claude Sonnet 4.6) | 2026-02-27_  
-_Based on the production setup in `phantom-man/QIDIStudio`. Every instruction in this doc is verified working._
+_Based on the production setup in `phantom-man/QIDIStudio`. Every instruction in this doc is verified working in production._
+
+---
+
+> **IF YOU ARE AN AI AGENT READING THIS:** This document is written for you. It tells you exactly how to build the memory system you are currently using. Every gotcha section is a real failure that happened during implementation. Do not skip them. Follow the steps in order. The verification commands at each step will tell you immediately if something is wrong — do not proceed past a failed verification.
 
 ---
 
@@ -105,6 +109,12 @@ langsmith>=0.1.0
 langchain>=0.2.0
 langchain-core>=0.2.0
 pyarrow>=14.0.0
+# Agent fleet (optional — needed for LangGraph checkpointing)
+langgraph>=0.2.0
+langchain-google-genai>=3.1.0
+psycopg-binary>=3.1.0
+psycopg-pool>=3.2.0
+langgraph-checkpoint-postgres>=2.0.0
 ```
 
 Install into your Python environment:
@@ -114,9 +124,11 @@ Install into your Python environment:
 ```
 
 **Critical notes:**
+
 - `pandas` is NOT required and will NOT work in Python 3.13. All LanceDB queries use PyArrow natively.
 - `sentence-transformers` downloads `all-MiniLM-L6-v2` (~90MB) on first use. It caches to `~/.cache/huggingface/`.
 - `lancedb` >= 0.6 returns a `ListTablesResponse` from `list_tables()` — it is a Pydantic model, **not** a plain `list`. Access table names via `.tables` attribute. See store.py for the pattern.
+- **`psycopg[binary]` extra is a trap.** Running `pip install "psycopg[binary]"` exits 0 but does NOT install the binary backend. You must install `psycopg-binary` as a separate package: `pip install psycopg-binary`. Verify with `python -c "import psycopg_binary; print('OK')"`.
 
 ---
 
@@ -138,7 +150,27 @@ LANGCHAIN_PROJECT=YourProjectName
 LANGCHAIN_API_KEY=lsv2_sk_YOUR_KEY_HERE
 LANGSMITH_WORKSPACE_ID=YOUR_WORKSPACE_UUID_HERE
 LANGCHAIN_HUB_HANDLE=your-hub-handle
+
+# Google Vertex AI (agent fleet — auth via gcloud ADC, NOT an API key)
+GOOGLE_CLOUD_PROJECT=your-gcp-project-id
+GOOGLE_CLOUD_LOCATION=us-central1
+
+# LangGraph checkpointer (PostgresSaver — persistent conversation state)
+PG_DSN=postgresql://postgres:yourpassword@localhost:5432/postgres
 ```
+
+**AGENT READING THIS — critical `.env` loading rule:** Always call `load_dotenv` with `override=True` AND an explicit path:
+
+```python
+from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parents[1] / '.env', override=True)  # CORRECT
+
+# NOT this — process-level env vars silently override .env without override=True
+load_dotenv()  # WRONG if any shell has set GOOGLE_CLOUD_PROJECT etc.
+```
+
+If you skip `override=True`, stale values set in the terminal session (e.g. `$env:GOOGLE_CLOUD_PROJECT`) will silently win over your `.env` file. This is the #1 cause of "wrong project ID" auth failures.
 
 To get `LANGSMITH_WORKSPACE_ID`:
 
@@ -185,8 +217,10 @@ Or in `.vscode/settings.json` (workspace-scoped):
 ```
 
 **Hook contract:**
+
 - The hook **must write valid JSON to stdout**. VS Code reads this JSON; anything else is silently dropped.
 - The JSON shape VS Code expects:
+
   ```json
   {
     "hookSpecificOutput": {
@@ -195,6 +229,7 @@ Or in `.vscode/settings.json` (workspace-scoped):
     }
   }
   ```
+
 - The hook runs as a **subprocess**. Shell commands inside it execute normally, but **the agent cannot see their output** — only the `additionalContext` string reaches the agent.
 - PowerShell restriction: **never use em-dashes (`—`, U+2014) inside double-quoted strings**. The PS parser chokes on them with an encoding mismatch. Use plain hyphens or single-quoted strings.
 
@@ -371,6 +406,7 @@ def upsert_learning(topic, decision, content="", source="session", ...):
 Walks source markdown files, splits on `##` headings, stores each section as one LanceDB row. The `content` field holds the **full verbatim text** including code blocks. The `decision` field holds a 500-char plain-text summary for the manifest.
 
 Source files to index (adapt to your repo):
+
 1. `.github/copilot-instructions.md` → source prefix `"copilot-instructions"`
 2. `docs/YOUR_KNOWLEDGE.md` → source prefix `"knowledge-doc"`
 3. `memory/langsmith_prompt.md` → source prefix `"langsmith-prompt"` (optional)
@@ -391,6 +427,7 @@ python memory/extract.py
 Called by the UserPromptSubmit hook. Outputs hook JSON to stdout.
 
 Three modes:
+
 - **Default** — compact manifest (all topics, grouped by source prefix). ~2KB. Used every message.
 - `--full` — verbatim dump of all 70+ chunks. Use manually to deep-read a topic area.
 - `--query "text"` — semantic search, returns full content of top N matches.
@@ -473,6 +510,7 @@ Append rows here — memory/extract.py auto-indexes them into LanceDB.
 The knowledge doc (`docs/YOUR_KNOWLEDGE.md`) is the source of truth for your project. `extract.py` chunks it by `##` headings. Every section becomes a LanceDB row.
 
 Structure tips:
+
 - Use `##` for major sections, `###` for sub-sections.
 - Each `##` section becomes one chunk. Sections > 2500 chars are split by `###`.
 - Code blocks are preserved verbatim in the `content` field.
@@ -507,12 +545,14 @@ Get-Content .github\hooks\precompact.log | Select-Object -Last 5
 ```
 
 Look for:
+
 ```
 2026-02-27 09:35:53 [UserPromptSubmit] fired
 2026-02-27 09:35:53 [UserPromptSubmit] memory inject OK
 ```
 
 If you see `memory inject FAILED`, check:
+
 1. Python path is correct in the hook script
 2. `memory/requirements.txt` packages are installed in that Python env
 3. `data/lancedb/` directory exists and is writable
@@ -547,7 +587,7 @@ When the context window fills, VS Code fires the PreCompact hook **before** trun
 2. **`additionalContext` (visible to agent, injected into compaction prompt)**
    - "The hook already ran extract.py and committed. Your one job: write any NEW learnings from this conversation that aren't on disk yet."
 
-The design means even if the agent completely runs out of tokens and can't respond, the disk state is still saved. The agent only needs to handle the case where it *knows* something that isn't written down yet.
+The design means even if the agent completely runs out of tokens and can't respond, the disk state is still saved. The agent only needs to handle the case where it _knows_ something that isn't written down yet.
 
 ---
 
@@ -558,11 +598,13 @@ When you finish any significant session:
 1. **Agent writes to docs** — append rows to the Session Learnings Log table in `copilot-instructions.md`. For major discoveries, also update `docs/YOUR_KNOWLEDGE.md`.
 
 2. **Re-index**:
+
    ```powershell
    python memory/extract.py
    ```
 
 3. **Commit**:
+
    ```powershell
    git add -A
    git commit -m "docs: session learnings YYYY-MM-DD"
@@ -574,11 +616,13 @@ This is also what the precompact hook does automatically. If the hook fires and 
 
 ## Troubleshooting Reference
 
+### Memory & Hooks
+
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Hook fires but manifest not in context | Hook not registered in VS Code settings | Add `github.copilot.chat.experimental.codebase.hooks` to settings.json |
-| `memory inject FAILED: ImportError: No module named lancedb` | pip packages not installed | `python -m pip install -r memory/requirements.txt` |
-| `list_tables() TypeError` | lancedb >= 0.6 returns `ListTablesResponse`, not list | Check via `resp.tables` attr, not direct `in` check |
+| `memory inject FAILED: ImportError: No module named lancedb` | pip packages not installed | `pip install -r memory/requirements.txt` |
+| `list_tables() TypeError` | lancedb >= 0.6 returns `ListTablesResponse`, not list | Access via `resp.tables` attr, not `in resp` |
 | `to_pandas() ImportError` | pandas absent from Python 3.13 | Use `table.to_arrow().to_pylist()` instead |
 | LangSmith push: "Cannot create prompt for another tenant" | Hub handle prefix in prompt name | Use simple name only + pass `workspace_id` to `Client()` |
 | LangSmith push: HTTP 409 | Prompt unchanged | Treat 409 "Nothing to commit" as success, not error |
@@ -587,15 +631,32 @@ This is also what the precompact hook does automatically. If the hook fires and 
 | 0 rows in LanceDB after extract.py | Wrong path to source docs | Check `REPO_ROOT` in extract.py resolves correctly |
 | Hook log not updating | Log path wrong | Confirm `$logFile` path is absolute and directory exists |
 
+### Agent Fleet & Vertex AI
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `PERMISSION_DENIED: 403 Permission denied on resource project X` | Wrong project ID in env — stale process-level var overriding .env | Call `load_dotenv(..., override=True)` with explicit path; check `$env:GOOGLE_CLOUD_PROJECT` in terminal |
+| `PERMISSION_DENIED` with truncated project ID (e.g. `crafty-hook-483415S`) | Shell env var set to wrong value from earlier session | `Remove-Item Env:\GOOGLE_CLOUD_PROJECT` then re-run with override=True |
+| `CONSUMER_INVALID` 403 on Vertex | Wrong location (e.g. `global` instead of `us-central1`) | Set `GOOGLE_CLOUD_LOCATION=us-central1` in .env; load with override=True |
+| `AQ.Ab8...` key fails | `AQ.` prefix = OAuth token, not an API key | Vertex AI uses ADC — no API key at all. Remove `google_api_key`, use `project=` + `location=` |
+| `AIzaSy...` key fails for Vertex | Consumer API key doesn't work for Vertex AI | Same fix — remove key, use ADC |
+| LangGraph tool count validator error | `bind_tools()` + `create_react_agent(tools=...)` mismatch | Use `model_kwargs={"tools": [...]}` at constructor instead of `bind_tools()` |
+| `max_size must be greater or equal than min_size` | `ConnectionPool(max_size=N)` without min_size — default min_size=4 | Always set both: `min_size=1, max_size=N` |
+| `no pq wrapper available` / `psycopg_binary MISSING` after installing `psycopg[binary]` | `pip install "psycopg[binary]"` extra silently exits 0 without installing binary | Run `pip install psycopg-binary` directly, then verify with `python -c "import psycopg_binary"` |
+| `ImportError: cannot import name 'PostgresSaver'` | `langgraph-checkpoint-postgres` not installed | `pip install langgraph-checkpoint-postgres psycopg-binary psycopg-pool` |
+| Orchestrator 401 on `plan()` but agents load fine | `orchestrator.py` has its own separate LLM constructor not updated | Both `agents/agents.py` AND `agents/orchestrator.py` have independent LLM constructors — update both |
+
 ---
 
 ## Quick Reference — File Checklist
 
+### Core Memory System (required)
+
 | File | Must exist | Description |
 |------|-----------|-------------|
-| `.env` | Yes | API keys. Never commit. |
+| `.env` | Yes | API keys + DSNs. Never commit. |
 | `.gitignore` | Yes | Must exclude `.env` and `data/lancedb/` |
-| `memory/requirements.txt` | Yes | lancedb, sentence-transformers, etc. |
+| `memory/requirements.txt` | Yes | lancedb, sentence-transformers, psycopg-binary, etc. |
 | `memory/store.py` | Yes | LanceDB CRUD layer |
 | `memory/extract.py` | Yes | Indexes source docs |
 | `memory/inject.py` | Yes | Hook-facing manifest generator |
@@ -607,6 +668,250 @@ This is also what the precompact hook does automatically. If the hook fires and 
 | `memory/push_prompt.py` | Optional | Push system prompt to LangSmith Hub |
 | `data/lancedb/` | Auto-created | Vector store (gitignored) |
 
+### Agent Fleet (optional — for autonomous multi-agent execution)
+
+| File | Description |
+|------|-------------|
+| `agents/agents.py` | Agent factory — `get_agent(id)` returns `CompiledStateGraph` for each of 4 agents |
+| `agents/orchestrator.py` | Director + LangGraph `StateGraph` — `run(task)` fan-out via Send API |
+| `agents/tools.py` | Python tool definitions for each agent |
+| `agents/prompts/director.md` | Director system prompt (pushed to LangSmith Hub as `qidi-director`) |
+| `agents/prompts/researcher.md` | Researcher system prompt |
+| `agents/prompts/builder.md` | Builder system prompt |
+| `agents/prompts/verifier.md` | Verifier system prompt |
+| `agents/prompts/scribe.md` | Scribe system prompt |
+| `agents/_agentcomms_check.py` | Health check script — run this to verify the full stack |
+| `agents/push_all_prompts.py` | Push all 5 prompts to LangSmith Hub |
+
 ---
 
-_Last verified: 2026-02-27 | 70 rows in production LanceDB | All hooks confirmed firing_
+---
+
+## Agent Fleet Tier — LangGraph + Gemini + PostgresSaver
+
+This section documents the full agent fleet built on top of the memory system. It is optional but gives you autonomous multi-agent task execution with persistent state.
+
+### Architecture
+
+```
+run("Your task here")
+      │
+      ▼
+  plan()  ← Director LLM decomposes into AgentTasks
+      │  (structured JSON output — always valid)
+      ▼
+  dispatch()  ← Send API fan-out — ALL tasks run in same superstep (true parallel)
+      ├─ researcher  ← gemini-2.5-flash + google_search + url_context
+      ├─ builder     ← gemini-2.5-pro + code_execution
+      ├─ verifier    ← gemini-2.5-flash
+      └─ scribe      ← gemini-2.5-flash
+      │
+      ▼
+  synthesize()  ← Director LLM combines all results
+      │
+      ▼
+  PostgresSaver  ← full graph state checkpointed to Postgres after every step
+```
+
+### Google Vertex AI Authentication
+
+**DO NOT use an API key for Vertex AI.** Auth is via `gcloud` Application Default Credentials (ADC).
+
+The correct pattern is `project=` + `location=` on `ChatGoogleGenerativeAI` — no `google_api_key` parameter:
+
+```python
+from langchain_google_genai import ChatGoogleGenerativeAI
+import os
+
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
+    temperature=0.0,
+    project=os.environ["GOOGLE_CLOUD_PROJECT"],   # e.g. "my-gcp-project-id"
+    location=os.environ["GOOGLE_CLOUD_LOCATION"],  # e.g. "us-central1"
+    # NO google_api_key here
+)
+```
+
+**How to tell if you have the wrong auth type:**
+
+- `AQ.Ab8...` prefix = OAuth access token. Wrong. Not a Gemini API key.
+- `AIzaSy...` prefix = Consumer Gemini API key. Wrong for Vertex AI.
+- No key at all + gcloud ADC = CORRECT for Vertex AI.
+
+**Set up ADC once** (human does this, not the agent):
+
+```powershell
+gcloud auth application-default login
+# Authorise your service account or user account
+```
+
+**Available Gemini models on Vertex AI (as of 2026-02-27):**
+
+| Model | Status | Notes |
+|-------|--------|-------|
+| `gemini-2.5-flash` | OK | Use as default — fast, cheap, capable |
+| `gemini-2.5-pro` | OK | Use for builder — best reasoning |
+| `gemini-2.5-flash-lite` | OK | Ultra-fast, lowest cost |
+| `gemini-2.0-flash` | DEPRECATED | Shutdown June 1 2026 — do not use |
+| `gemini-2.0-flash-lite` | DEPRECATED | Shutdown June 1 2026 — do not use |
+| `gemini-1.5-*` | NOT AVAILABLE | Not on Vertex paid tier |
+
+### Built-in Gemini Tools
+
+Do NOT use `bind_tools()` with `create_react_agent` for Gemini built-in tools. LangGraph 1.0 validates that pre-bound tool count equals `tools=` list and raises. Use `model_kwargs` instead:
+
+```python
+from langgraph.prebuilt import create_react_agent
+
+# WRONG — triggers LangGraph tool count validator
+llm = _make_llm("gemini-2.5-flash").bind_tools([...google tools...])
+agent = create_react_agent(llm, tools=[...])
+
+# CORRECT — model_kwargs bypasses the validator
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
+    project=..., location=...,
+    model_kwargs={"tools": [{"google_search": {}}, {"url_context": {}}]}
+)
+agent = create_react_agent(llm, tools=[...your python tools...])
+```
+
+### PostgresSaver Checkpointer
+
+LangGraph's `PostgresSaver` persists the entire graph state after every node execution. This means:
+
+- Agent conversations survive process restarts
+- You can resume any conversation by passing the same `thread_id`
+- The full message history + intermediate results are stored
+
+```python
+from langgraph.checkpoint.postgres import PostgresSaver
+from psycopg_pool import ConnectionPool
+import os
+
+def build_checkpointer():
+    dsn  = os.environ["PG_DSN"]  # e.g. postgresql://postgres:pw@localhost:5432/postgres
+    pool = ConnectionPool(
+        conninfo=dsn,
+        min_size=1,    # REQUIRED — default min_size=4, must be <= max_size
+        max_size=10,
+        kwargs={"autocommit": True},
+        open=True,
+    )
+    saver = PostgresSaver(pool)
+    saver.setup()   # idempotent — creates langgraph_checkpoints tables if not present
+    return saver
+
+# Compile graph with checkpointer
+graph = builder.compile(checkpointer=build_checkpointer())
+
+# Run with thread_id — same ID resumes the same conversation
+result = graph.invoke(state, config={"configurable": {"thread_id": "my-thread-123"}})
+```
+
+**Critical `ConnectionPool` gotcha:** `max_size` must be >= `min_size`. The default `min_size` is 4. If you set `max_size=2` without also setting `min_size=1`, you get: `max_size must be greater or equal than min_size`. Always set both.
+
+**Critical `psycopg-binary` install gotcha:**
+
+```powershell
+# WRONG — exits 0 but does NOT install the binary backend
+pip install "psycopg[binary]"
+
+# CORRECT — installs the actual binary package
+pip install psycopg-binary
+
+# Verify
+python -c "import psycopg_binary; print('OK')"
+```
+
+### Verification Script
+
+Save as `agents/_agentcomms_check.py` and run after any env change:
+
+```python
+import os, sys, re
+from pathlib import Path
+sys.path.insert(0, '.')
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parents[1] / '.env', override=True)  # override=True is mandatory
+
+results = []
+
+# 1. Env vars
+for k in ['GOOGLE_CLOUD_PROJECT', 'GOOGLE_CLOUD_LOCATION', 'LANGSMITH_API_KEY', 'PG_DSN']:
+    v = os.environ.get(k, 'MISSING')
+    display = re.sub(r':([^@]+)@', ':***@', v[:40]) if k == 'PG_DSN' else (v[:20] + '...' if len(v) > 20 else v)
+    results.append(f'  ENV  {k}={display}')
+
+# 2. Agents
+try:
+    from agents.agents import get_agent
+    for a in ['researcher', 'builder', 'verifier', 'scribe']:
+        ag = get_agent(a)
+        results.append(f'  OK   {a:<12} {type(ag).__name__}')
+except Exception as e:
+    results.append(f'  FAIL agents: {e}')
+
+# 3. Gemini ping
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    llm = ChatGoogleGenerativeAI(
+        model='gemini-2.5-flash', temperature=0,
+        project=os.environ['GOOGLE_CLOUD_PROJECT'],
+        location=os.environ['GOOGLE_CLOUD_LOCATION'])
+    r = llm.invoke('reply with one word: ONLINE')
+    results.append(f'  OK   gemini ping: {r.content.strip()[:40]}')
+except Exception as e:
+    results.append(f'  FAIL gemini: {e}')
+
+# 4. PostgresSaver
+try:
+    from langgraph.checkpoint.postgres import PostgresSaver
+    from psycopg_pool import ConnectionPool
+    pool = ConnectionPool(
+        conninfo=os.environ['PG_DSN'],
+        min_size=1, max_size=4,
+        kwargs={'autocommit': True}, open=True)
+    saver = PostgresSaver(pool)
+    saver.setup()
+    pool.close()
+    results.append('  OK   postgres checkpointer (langgraph tables ready)')
+except Exception as e:
+    results.append(f'  FAIL postgres: {e}')
+
+# 5. LangSmith
+try:
+    from langsmith import Client
+    projs = [p.name for p in list(Client().list_projects())[:3]]
+    results.append(f'  OK   langsmith: {projs}')
+except Exception as e:
+    results.append(f'  FAIL langsmith: {e}')
+
+print('=== AgentComms Status ===')
+for r in results: print(r)
+print('=== Done ===')
+```
+
+Expected healthy output:
+
+```
+=== AgentComms Status ===
+  ENV  GOOGLE_CLOUD_PROJECT=my-project-id
+  ENV  GOOGLE_CLOUD_LOCATION=us-central1
+  ENV  LANGSMITH_API_KEY=lsv2_sk_...
+  ENV  PG_DSN=postgresql:***@localhost
+  OK   researcher   CompiledStateGraph
+  OK   builder      CompiledStateGraph
+  OK   verifier     CompiledStateGraph
+  OK   scribe       CompiledStateGraph
+  OK   gemini ping: ONLINE
+  OK   postgres checkpointer (langgraph tables ready)
+  OK   langsmith: ['your-project', ...]
+=== Done ===
+```
+
+If any line shows `FAIL`, fix it before proceeding. The error message is the root cause.
+
+---
+
+_Last verified: 2026-02-27 | 70 rows in production LanceDB | All hooks confirmed firing | PostgresSaver checkpointer active_

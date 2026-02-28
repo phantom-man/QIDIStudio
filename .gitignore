@@ -42,3 +42,7 @@ memory_env/
 # Agent fleet temp output files
 agents/_*.txt
 agents/__pycache__/
+# AI agent skill trees — local tooling, not source code
+.cursor/
+.claude/
+.agents/

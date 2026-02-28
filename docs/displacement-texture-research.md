@@ -45,9 +45,11 @@ class bpy.types.DisplaceModifier(Modifier)
 ### `mid_level` semantics
 
 Displacement formula:
+
 ```
 delta = strength × (texture_intensity − mid_level)
 ```
+
 - With `mid_level=0.5`: grey (0.5) = no displacement; white (1.0) = +strength/2; black (0.0) = -strength/2.
 - With `mid_level=0.0`: black = no displacement; white = +strength. Good for pure-relief PNGs.
 - **CRITICAL**: PNG heightmaps should use `mid_level=0.0` if they encode height as [0..1], OR `mid_level=0.5` if they encode displacement as [0..1] where 0.5 = baseline.
@@ -168,6 +170,7 @@ result = tX * wX + tY * wY + tZ * wZ
 ### Blender implementation
 
 Blender's `DisplaceModifier` with `texture_coords='OBJECT'` and a single Empty achieves **near tri-planar quality** for roughly flat-faced topology because:
+
 - The Empty defines world-space scale
 - Displacement samples the texture along the surface in world space
 - For objects with face normals mostly aligned to one axis, `NORMAL` direction already gives clean results
@@ -202,6 +205,7 @@ vec2 tile(vec2 st, float N) {
 ```
 
 **Brick pattern** (offset every other row):
+
 ```glsl
 float brickPattern(vec2 st, float N) {
     st *= N;
@@ -237,12 +241,14 @@ float rand(vec2 st) {
 **Properties**: Deterministic (same input → same output), fast on GPU. NOT truly random.
 
 Distribution is NOT uniform (concentrates around 0.5). For better distribution:
+
 - Use `rand(rand(seed))` (two-pass)
 - Or use a better hash: `mix(0.0, 1.0, rand(st))` with LCG folding
 
 ### Chapter 11: Noise
 
 **Value Noise** (blocky, simple):
+
 ```glsl
 float noise(float x) {
     float i = floor(x);
@@ -255,12 +261,14 @@ float noise(float x) {
 **Gradient Noise** (Ken Perlin, 1985): Interpolates random *gradients* (vec2 directions) instead of values → smoother, less "blocky". Forms basis of Perlin noise.
 
 **Simplex Noise** (Perlin, SIGGRAPH 2001): Uses simplex grid (triangle in 2D, tetrahedron in 3D) instead of square grid.
+
 - Only 3 corner evaluations in 2D (vs 4 for square grid)
 - Only 4 in 3D (vs 8)
 - No directional artifacts
 - Continuous gradients (C2 continuity)
 
 **Application to skin textures**:
+
 ```glsl
 // Organic scale-like pattern using noise + SDF
 float scale_pattern(vec2 st, float freq, float relief) {
@@ -274,6 +282,7 @@ float scale_pattern(vec2 st, float freq, float relief) {
 ```
 
 **Fractal Brownian Motion (fBm)** — layered octaves for complex organic textures:
+
 ```glsl
 float fbm(vec2 st, int octaves) {
     float value = 0.0, amplitude = 0.5, freq = 1.0;
@@ -335,6 +344,7 @@ The `nraynaud/web-pbr-displacement` repo was 404 at time of research. This secti
 ### Physically correct displacement scale
 
 With `scene.unit_settings.scale_length = 0.001` (1 unit = 1mm):
+
 - `strength=1.0` → 1mm displacement
 - `strength=2.0` → 2mm displacement at maximum white pixel
 - The `mid_level` offset shifts the zero point within this range

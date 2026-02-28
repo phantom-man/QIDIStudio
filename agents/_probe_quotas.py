@@ -30,13 +30,12 @@ except Exception as e:
 
 # ── 2. Probe candidates ───────────────────────────────────────────────────────
 candidates = [
+    "gemini-2.5-pro",
     "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
-    "gemini-2.5-pro",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-8b",
+    # 2.0 models deprecated Feb 2025, shutdown June 1 2026 — not worth using
+    # "gemini-2.0-flash",
+    # "gemini-2.0-flash-lite",
 ]
 
 from langchain_google_genai import ChatGoogleGenerativeAI

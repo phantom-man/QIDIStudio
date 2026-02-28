@@ -32,7 +32,7 @@ from agents.tools import (
 # ── Load env ──────────────────────────────────────────────────────────────────
 
 REPO_ROOT  = Path(__file__).parents[1]
-load_dotenv(REPO_ROOT / ".env")
+load_dotenv(REPO_ROOT / ".env", override=True)
 
 PROMPTS_DIR = REPO_ROOT / "agents" / "prompts"
 

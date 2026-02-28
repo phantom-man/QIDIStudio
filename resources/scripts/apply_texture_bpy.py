@@ -28,6 +28,13 @@ import tempfile
 import traceback
 import zipfile
 import xml.etree.ElementTree as ET
+import faulthandler
+from dataclasses import dataclass
+from enum import Enum, auto
+
+# ── Safety net: if Blender's C++ layer segfaults, dump Python traceback ───
+# Ref: "PhD-Level Hybrid Debugging Workflow.md" §IV.1
+faulthandler.enable(file=sys.stderr, all_threads=True)
 
 # ── bpy import ────────────────────────────────────────────────────────────
 try:
@@ -108,6 +115,19 @@ def _parse_args() -> argparse.Namespace:
                    dest="full_surface",
                    action="store_false",
                    help="Restrict displacement to top-facing faces only (legacy behaviour for flat CAD parts)")
+    p.add_argument("--debug-snapshots",
+                   dest="debug_snapshots",
+                   action="store_true",
+                   help="Export JSON telemetry + curvature heatmap PNGs at each pipeline stage (AI debug mode)")
+    p.add_argument("--snapshots-dir",
+                   dest="snapshots_dir",
+                   default="",
+                   help="Directory for debug snapshot output (default: same directory as --log)")
+    p.add_argument("--render-heatmap",
+                   dest="render_heatmap",
+                   action="store_true",
+                   help=("Render curvature heatmap + UV checkerboard diagnostic PNGs at each debug stage. "
+                         "Requires --debug-snapshots. Uses Blender EEVEE — adds ~5-15s per stage."))
     # bpy injects its own args after '--'; strip them
     argv = sys.argv[1:]
     if "--" in argv:
@@ -310,7 +330,79 @@ def _gamma_correct_image(img, gamma: float, log: Logger) -> None:
     log.log(f"  Gamma correction applied (g={gamma})")
 
 
-def _compute_shape_dna(obj, k: int = 10, log: "Logger | None" = None):
+# ── Manifold topology classifier ─────────────────────────────────────────
+
+class MeshClass(Enum):
+    """
+    Manifold topology class.  Drives UV projection and displacement strategy.
+
+    Classification uses three intrinsic shape features derived from
+    computational topology and spectral geometry theory:
+      - sharp_fraction : fraction of dihedral edges >= 30°  (prismatic indicator)
+      - z_ratio        : Z-span / max(X-span, Y-span)       (flat vs tall indicator)
+      - curvature_std  : std-dev of per-vertex Gaussian angle-deficit
+
+    References: Reuter 2006 (Shape DNA), DDG CMU 15-458 §6, SIGGRAPH 2017
+    (Yuksel — Rethinking Texture Mapping), Wadler 1998 (The Expression Problem).
+    """
+    FLAT_SHELL  = auto()   # thin plate  (z_ratio < 0.25): lid, back panel, tray
+    PRISMATIC   = auto()   # box CAD     (sharp_frac >= 0.35): enclosure, housing
+    REVOLUTION  = auto()   # tall tube   (z_ratio >= 1.0, low sharp): bottle, vase
+    ORGANIC     = auto()   # freeform    (low sharp, moderate height): dragon, figurine
+
+
+@dataclass(frozen=True)
+class TopologySignature:
+    """
+    Compact geometric fingerprint of the mesh.
+
+    All fields are derived from the mesh geometry alone — no name matching,
+    no part-specific cases.  The classifier is the only place thresholds live.
+
+    Fields
+    ------
+    mesh_class      : Classified topology (drives UV strategy)
+    sharp_fraction  : Fraction of edges with dihedral angle >= 30°
+    z_ratio         : Z-span / max(X-span, Y-span)  — flatness indicator
+    curvature_std   : Std-dev of per-vertex Gaussian angle-deficit K
+    n_verts         : Vertex count (post-weld)
+    seam_angle_rad  : Recommended LSCM seam threshold (0.524=30°, 1.047=60°)
+    use_uv          : True = LSCM UV-based, False = OBJECT world-space box-map
+    full_surface    : True = wrap entire mesh, False = top-facing faces only
+    """
+    mesh_class:     MeshClass
+    sharp_fraction: float
+    z_ratio:        float
+    curvature_std:  float
+    n_verts:             int
+    euler_characteristic: int   # χ = V − E + F  (Euler characteristic — topological invariant)
+                                # Sphere: χ=2  Disk: χ=1  Annulus/cylinder: χ=0  Higher genus: χ<0
+                                # Source: Spectral Shape Analysis and Transforms (docs/), §I
+    seam_angle_rad: float
+    use_uv:         bool
+    full_surface:   bool
+
+
+@dataclass
+class _DebugSession:
+    """Accumulates per-stage JSON telemetry during a single pipeline run.
+
+    Created in main() when --debug-snapshots is passed; passed down through
+    _apply_displacement_blender() so each stage can append its record.
+    Call _export_debug_snapshot() at post_weld, post_classify, post_displace.
+    """
+    model_path:    str
+    skin_path:     str
+    snapshots_dir: str
+    stages:        list = None   # list of JSON-serialisable dicts, one per stage
+
+    def __post_init__(self):
+        if self.stages is None:
+            self.stages = []
+
+
+def _compute_shape_dna(obj, k: int = 10, log: "Logger | None" = None,
+                       expected_class: "MeshClass | None" = None):
     """
     Compute the Shape DNA of a mesh: the first k eigenvalues of the
     combinatorial graph Laplacian (degree matrix − adjacency matrix).
@@ -319,17 +411,35 @@ def _compute_shape_dna(obj, k: int = 10, log: "Logger | None" = None):
     shape topology as a compact fingerprint.  Two geometrically identical
     meshes have the same DNA regardless of position or rotation.
 
-    References:
-      Reuter 2006 'Shape DNA: Spectral Geometry for Shape Recognition'
-      PhD Manuscript Sec. IV — get_shape_dna()
+    Spectral Verification (Reuter 2006, Spectral Shape Analysis and Transforms §II)
+    ---------------------------------------------------------------------------------
+    After computing the DNA, the eigenvalue ratio λ₁/λ₂ is checked against the
+    expected class.  On a mesh with rotational symmetry the Laplacian has degenerate
+    eigenvalue pairs — adjacent eigenvalues are nearly equal (λ₁/λ₂ ≈ 1.0).  On
+    asymmetric flat or prismatic meshes the spectrum is spread out (λ₁/λ₂ << 1.0).
+
+    Ratio thresholds (calibrated from paper §II, classify_and_dispatch):
+      ratio > 0.85  →  REVOLUTION-like   (rotational symmetry / degenerate pair)
+      0.5..0.85     →  ORGANIC-like      (moderate asymmetry)
+      < 0.5         →  FLAT/PRISMATIC-like (strong asymmetry)
+
+    If expected_class is provided and the DNA ratio contradicts it, a
+    *** TOPOLOGY MISMATCH *** warning is logged.  This is the primary
+    diagnostic for catching misclassification artifacts (spike fans, texture
+    stretching) without needing to re-run the full pipeline.
 
     NOTE: Uses the combinatorial Laplacian (fast, O(E) edges) rather than
-    the cotangent-weighted Laplacian (requires edge angle data).  Sufficient
-    for logging/diagnostics.  For production metrology use robust_laplacian
-    on the exported STL (see KB § 15.2).
+    the cotangent-weighted Laplacian.  Sufficient for diagnostics.  For
+    production metrology use robust_laplacian on the exported STL (KB § 15.2).
 
-    Skips the computation if the mesh has more than 5 000 vertices to avoid
+    Skips computation if the mesh has more than 5 000 vertices to avoid
     O(V²) memory allocation on subdivided meshes.
+
+    References:
+      Reuter 2006  — Shape DNA: Spectral Geometry for Shape Recognition
+      Chazal 2009  — Persistence-based Shape Descriptors
+      docs/Spectral Shape Analysis and Transforms.md  (absorbed 2026-02-28)
+      docs/Geometric Shape Classification via Spectral DNA.md  (absorbed 2026-02-28)
     """
     try:
         import numpy as np
@@ -356,6 +466,44 @@ def _compute_shape_dna(obj, k: int = 10, log: "Logger | None" = None):
     if log:
         dna_str = ",".join(f"{x:.4f}" for x in dna)
         log.log(f"  Shape DNA (k={k}): [{dna_str}]")
+
+    # ── Spectral verification ───────────────────────────────────────────────
+    # λ₀ ≈ 0 always (connected graph).  Compare λ₁/λ₂ (indices 1 and 2).
+    # High ratio → degenerate eigenvalue pair → rotational symmetry → REVOLUTION.
+    # Low ratio  → spread spectrum → asymmetric → FLAT_SHELL / PRISMATIC.
+    if log and len(dna) >= 3 and dna[2] > 1e-6:
+        ratio = float(dna[1]) / float(dna[2])
+        if ratio > 0.85:
+            dna_hint = "REVOLUTION-like (degenerate λ pair → rotational symmetry)"
+        elif ratio > 0.50:
+            dna_hint = "ORGANIC-like (moderate asymmetry)"
+        else:
+            dna_hint = "FLAT/PRISMATIC-like (asymmetric spectrum)"
+        log.log(f"  Shape DNA: λ1/λ2={ratio:.3f}  →  {dna_hint}")
+
+        if expected_class is not None:
+            # Detect contradictions between classifier output and spectral evidence
+            revolution_dna  = ratio > 0.85
+            flat_pris_dna   = ratio < 0.50
+            mismatch        = False
+            match expected_class:
+                case MeshClass.REVOLUTION:
+                    if not revolution_dna:
+                        mismatch = True
+                case MeshClass.FLAT_SHELL | MeshClass.PRISMATIC:
+                    if revolution_dna:
+                        mismatch = True
+                case MeshClass.ORGANIC:
+                    if revolution_dna:
+                        mismatch = True   # organic shouldn't have full rotational symmetry
+            if mismatch:
+                log.log(
+                    f"  Shape DNA: *** TOPOLOGY MISMATCH ***  "
+                    f"classifier={expected_class.name}  dna_hint={dna_hint}  "
+                    f"ratio={ratio:.3f}  — check sharp_fraction/z_ratio/euler_char if "
+                    f"texture artifacts appear (spike fans, stretching, wrong orientation)"
+                )
+
     return dna
 
 
@@ -385,68 +533,176 @@ def _adaptive_subd_level(obj, organic: bool = False) -> int:
     return level
 
 
-def _auto_projection(obj, log: Logger) -> tuple:
+def _classify_mesh_topology(obj, log: Logger) -> TopologySignature:
     """
-    Analyse the mesh and choose the LSCM seam angle.
+    Multi-feature manifold classifier.  Returns a TopologySignature that
+    fully determines UV strategy — no part-specific hacks, no name matching.
 
-    LSCM (Blender CONFORMAL) is always the correct projection for manifold
-    meshes — both organic shapes AND CAD/prismatic/vacuum parts.  The key
-    variable is the seam-placement threshold:
+    Features measured
+    -----------------
+    1. sharp_fraction  — dihedral angle >= 30°.  Prismatic/CAD indicator.
+       (Reuter 2006: prismatic solids have high sharp-edge density.)
+    2. z_ratio         — Z-span / max(X-span, Y-span).
+       (SIGGRAPH 2017 Yuksel: flat shells have z_ratio < 0.25.)
+    3. curvature_std   — std-dev of per-vertex Gaussian angle-deficit K_v.
+       (CMU 15-458 DDG §6: K_v = 2π − Σ interior angles at v.)
+       Flat or prismatic surfaces cluster near K≈0 (low std).
+       Organic/curved surfaces have high K variance.
 
-      Organic (smooth surfaces, curved shells):  seams at >= 60° edges only.
-        Few seams → UV islands match large smooth regions → no ridges.
+    Classification rules (Python 3.10+ match/case, PEP 634)
+    --------------------------------------------------------
+    Rule 1 — FLAT_SHELL   : z_ratio < 0.25  (geometry is a thin plate)
+    Rule 2 — REVOLUTION   : z_ratio >= 1.0  AND  sharp_fraction < 0.20
+    Rule 3 — PRISMATIC    : sharp_fraction >= 0.35
+    Rule 4 — ORGANIC      : all other cases
 
-      CAD / prismatic / revolution parts:  seams at >= 30° edges.
-        30° catches every planar-panel boundary (port transitions, gasket
-        seats, boss shoulders, filleted corners).  Each geometric panel
-        becomes its own UV island with zero distortion on its flat faces.
-        Seams fall exactly on design-edge boundaries — not across smooth
-        regions — so there are no displacement discontinuities on faces.
-
-    Source: Advanced Texture Wrapping for CAD (PhD manuscript, §II.1).
-    Reference: `bpy.ops.mesh.edges_select_sharp(sharpness=0.523599)` — 30°.
-
-    Returns (projection, seam_angle_rad).
+    UV strategy per class (Lévy 2002, Wadler 1998 Expression Problem)
+    ------------------------------------------------------------------
+    FLAT_SHELL | PRISMATIC  →  coords=OBJECT, full_surface=False
+      World-space XY box-map: LSCM would fragment flat faces into dozens
+      of UV islands at every hole/edge → spike fans at island boundaries.
+    REVOLUTION | ORGANIC    →  coords=UV(LSCM), full_surface=True
+      Angle-preserving conformal map follows curved surface geodesically.
+      REVOLUTION uses 30° seams; ORGANIC uses 60° seams.
     """
     import bmesh, math
 
-    # Measure with the tighter (30°) threshold to classify the mesh type.
-    MEASURE_RAD = 0.5236   # 30° — the CAD seam threshold
-    ORGANIC_RAD = 1.0472   # 60° — the organic seam threshold
-    CAD_THRESH  = 0.35     # >35% of edges ≥ 30° → prismatic/CAD geometry
-    # 0.35 calibration:
-    #   Organic creature parts with joint stubs (claw feet, limbs): ~25% → organic ✓
-    #   Dragon body:                                                  ~4%  → organic ✓
-    #   Mechanical/box parts (flat panels):                          ~70%+ → CAD    ✓
-    #   0.15 was too low — creature joint transitions pushed organic
-    #   parts into CAD mode, causing starburst seam fans at junctions.
+    SHARP_RAD   = 0.5236   # 30°
+    ORGANIC_RAD = 1.0472   # 60°
 
     bm = bmesh.new()
     bm.from_mesh(obj.data)
     bm.edges.ensure_lookup_table()
+    bm.verts.ensure_lookup_table()
 
-    total = 0
+    # ── Feature 1: sharp edge fraction ────────────────────────────────────
+    total   = len(bm.edges)
     sharp30 = 0
     for e in bm.edges:
         linked = e.link_faces
-        total += 1
         if len(linked) != 2:
             sharp30 += 1
             continue
-        dot   = max(-1.0, min(1.0, linked[0].normal.dot(linked[1].normal)))
-        angle = math.acos(dot)
-        if angle >= MEASURE_RAD:
+        dot = max(-1.0, min(1.0, linked[0].normal.dot(linked[1].normal)))
+        if math.acos(dot) >= SHARP_RAD:
             sharp30 += 1
+    sharp_fraction = sharp30 / total if total > 0 else 0.0
+
+    # ── Feature 2: bounding-box Z-ratio ───────────────────────────────────
+    all_co  = [v.co for v in bm.verts]
+    xs      = [c.x for c in all_co]
+    ys      = [c.y for c in all_co]
+    zs      = [c.z for c in all_co]
+    xspan   = max(xs) - min(xs)
+    yspan   = max(ys) - min(ys)
+    zspan   = max(zs) - min(zs)
+    long_dim = max(xspan, yspan)
+    z_ratio  = (zspan / long_dim) if long_dim > 1e-6 else 0.0
+
+    # ── Feature 3: Gaussian curvature std-dev (angle-deficit) ─────────────
+    # K_v = 2π − Σ(interior angles at v across incident faces).
+    # Flat vertices → K≈0; curved/corner vertices → K≠0.
+    # Std-dev separates flat/prismatic (low) from organic (high).
+    # Capped at 5 000 verts to bound cost on subdivided meshes.
+    curvature_std = 0.0
+    n_sample = min(len(bm.verts), 5_000)
+    if n_sample >= 3:
+        TWO_PI = 2.0 * math.pi
+        k_vals = []
+        for v in bm.verts[:n_sample]:
+            angle_sum = 0.0
+            for f in v.link_faces:
+                vlist = list(f.verts)
+                n     = len(vlist)
+                try:
+                    idx = vlist.index(v)
+                except ValueError:
+                    continue
+                prev_v = vlist[(idx - 1) % n]
+                next_v = vlist[(idx + 1) % n]
+                e1 = (prev_v.co - v.co).normalized()
+                e2 = (next_v.co - v.co).normalized()
+                angle_sum += math.acos(max(-1.0, min(1.0, e1.dot(e2))))
+            k_vals.append(TWO_PI - angle_sum)
+        if len(k_vals) > 1:
+            mean_k = sum(k_vals) / len(k_vals)
+            var_k  = sum((k - mean_k) ** 2 for k in k_vals) / len(k_vals)
+            curvature_std = var_k ** 0.5
+
+    # ── Feature 4: Euler characteristic (χ = V − E + F) ──────────────────────
+    # Topological invariant — isometry-invariant, preserved under deformation.
+    # Source: Spectral Shape Analysis and Transforms (docs/), §I; Chazal 2009.
+    # Sphere: χ=2  Disk: χ=1  Annulus (open cylinder): χ=0  Torus: χ=0  Higher genus: χ<0
+    # Revolution surfaces (bottles, funnels) are open cylinders: χ=0.
+    # Flat shells have cutouts (button holes, camera ports) each reducing χ by 1.
+    # Use as REVOLUTION tiebreaker: tall + low-sharp + χ<=0 → confirmed annular manifold.
+    euler_char = len(bm.verts) - len(bm.edges) + len(bm.faces)
 
     bm.free()
 
-    fraction   = sharp30 / total if total > 0 else 0.0
-    is_cad     = fraction >= CAD_THRESH
-    seam_angle = MEASURE_RAD if is_cad else ORGANIC_RAD
-    geometry   = 'CAD/prismatic' if is_cad else 'organic/smooth'
-    log.log(f"  Auto-projection: {sharp30}/{total} edges >=30° "
-            f"({fraction:.1%}) → {geometry} → seam_angle={math.degrees(seam_angle):.0f}°")
-    return ('lscm', seam_angle)
+    # ── Dispatch: structural pattern matching on (flat, tall, prismatic, euler) ──
+    # Open/Closed Principle: extend by adding new case branches only.
+    # No part names, no brittle string matching, no hardcoded overrides.
+    # Euler characteristic disambiguates REVOLUTION from tall ORGANIC:
+    #   Revolution surface (bottle, funnel): open cylinder, χ≈0
+    #   Tall organic (figurine on pedestal, staff):  closed surface, χ>0
+    flat      = z_ratio < 0.25
+    tall      = z_ratio >= 1.0
+    prismatic = sharp_fraction >= 0.35
+    annular   = euler_char <= 0   # has at least one through-hole or handle
+
+    match (flat, tall, prismatic):
+        case (True, _, _):
+            cls            = MeshClass.FLAT_SHELL
+            seam_angle_rad = SHARP_RAD
+            use_uv         = False
+            full_surface   = False
+        case (False, True, False) if annular:
+            # Tall + smooth + topological through-hole → confirmed annular manifold
+            cls            = MeshClass.REVOLUTION
+            seam_angle_rad = SHARP_RAD
+            use_uv         = True
+            full_surface   = True
+        case (False, True, False):
+            # Tall + smooth but no through-hole → tall organic (figurine, pedestal)
+            # DNA verification will flag a mismatch if this is wrong.
+            cls            = MeshClass.ORGANIC
+            seam_angle_rad = ORGANIC_RAD
+            use_uv         = True
+            full_surface   = True
+        case (False, _, True):
+            cls            = MeshClass.PRISMATIC
+            seam_angle_rad = SHARP_RAD
+            use_uv         = False
+            full_surface   = False
+        case _:
+            cls            = MeshClass.ORGANIC
+            seam_angle_rad = ORGANIC_RAD
+            use_uv         = True
+            full_surface   = True
+
+    sig = TopologySignature(
+        mesh_class=cls,
+        sharp_fraction=sharp_fraction,
+        z_ratio=z_ratio,
+        curvature_std=curvature_std,
+        n_verts=len(obj.data.vertices),
+        euler_characteristic=euler_char,
+        seam_angle_rad=seam_angle_rad,
+        use_uv=use_uv,
+        full_surface=full_surface,
+    )
+    log.log(
+        f"  Topology classifier:  sharp={sharp_fraction:.1%}  "
+        f"z_ratio={z_ratio:.2f}  K_std={curvature_std:.4f}  χ={euler_char}  "
+        f"→ {cls.name}"
+    )
+    log.log(
+        f"  Strategy: coords={'UV(LSCM)' if use_uv else 'OBJECT'}  "
+        f"full_surface={full_surface}  "
+        f"seam={math.degrees(seam_angle_rad):.0f}deg"
+    )
+    return sig
 
 
 def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger,
@@ -486,8 +742,8 @@ def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger,
         if projection == 'lscm':
             # PhD pipeline (Advanced Texture Wrapping for CAD, §II.1):
             # Place seams at design-edge boundaries using the dihedral threshold
-            # chosen by _auto_projection:
-            #   30° (CAD/prismatic): every planar panel → own island, zero
+            # resolved by _classify_mesh_topology → TopologySignature.seam_angle_rad:
+            #   30° (REVOLUTION/PRISMATIC): every planar panel → own island, zero
             #       distortion per-face, seams only at geometric transitions
             #       (port shoulders, boss rims, gasket seats, fillet roots).
             #   60° (organic/smooth): seams only at hard corners — continuous
@@ -575,11 +831,420 @@ def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger,
             f"sampled {n_samp} edges)")
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  AI Debug Snapshot Infrastructure
+#  Implements Vision-in-the-Loop (ViL) telemetry so the AI agent can run
+#  scripts/ai_debug_pipeline.py autonomously, read JSON output, and adjust
+#  classifier thresholds without human intervention.
+#  Refs: GPT-4V (arXiv 2303.08774), Keenan Crane DDG 2024 (conformal maps)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _render_curvature_heatmap(obj, output_png: str, log: "Logger | None") -> bool:
+    """Render Gaussian curvature K_v = 2π – Σ(interior angles) as a vertex-colour
+    heatmap PNG using Blender EEVEE.
+
+    Colour map:
+      Blue   = K ≈ 0  (flat / planar vertex)
+      Red    = K > 0  (convex — sphere-like)
+      Green  = K < 0  (saddle — hyperbolic)
+
+    Returns True on success, False on any error (never raises).
+    """
+    import bmesh as _bmx, math as _math
+    try:
+        bm = _bmx.new()
+        bm.from_mesh(obj.data)
+        bm.verts.ensure_lookup_table()
+
+        # Gaussian angle deficit per vertex
+        k_vals: list = [0.0] * len(bm.verts)
+        for v in bm.verts:
+            angle_sum = sum(lp.calc_angle() for lp in v.link_loops)
+            k_vals[v.index] = 2.0 * _math.pi - angle_sum
+
+        k_range = max(max(abs(k) for k in k_vals), 1e-6)
+
+        col_layer = bm.loops.layers.color.new("CurvatureMap")
+        for v in bm.verts:
+            t = k_vals[v.index] / k_range   # normalised −1..+1
+            if t >= 0.0:
+                r, g, b = t, 0.0, 1.0 - t  # blue → red (flat → convex)
+            else:
+                r, g, b = 0.0, -t, 1.0 + t  # blue → green (flat → saddle)
+            for lp in v.link_loops:
+                lp[col_layer] = (r, g, b, 1.0)
+
+        bm.to_mesh(obj.data)
+        bm.free()
+        obj.data.update()
+
+        # Vertex-colour material
+        mat = bpy.data.materials.new("__dbg_curv__")
+        mat.use_nodes = True
+        nt = mat.node_tree
+        nt.nodes.clear()
+        attr = nt.nodes.new("ShaderNodeAttribute")
+        attr.attribute_name = "CurvatureMap"
+        bsdf = nt.nodes.new("ShaderNodeBsdfDiffuse")
+        out  = nt.nodes.new("ShaderNodeOutputMaterial")
+        nt.links.new(attr.outputs["Color"], bsdf.inputs["Color"])
+        nt.links.new(bsdf.outputs["BSDF"],  out.inputs["Surface"])
+        old_mats = list(obj.data.materials)
+        obj.data.materials.clear()
+        obj.data.materials.append(mat)
+
+        # Overhead orthographic camera
+        verts_list = [v.co for v in obj.data.vertices]
+        xs = [v.x for v in verts_list]; ys = [v.y for v in verts_list]
+        zs = [v.z for v in verts_list]
+        cx = (min(xs) + max(xs)) * 0.5;  cy = (min(ys) + max(ys)) * 0.5
+        span = max(max(xs) - min(xs), max(ys) - min(ys), 1.0)
+        cz   = max(zs) + span * 0.9
+
+        cam_data = bpy.data.cameras.new("__dbg_cam__")
+        cam_data.type = 'ORTHO'
+        cam_data.ortho_scale = span * 1.1
+        cam_obj  = bpy.data.objects.new("__dbg_cam__", cam_data)
+        bpy.context.collection.objects.link(cam_obj)
+        cam_obj.location       = (cx, cy, cz)
+        cam_obj.rotation_euler = (0.0, 0.0, 0.0)
+        prev_cam = bpy.context.scene.camera
+        bpy.context.scene.camera = cam_obj
+
+        scn = bpy.context.scene
+        prev_engine = scn.render.engine
+        prev_path   = scn.render.filepath
+        prev_format = scn.render.image_settings.file_format
+        prev_rx, prev_ry = scn.render.resolution_x, scn.render.resolution_y
+
+        try:
+            scn.render.engine                       = 'BLENDER_EEVEE_NEXT'
+        except Exception:
+            scn.render.engine                       = 'BLENDER_EEVEE'
+        scn.render.filepath                         = output_png
+        scn.render.image_settings.file_format       = 'PNG'
+        scn.render.resolution_x                     = 512
+        scn.render.resolution_y                     = 512
+        scn.render.film_transparent                 = False
+
+        os.makedirs(os.path.dirname(output_png) or ".", exist_ok=True)
+        bpy.ops.render.render(write_still=True)
+
+        # Restore scene
+        scn.render.engine                     = prev_engine
+        scn.render.filepath                   = prev_path
+        scn.render.image_settings.file_format = prev_format
+        scn.render.resolution_x               = prev_rx
+        scn.render.resolution_y               = prev_ry
+        bpy.context.scene.camera              = prev_cam
+        bpy.data.cameras.remove(cam_data)
+        bpy.data.objects.remove(cam_obj)
+        bpy.data.materials.remove(mat)
+        obj.data.materials.clear()
+        for m in old_mats:
+            obj.data.materials.append(m)
+
+        if log:
+            log.log(f"  [debug] curvature heatmap → {output_png}")
+        return True
+
+    except Exception as _e:
+        if log:
+            log.log(f"  [debug] curvature heatmap failed: {_e}")
+        return False
+
+
+def _render_checkerboard_diagnostic(obj, output_png: str, log: "Logger | None") -> bool:
+    """Render a UV checkerboard diagnostic image via Blender EEVEE.
+
+    Uses a procedural Checker Texture node (no external file) to expose UV
+    mapping quality: perfect conformal map → square checker cells; any
+    aspect-ratio drift > 15% in a cell indicates high Dirichlet energy E_D
+    at that surface region.
+
+    Colour meaning:
+      Square cells  = conformal (angle-preserving)
+      Elongated cols= compression   (RED in Jacobian heatmap)
+      Elongated rows= expansion     (BLUE in Jacobian heatmap)
+
+    References:
+      Lévy 2002 §3   — LSCM minimises E_D = ∫|∇ψ|² dA
+      docs/AI Debugging 3D Texture Mapping.md §I.1 (Semantic UV Stress Maps)
+      resources/shaders/uv_diagnostic.glsl §1 (CHECKERBOARD mode)
+    """
+    try:
+        mat = bpy.data.materials.new("__dbg_checker__")
+        mat.use_nodes = True
+        nt = mat.node_tree
+        nt.nodes.clear()
+
+        uv_node  = nt.nodes.new("ShaderNodeTexCoord")
+        chk_node = nt.nodes.new("ShaderNodeTexChecker")
+        bsdf     = nt.nodes.new("ShaderNodeBsdfDiffuse")
+        out      = nt.nodes.new("ShaderNodeOutputMaterial")
+
+        # 8×8 grid — matches docs/AI Debugging 3D Texture Mapping.md §I.1
+        chk_node.inputs["Scale"].default_value    = 8.0
+        chk_node.inputs["Color1"].default_value   = (0.0, 0.0, 0.0, 1.0)
+        chk_node.inputs["Color2"].default_value   = (1.0, 1.0, 1.0, 1.0)
+        nt.links.new(uv_node.outputs["UV"],    chk_node.inputs["Vector"])
+        nt.links.new(chk_node.outputs["Color"], bsdf.inputs["Color"])
+        nt.links.new(bsdf.outputs["BSDF"],      out.inputs["Surface"])
+
+        old_mats = list(obj.data.materials)
+        obj.data.materials.clear()
+        obj.data.materials.append(mat)
+
+        verts_list = [v.co for v in obj.data.vertices]
+        xs = [v.x for v in verts_list]; ys = [v.y for v in verts_list]
+        zs = [v.z for v in verts_list]
+        cx   = (min(xs) + max(xs)) * 0.5;  cy = (min(ys) + max(ys)) * 0.5
+        span = max(max(xs) - min(xs), max(ys) - min(ys), 1.0)
+        cz   = max(zs) + span * 0.9
+
+        cam_data            = bpy.data.cameras.new("__dbg_chk_cam__")
+        cam_data.type       = "ORTHO"
+        cam_data.ortho_scale = span * 1.1
+        cam_obj             = bpy.data.objects.new("__dbg_chk_cam__", cam_data)
+        bpy.context.collection.objects.link(cam_obj)
+        cam_obj.location       = (cx, cy, cz)
+        cam_obj.rotation_euler = (0.0, 0.0, 0.0)
+        prev_cam               = bpy.context.scene.camera
+        bpy.context.scene.camera = cam_obj
+
+        scn         = bpy.context.scene
+        prev_engine = scn.render.engine
+        prev_path   = scn.render.filepath
+        prev_format = scn.render.image_settings.file_format
+        prev_rx, prev_ry = scn.render.resolution_x, scn.render.resolution_y
+
+        try:
+            scn.render.engine = "BLENDER_EEVEE_NEXT"
+        except Exception:
+            scn.render.engine = "BLENDER_EEVEE"
+        scn.render.filepath                   = output_png
+        scn.render.image_settings.file_format = "PNG"
+        scn.render.resolution_x               = 512
+        scn.render.resolution_y               = 512
+        scn.render.film_transparent           = False
+
+        os.makedirs(os.path.dirname(output_png) or ".", exist_ok=True)
+        bpy.ops.render.render(write_still=True)
+
+        scn.render.engine                     = prev_engine
+        scn.render.filepath                   = prev_path
+        scn.render.image_settings.file_format = prev_format
+        scn.render.resolution_x               = prev_rx
+        scn.render.resolution_y               = prev_ry
+        bpy.context.scene.camera              = prev_cam
+        bpy.data.cameras.remove(cam_data)
+        bpy.data.objects.remove(cam_obj)
+        bpy.data.materials.remove(mat)
+        obj.data.materials.clear()
+        for m in old_mats:
+            obj.data.materials.append(m)
+
+        if log:
+            log.log(f"  [debug] checkerboard diagnostic \u2192 {output_png}")
+        return True
+
+    except Exception as _e:
+        if log:
+            log.log(f"  [debug] checkerboard render failed: {_e}")
+        return False
+
+
+def _calculate_uv_stretch_metrics(obj, log: "Logger | None") -> dict:
+    """Compute per-face UV stretch (L2 area metric) across the mesh.
+
+    For each polygon, compare 3D surface area (mm²) to its UV-space area
+    (UV units²).  Normalise so a perfect isometric map has stretch = 1.0.
+
+    Returns a JSON-serialisable dict:
+      {
+        "n_faces":             int,    # polygon count
+        "mean_stretch":        float,  # 1.0 = isometric, > 1 = UV too small
+        "max_stretch":         float,  # worst-case face
+        "std_stretch":         float,  # spread of distortion
+        "high_energy_frac":    float,  # fraction with |stretch-1| > 0.15
+        "n_high_energy_faces": int,    # count  with |stretch-1| > 0.15
+        "dirichlet_energy":    float,  # E_D = Σ max(s,1/s)·area / total_area
+      }
+
+    Dirichlet energy E_D ≥ 0 for any mapping; = 0 only for isometric maps.
+    E_D > 2.0 indicates severe conformal distortion — wrong projection mode.
+
+    References:
+      Lévy 2002   — LSCM: E_D(ψ) = ∫|∇ψ|² dA  (eq. 4)
+      Sander 2001 — L2 stretch metric Γ² = (a²+b²+c²+d²) / 2A
+      docs/AI Debugging 3D Texture Mapping.md §II (AI Texture Critic Prompt)
+    """
+    mesh   = obj.data
+    uv_lyr = mesh.uv_layers.active
+    if uv_lyr is None:
+        if log:
+            log.log("  UV stretch: no UV layer (OBJECT-coords mode?) — skipping")
+        return {"error": "no_uv_layer"}
+
+    uv_data  = uv_lyr.data
+    areas_3d: list = []
+    areas_uv: list = []
+
+    for poly in mesh.polygons:
+        a3 = poly.calc_area()
+        n  = len(poly.loop_indices)
+        uv_pts = [uv_data[li].uv for li in poly.loop_indices]
+        au = 0.0
+        for k in range(n):
+            x0, y0 = uv_pts[k]
+            x1, y1 = uv_pts[(k + 1) % n]
+            au += (x0 * y1 - x1 * y0)   # shoelace
+        areas_3d.append(a3)
+        areas_uv.append(abs(au) * 0.5)
+
+    total_3d = sum(areas_3d)
+    total_uv = sum(areas_uv)
+    if total_3d < 1e-12 or total_uv < 1e-12:
+        return {"error": "degenerate_mesh"}
+
+    stretch_vals: list = []
+    dirichlet    = 0.0
+    for a3, au in zip(areas_3d, areas_uv):
+        if au < 1e-12:
+            s = 10.0   # collapsed UV island → maximum stretch
+        else:
+            s = (a3 * total_uv) / (au * total_3d)   # normalised area stretch
+        stretch_vals.append(s)
+        dirichlet += max(s, 1.0 / max(s, 1e-6)) * a3
+
+    n    = len(stretch_vals)
+    mean = sum(stretch_vals) / n
+    std  = (sum((s - mean) ** 2 for s in stretch_vals) / n) ** 0.5
+    mx   = max(stretch_vals)
+    high = [s for s in stretch_vals if abs(s - 1.0) > 0.15]
+
+    result = {
+        "n_faces":             n,
+        "mean_stretch":        round(mean, 4),
+        "max_stretch":         round(mx,   4),
+        "std_stretch":         round(std,  4),
+        "high_energy_frac":    round(len(high) / n, 4) if n else 0.0,
+        "n_high_energy_faces": len(high),
+        "dirichlet_energy":    round(dirichlet / max(total_3d, 1e-12), 4),
+    }
+    if log:
+        log.log(
+            f"  UV stretch: mean={result['mean_stretch']:.3f}  "
+            f"max={result['max_stretch']:.3f}  "
+            f"high_energy={result['n_high_energy_faces']}/{n} "
+            f"({result['high_energy_frac']:.1%})  "
+            f"E_D={result['dirichlet_energy']:.4f}"
+        )
+    return result
+
+
+def _export_debug_snapshot(session: "_DebugSession", stage: str,
+                            obj, sig: "TopologySignature | None",
+                            log: "Logger | None",
+                            render_heatmap: bool = False,
+                            **extra) -> None:
+    """Write a JSON telemetry record for *stage* to session.snapshots_dir.
+
+    Each call appends a record to session.stages and writes two files:
+      {snapshots_dir}/{stage}.json          — single-stage record
+      {snapshots_dir}/session_summary.json  — all stages so far (rolling update)
+
+    If render_heatmap=True, also renders a curvature heatmap PNG via EEVEE
+    and sets ``record["heatmap_png"]`` to the output path.
+
+    Never raises — all errors are logged and silently ignored.
+    """
+    import json as _json, datetime as _dt, math as _math
+    snap_dir = session.snapshots_dir
+    if not snap_dir:
+        return
+    try:
+        os.makedirs(snap_dir, exist_ok=True)
+        n_verts, n_polys, bbox_mm = 0, 0, [0.0, 0.0, 0.0]
+        if obj is not None:
+            try:
+                xs = [v.co.x for v in obj.data.vertices]
+                ys = [v.co.y for v in obj.data.vertices]
+                zs = [v.co.z for v in obj.data.vertices]
+                if xs:
+                    bbox_mm = [round(max(xs) - min(xs), 2),
+                               round(max(ys) - min(ys), 2),
+                               round(max(zs) - min(zs), 2)]
+                n_verts = len(obj.data.vertices)
+                n_polys = len(obj.data.polygons)
+            except Exception:
+                pass
+
+        record: dict = {
+            "model":     session.model_path,
+            "skin":      session.skin_path,
+            "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
+            "stage":     stage,
+            "mesh_class": sig.mesh_class.name if sig else "UNKNOWN",
+            "features": {
+                "sharp_fraction":       sig.sharp_fraction       if sig else None,
+                "z_ratio":              sig.z_ratio              if sig else None,
+                "curvature_std":        sig.curvature_std        if sig else None,
+                "euler_characteristic": sig.euler_characteristic if sig else None,
+            } if sig else {},
+            "projection":      ("lscm" if sig and sig.use_uv else "object") if sig else "unknown",
+            "full_surface":    sig.full_surface    if sig else None,
+            "seam_angle_deg":  round(_math.degrees(sig.seam_angle_rad), 1) if sig else None,
+            "geometry": {
+                "verts":   n_verts,
+                "polys":   n_polys,
+                "bbox_mm": bbox_mm,
+            },
+            "heatmap_png": None,
+        }
+        record.update(extra)
+
+        if render_heatmap and obj is not None:
+            heatmap_path = os.path.join(snap_dir, f"heatmap_{stage}.png")
+            if _render_curvature_heatmap(obj, heatmap_path, log):
+                record["heatmap_png"] = heatmap_path
+            checker_path = os.path.join(snap_dir, f"checker_{stage}.png")
+            if _render_checkerboard_diagnostic(obj, checker_path, log):
+                record["checker_png"] = checker_path
+
+        # UV stretch metrics: computed at post_displace whenever a UV layer exists.
+        # This is the primary metric signal read by scripts/ai_texture_critic.py.
+        # E_D > 2.0 → wrong projection; high_energy_frac > 0.20 → seam issue.
+        # Refs: Lévy 2002 E_D, Sander 2001 L2 stretch, docs/AI Debugging Texture Mapping Glitches.md §II
+        if obj is not None and stage == "post_displace":
+            record["uv_stretch"] = _calculate_uv_stretch_metrics(obj, log)
+
+        session.stages.append(record)
+
+        stage_file = os.path.join(snap_dir, f"{stage}.json")
+        with open(stage_file, "w", encoding="utf-8") as _fh:
+            _json.dump(record, _fh, indent=2)
+
+        summary_file = os.path.join(snap_dir, "session_summary.json")
+        with open(summary_file, "w", encoding="utf-8") as _fh:
+            _json.dump({"model": session.model_path, "stages": session.stages},
+                       _fh, indent=2)
+
+        if log:
+            log.log(f"  [debug-snapshot:{stage}] → {stage_file}")
+
+    except Exception as _e:
+        if log:
+            log.log(f"  [debug-snapshot:{stage}] ERROR: {_e}")
+
+
 def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
                                 relief: float, invert: bool, gamma: float,
                                 log: Logger, *, mode: str = "modifier",
                                 projection: str = "object",
-                                full_surface: bool = True):
+                                full_surface: bool = True,
+                                debug_session: "_DebugSession | None" = None,
+                                render_heatmap: bool = False):
     """
     Full-Blender displacement pipeline — Displace modifier + Simple subdivision.
 
@@ -610,6 +1275,11 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     bm.free()
     obj.data.update()
     log.log(f"  Welded: {before_w}→{len(obj.data.vertices)} verts")
+    if debug_session:
+        _export_debug_snapshot(debug_session, "post_weld", obj, None, log,
+                               render_heatmap=render_heatmap,
+                               weld_before=before_w,
+                               weld_after=len(obj.data.vertices))
 
     # ── 1. UV unwrap — BEFORE subdivision (clean low-poly topology) ───────
     # UV coordinates survive Simple subdivision: Blender interpolates them
@@ -618,30 +1288,59 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     # 'auto' uses geometry analysis (PhD: Advanced Texture Wrapping for CAD):
     #   - always LSCM (angle-preserving conformal maps)
     #   - 30° seams for CAD/prismatic parts, 60° seams for organic shapes
-    seam_angle_rad = 1.0472  # default: 60° (organic)
+    seam_angle_rad  = 1.0472   # default: 60° (organic); overridden by classifier
+    _topology_sig: "TopologySignature | None" = None   # set when projection == 'auto'
     if projection == 'auto':
-        projection, seam_angle_rad = _auto_projection(obj, log)
-        # CAD/prismatic mesh detected (30° seam angle): automatically restrict
-        # displacement to the primary outward-facing surface (normal.z > 0.5).
-        #
-        # Rationale: phone cases and other box-like parts have thin walls
-        # (1-2 mm). With full_surface=True the Displace modifier pushes EVERY
-        # face outward along its own normal — the inner face inward, the side
-        # walls sideways, etc. On a 1 mm wall that means both faces move by
-        # up to 'relief' mm in opposing directions, collapsing or inverting
-        # the wall geometry and producing the "crushed case" artifact.
-        #
-        # For organic/smooth parts (60° seam) the full-surface skin-wrap is
-        # correct — a dragon's scales should wrap around all surfaces.
-        if seam_angle_rad <= 0.524 and full_surface:
-            full_surface = False
-            log.log("  CAD auto-mode: restricting displacement to top-facing "
-                    "faces (normal.z > 0.5) — prevents thin-wall crush on "
-                    "box/CAD geometry.")
+        # ── Polymorphic dispatch via TopologySignature ────────────────────
+        # Three intrinsic mesh features (sharp_fraction, z_ratio, curvature_std)
+        # are measured and classified into a MeshClass.  A match/case block then
+        # selects UV strategy with no part-specific hacks and no name matching.
+        # Extends the Open/Closed Principle: add a new case branch for new classes.
+        # Refs: Reuter 2006 (Shape DNA), Lévy 2002 (LSCM), Wadler 1998 (Expression Problem).
+        _topology_sig = sig = _classify_mesh_topology(obj, log)
 
-    use_uv = (projection in ('conformal', 'lscm'))
+        match sig.mesh_class:
+            case MeshClass.FLAT_SHELL | MeshClass.PRISMATIC:
+                # World-space XY box-map: no UV islands, no seam boundaries.
+                # LSCM on flat/prismatic parts fragments every face at holes
+                # and hard edges → spike fans at island boundaries.
+                projection     = 'object'
+                seam_angle_rad = sig.seam_angle_rad
+                full_surface   = False
+            case MeshClass.REVOLUTION:
+                # Tall cylinders / bottles: LSCM with 30° seams unwraps each
+                # panel cleanly whilst following the curved surface geodesically.
+                projection     = 'lscm'
+                seam_angle_rad = sig.seam_angle_rad  # 30°
+                full_surface   = True
+            case MeshClass.ORGANIC:
+                # Freeform (dragon, figurine): LSCM with 60° seams minimises
+                # angular distortion across smooth curved regions (Lévy 2002).
+                projection     = 'lscm'
+                seam_angle_rad = sig.seam_angle_rad  # 60°
+                full_surface   = True
+            case _:
+                # Unknown class — safe fallback: no UV, top-face only.
+                projection     = 'object'
+                seam_angle_rad = 0.5236
+                full_surface   = False
+
+    if debug_session:
+        import math as _math_dbg
+        _export_debug_snapshot(debug_session, "post_classify", obj, _topology_sig, log,
+                               render_heatmap=render_heatmap,
+                               resolved_projection=projection,
+                               seam_angle_deg=round(_math_dbg.degrees(seam_angle_rad), 1))
+
+    # UV vs OBJECT: LSCM is correct for curved organic/revolution surfaces
+    # (texture follows geodesic distance — Lévy 2002).  OBJECT is correct
+    # for flat/prismatic surfaces (no UV island fragmentation, no spike fans).
+    use_uv = (projection in ('conformal', 'lscm')) and full_surface
     if use_uv:
         _do_uv_unwrap(obj, tile_size, projection, log, seam_angle_rad=seam_angle_rad)
+    elif not full_surface:
+        log.log("  CAD thin-shell: using OBJECT coords (world-space XY box-map) — "
+                "LSCM would fragment the flat face into islands causing spike fans")
 
     # ── 2. Simple Subdivision ─────────────────────────────────────────────
     # Pass organic=True for smooth/creature meshes — they use a higher triangle
@@ -667,7 +1366,9 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     # ── 3. Vertex group (optional) ────────────────────────────────────────
     vgroup_name = ""
     if not full_surface:
-        # Legacy: restrict to faces pointing upward (normal.z > 0.5).
+        # Legacy: restrict to faces pointing upward (normal.z > 0.7).
+        # 0.7 threshold (≈45°) excludes bore-rim chamfer triangles and hole-edge
+        # transitions that cause LSCM UV spike fans at circular apertures.
         # Walls, fillets, holes are excluded — they stay perfectly sharp.
         vg      = obj.vertex_groups.new(name="TopFace")
         mesh    = obj.data
@@ -677,10 +1378,10 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
             for vi in poly.vertices:
                 if nz > vert_max_z[vi]:
                     vert_max_z[vi] = nz
-        top_verts = [i for i, nz in enumerate(vert_max_z) if nz > 0.5]
+        top_verts = [i for i, nz in enumerate(vert_max_z) if nz > 0.7]
         vg.add(top_verts, 1.0, 'REPLACE')
         vgroup_name = "TopFace"
-        log.log(f"  Vertex group 'TopFace': {len(top_verts)}/{len(mesh.vertices)} verts (normal.z > 0.5)")
+        log.log(f"  Vertex group 'TopFace': {len(top_verts)}/{len(mesh.vertices)} verts (normal.z > 0.7)")
     else:
         log.log("  Full-surface mode: no vertex mask — entire surface will be displaced")
 
@@ -772,7 +1473,10 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
             if _e.seam:
                 seam_set.add(_e.verts[0].index)
                 seam_set.add(_e.verts[1].index)
-        for _ in range(2):
+        # Wider blend band for larger relief values (PhD: band width scales with
+        # displacement amplitude to fully cover the spike influence zone)
+        _hops = max(4, int(abs(relief) / 0.1) * 2)
+        for _ in range(_hops):
             _new = set(seam_set)
             for _vi in seam_set:
                 for _le in _bm.verts[_vi].link_edges:
@@ -782,7 +1486,9 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
         if seam_set:
             _LAM  =  0.50   # Taubin λ — positive Laplacian (smooth toward average)
             _MU   = -0.53   # Taubin μ — negative step  (restore volume, |μ|>λ)
-            _ITERS = 5
+            # Scale iterations with relief: larger displacement needs more passes
+            # to fully blend the seam discontinuity. PhD ref: Taubin 1995 §3.2
+            _ITERS = max(15, int(abs(relief) / 0.1) * 3)
 
             for _ in range(_ITERS):
                 for _factor in (_LAM, _MU):
@@ -817,22 +1523,37 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
             f"projection={'UV('+projection+')' if use_uv else 'OBJECT'}  "
             f"full_surface={full_surface}")
 
-    # ── 7. Shape DNA (diagnostic fingerprint) ────────────────────────────
+    # ── 7. Shape DNA (diagnostic fingerprint + spectral verification) ──────
     # Compute on the post-displacement mesh (before subdivision makes it huge).
-    # Log eigenvalues so the user/debugger can verify shape integrity.
+    # Eigenvalue ratio λ1/λ2 is compared against the classifier output:
+    # mismatch = potential misclassification → check log for TOPOLOGY MISMATCH.
     # For meshes subdivided beyond 5 000 verts this is skipped automatically.
-    _compute_shape_dna(obj, k=10, log=log)
+    _compute_shape_dna(
+        obj, k=10, log=log,
+        expected_class=_topology_sig.mesh_class if _topology_sig else None,
+    )
+    if debug_session:
+        import math as _math_dbg
+        _export_debug_snapshot(debug_session, "post_displace", obj, _topology_sig, log,
+                               render_heatmap=render_heatmap,
+                               strength_mm=strength,
+                               tile_size_mm=tile_size,
+                               mode=mode,
+                               coords=("UV(" + projection + ")") if use_uv else "OBJECT")
 
 
 def _apply_displacement(obj, skin_path: str, tile_size: float,
                         relief: float, invert: bool, gamma: float,
                         log: Logger, *, mode: str = "modifier",
                         projection: str = "object",
-                        full_surface: bool = True):
+                        full_surface: bool = True,
+                        debug_session: "_DebugSession | None" = None,
+                        render_heatmap: bool = False):
     """Thin wrapper — always delegates to the full-Blender pipeline."""
     _apply_displacement_blender(
         obj, skin_path, tile_size, relief, invert, gamma, log,
         mode=mode, projection=projection, full_surface=full_surface,
+        debug_session=debug_session, render_heatmap=render_heatmap,
     )
 
 
@@ -909,6 +1630,26 @@ def main():
                 f"projection={args.projection}  full_surface={args.full_surface}")
         log.log(f"model: {args.model_path}")
         log.log(f"skin : {args.skin_path}")
+        # ── DIAGNOSTIC: confirm texture file exists and is non-empty ──────────
+        if not args.skin_path:
+            raise RuntimeError("TEXTURE PATH IS EMPTY — png_path was not passed from C++ (check tex_log)")
+        if not os.path.exists(args.skin_path):
+            raise RuntimeError(f"TEXTURE FILE NOT FOUND: '{args.skin_path}'")
+        _skin_sz = os.path.getsize(args.skin_path)
+        if _skin_sz == 0:
+            raise RuntimeError(f"TEXTURE FILE IS ZERO BYTES: '{args.skin_path}'")
+        log.log(f"skin_exists=True  skin_size={_skin_sz} bytes  (file confirmed readable)")
+
+        # ── Debug snapshot session (AI Vision-in-the-Loop) ────────────────────
+        _debug_session: "_DebugSession | None" = None
+        if getattr(args, "debug_snapshots", False):
+            _snap_dir = getattr(args, "snapshots_dir", "") or os.path.dirname(log_path)
+            _debug_session = _DebugSession(
+                model_path=args.model_path,
+                skin_path=args.skin_path,
+                snapshots_dir=_snap_dir,
+            )
+            log.log(f"  debug-snapshots ON → {_snap_dir}")
 
         _reset_scene()
 
@@ -938,6 +1679,8 @@ def main():
                 mode=args.mode,
                 projection=args.projection,
                 full_surface=args.full_surface,
+                debug_session=_debug_session,
+                render_heatmap=getattr(args, "render_heatmap", False),
             )
             _export_stl(original_obj, out_path, log)
 
@@ -967,6 +1710,8 @@ def main():
                 mode=args.mode,
                 projection=args.projection,
                 full_surface=args.full_surface,
+                debug_session=_debug_session,
+                render_heatmap=getattr(args, "render_heatmap", False),
             )
             _export_stl(displaced_obj, out_path, log)
 

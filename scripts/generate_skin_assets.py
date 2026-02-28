@@ -39,8 +39,13 @@ GCP_PROJECT  = "crafty-hook-483415-b3"
 GCP_LOCATION = "us-central1"
 IMG_MODEL    = "imagen-3.0-generate-001"
 
-# Primary output: QIDIStudio install directory
-INSTALL_ASSETS = pathlib.Path(r"C:\QIDISrc\QIDIStudio\install_dir\resources\assets")
+# Primary output: QIDIStudio install directory.
+# Override with QIDI_ASSETS_DIR env var for non-default install paths:
+#   set QIDI_ASSETS_DIR=D:\MyInstall\resources\assets
+INSTALL_ASSETS = pathlib.Path(
+    os.environ.get("QIDI_ASSETS_DIR",
+                   r"C:\QIDISrc\QIDIStudio\install_dir\resources\assets")
+)
 # Mirror: fork repo for version control (small PNGs are OK to commit)
 FORK_ASSETS    = pathlib.Path(__file__).parent.parent / "resources" / "assets"
 

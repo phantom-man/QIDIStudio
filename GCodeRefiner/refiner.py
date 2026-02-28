@@ -37,7 +37,7 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 
 # ---------------------------------------------------------------------------
@@ -72,7 +72,7 @@ class BlockContext:
     current_temp:   int          = 0
     current_fan:    int          = 0
     current_speed:  float        = 0.0   # mm/s (F/60)
-    last_injected:  dict         = field(default_factory=dict)  # what was last injected
+    last_injected:  dict[str, Any] = field(default_factory=dict)  # what was last injected
 
 
 # ---------------------------------------------------------------------------
@@ -180,14 +180,24 @@ def _make_accel_line(accel: int, comment: str) -> str:
     return f"M204 P{accel} ; refiner: {comment}"
 
 
-def _apply_speed_to_g1(line: str, speed_mm_s: float) -> str:
+def _make_flow_line(flow_ratio: float, comment: str) -> str:
+    """M221 S{pct} — set flow-rate percentage (1.02 → S102)."""
+    pct = round(flow_ratio * 100)
+    return f"M221 S{pct} ; refiner: {comment}"
+
+
+def _apply_speed_to_g1(line: str, speed_mm_s: float,
+                       inject_if_missing: bool = False) -> str:
     """
     Replace the F parameter in a G1/G0 line with the target speed (mm/s → mm/min).
-    If no F present in the line, does not add one (speed carries over from previous line).
+    If no F is present and inject_if_missing is True (first move after a feature
+    change), appends F so the transition speed is correct even on F-less lines.
     """
     feedrate_mm_min = round(speed_mm_s * 60)
     if FEEDRATE_SWAP_RE.search(line):
         return FEEDRATE_SWAP_RE.sub(f"F{feedrate_mm_min}", line, count=1)
+    if inject_if_missing:
+        return line.rstrip() + f" F{feedrate_mm_min}"
     return line
 
 
@@ -248,7 +258,7 @@ class Refiner:
             lines = f.readlines()
 
         # Transform
-        out_lines, stats = self._transform(lines)
+        out_lines, stats = self.transform(lines)
 
         # Write to temp file first, then replace (atomic-ish)
         tmp = src.with_suffix(".refiner_tmp")
@@ -270,11 +280,12 @@ class Refiner:
 
         return stats
 
-    def _transform(self, lines: list[str]) -> tuple[list[str], dict]:
+    def transform(self, lines: list[str]) -> tuple[list[str], dict]:
         """Core line-by-line transform. Returns (output_lines, stats)."""
         ctx   = BlockContext()
         out   = []
         stats = {"lines_in": len(lines), "lines_out": 0, "injections": 0, "features_seen": set()}
+        first_move_after_transition = False  # injects F even on F-less G1 at feature start
 
         for line in lines:
             stripped = line.rstrip("\n\r")
@@ -290,6 +301,7 @@ class Refiner:
                     out.extend(inject_line + "\n" for inject_line in inject)
                     stats["injections"] += len(inject)
                 stats["features_seen"].add(ctx.current_type)
+                first_move_after_transition = True
                 continue
 
             # ── Apply speed override to G0/G1 move lines ─────────────────
@@ -298,9 +310,11 @@ class Refiner:
                 # Replace the last line with speed-adjusted version
                 speed = override.get("speed_mm_s")
                 if speed:
-                    modified = _apply_speed_to_g1(stripped, speed)
+                    modified = _apply_speed_to_g1(stripped, speed,
+                                                  inject_if_missing=first_move_after_transition)
                     if modified != stripped:
                         out[-1] = modified + "\n"
+                first_move_after_transition = False
 
         stats["lines_out"] = len(out)
         return out, stats
@@ -336,6 +350,12 @@ class Refiner:
         if accel and accel != last.get("accel"):
             injections.append(_make_accel_line(accel, comment))
             ctx.last_injected["accel"] = accel
+
+        # Flow ratio
+        flow = override.get("flow_ratio")
+        if flow is not None and flow != last.get("flow_ratio"):
+            injections.append(_make_flow_line(flow, comment))
+            ctx.last_injected["flow_ratio"] = flow
 
         return injections
 
@@ -445,7 +465,7 @@ def main():
         # Read file, transform in memory, report stats, don't write
         with open(gcode_file, "r", encoding="utf-8", errors="replace") as f:
             lines = f.readlines()
-        _, stats = refiner._transform(lines)
+        _, stats = refiner.transform(lines)
         print(f"[dry-run] Would inject {stats['injections']} lines into {stats['lines_in']} total lines.")
         print(f"[dry-run] Features detected: {sorted(stats['features_seen'])}")
         return 0

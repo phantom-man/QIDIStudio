@@ -20973,6 +20973,7 @@ void Plater::apply_texture(ModelVolumeType type)
             wxString::FromUTF8(log_path));
     }
 
+    tex_log("apply_texture: ipc_log_path=" + log_path);
     tex_log("apply_texture: launching cmd=" + cmd.ToStdString());
     wxBusyCursor    busy;
     wxArrayString stdout_output;
