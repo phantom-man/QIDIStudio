@@ -359,20 +359,24 @@ def _compute_shape_dna(obj, k: int = 10, log: "Logger | None" = None):
     return dna
 
 
-def _adaptive_subd_level(obj) -> int:
+def _adaptive_subd_level(obj, organic: bool = False) -> int:
     """
-    Choose a subdivision level so the result stays under ~400K triangles.
+    Choose a subdivision level so the result stays under the target triangle count.
     Each Simple-Subd level multiplies tri count by 4.
 
     Formula: level = floor(log4(TARGET / n)), clamped [0, 4].
-    This means:
-      - High-poly meshes (organic scans, detailed dragons) → level 0 or 1
-        (already dense enough for smooth displacement; no need to explode to 6M)
-      - Typical CAD STL imports (coarse triangulation) → level 2-3
-        (needs subdivision to avoid diagonal-streak artifacts from long thin tris)
+
+    organic=True  → TARGET = 1_600_000
+      Organic / creature meshes need finer triangles so the texture tile
+      (e.g. 10mm scales) is sampled by many triangles rather than just 2-3.
+      16k-poly claw-feet mesh → log4(1.6M/32k) = 2.8 → level 2 → ~390k verts.
+
+    organic=False → TARGET = 400_000  (CAD / flat panels)
+      Flat-panel CAD parts don't need as many subdivisions; 400k is plenty.
+      18k-poly box → log4(400k/18k) = 2.1 → level 2 → ~72k verts.
     """
     import math
-    TARGET = 400_000   # max output triangles
+    TARGET = 1_600_000 if organic else 400_000
     n = len(obj.data.polygons)
     if n == 0:
         return 0
@@ -623,7 +627,10 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
         _do_uv_unwrap(obj, tile_size, projection, log, seam_angle_rad=seam_angle_rad)
 
     # ── 2. Simple Subdivision ─────────────────────────────────────────────
-    sub_level = _adaptive_subd_level(obj)
+    # Pass organic=True for smooth/creature meshes — they use a higher triangle
+    # target (1.6M) so small texture tiles are sampled by many subdivided tris.
+    is_organic = (seam_angle_rad > 1.0)  # 60° seam = organic, 30° = CAD
+    sub_level = _adaptive_subd_level(obj, organic=is_organic)
     if sub_level > 0:
         subd = obj.modifiers.new("Subdiv", type='SUBSURF')
         subd.subdivision_type = 'SIMPLE'
@@ -718,6 +725,50 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
         bpy.ops.object.modifier_apply(modifier="Displace")
 
     log.log(f"  Modifiers applied: {len(obj.data.vertices)} verts post-apply")
+
+    # ── 6b. Seam-boundary smoothing — removes UV-discontinuity starburst fans ─
+    # After the Displace modifier, vertices on UV seam edges may be displaced
+    # by whichever UV island Blender chose for that vertex. Adjacent faces on
+    # the OTHER side of the seam see that same displaced position but expected
+    # the other island's UV value → displacement spikes fan out from seam rings.
+    # Fix: smooth a 2-hop vertex band around every seam edge to blend the
+    # transition. CAD meshes (30° seams, flat panels) benefit equally.
+    if use_uv:
+        import bmesh as _bm_sb
+        _bm = _bm_sb.new()
+        _bm.from_mesh(obj.data)
+        _bm.verts.ensure_lookup_table()
+        _bm.edges.ensure_lookup_table()
+        seam_set: set = set()
+        for _e in _bm.edges:
+            if _e.seam:
+                seam_set.add(_e.verts[0].index)
+                seam_set.add(_e.verts[1].index)
+        # Expand 2 hops for a gradient blend zone (avoids hard edge at boundary)
+        for _ in range(2):
+            _new = set(seam_set)
+            for _vi in seam_set:
+                for _le in _bm.verts[_vi].link_edges:
+                    for _vtx in _le.verts:
+                        _new.add(_vtx.index)
+            seam_set = _new
+        _bm.free()
+        if seam_set:
+            _vg = obj.vertex_groups.new(name="_SeamBlend")
+            _vg.add(list(seam_set), 1.0, 'REPLACE')
+            _sm = obj.modifiers.new("_SeamSmooth", type='SMOOTH')
+            _sm.iterations   = 5
+            _sm.factor       = 0.8
+            _sm.vertex_group = "_SeamBlend"
+            with bpy.context.temp_override(
+                active_object=obj, object=obj,
+                selected_objects=[obj], selected_editable_objects=[obj],
+            ):
+                bpy.ops.object.modifier_apply(modifier="_SeamSmooth")
+            obj.vertex_groups.remove(_vg)
+            obj.data.update()
+            log.log(f"  Seam blend: {len(seam_set)} verts smoothed at UV boundaries (5 iters)")
+
     log.log(f"  Done: relief={strength:.2f}mm  tile={tile_size}mm  mode={mode}  "
             f"projection={'UV('+projection+')' if use_uv else 'OBJECT'}  "
             f"full_surface={full_surface}")
