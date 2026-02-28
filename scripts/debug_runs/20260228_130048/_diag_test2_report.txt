@@ -1,0 +1,24 @@
+QIDIStudio Texture Pipeline — AI Debug Report
+Result: FAILURES DETECTED
+
+======================================================================
+
+[PASS] elvish_tpu_inner
+  verdict  : PASS — classified as FLAT_SHELL (expected FLAT_SHELL), no DNA mismatch.
+  features : sharp=0.502  z_ratio=0.057  curv_std=1.659  chi=-2
+
+[PASS] poco_x6_phone_case
+  verdict  : PASS — classified as FLAT_SHELL (expected FLAT_SHELL), no DNA mismatch.
+  features : sharp=0.315  z_ratio=0.080  curv_std=0.114  chi=-18
+
+[FAIL] vacuum_crevice_nozzle
+  verdict  : FAIL — classified as REVOLUTION but expected PRISMATIC.  Review sharp_fraction / z_ratio thresholds in _classify_mesh_topology().
+  REMEDIATION HINT:
+    Measured: sharp_fraction=0.08065178693687526, z_ratio=4.642857142857143, curvature_std=0.009318692127418116, euler_characteristic=-8
+    → z_ratio ≥ REVOLUTION threshold and sharp_fraction is low.
+      If model is actually PRISMATIC, raise PRISMATIC sharp_fraction threshold.
+  features : sharp=0.081  z_ratio=4.643  curv_std=0.009  chi=-8
+
+[PASS] vacuum_nozzle_lower
+  verdict  : PASS — classified as REVOLUTION (expected REVOLUTION), no DNA mismatch.
+  features : sharp=0.083  z_ratio=5.952  curv_std=0.018  chi=0

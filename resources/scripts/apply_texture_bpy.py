@@ -1091,7 +1091,10 @@ def _calculate_uv_stretch_metrics(obj, log: "Logger | None") -> dict:
     areas_uv: list = []
 
     for poly in mesh.polygons:
-        a3 = poly.calc_area()
+        # Note: MeshPolygon.area is a read-only property (Blender 2.80+).
+        # bmesh.types.BMFace.calc_area() is the bmesh equivalent — do NOT
+        # call calc_area() on a MeshPolygon; it will raise AttributeError.
+        a3 = poly.area
         n  = len(poly.loop_indices)
         uv_pts = [uv_data[li].uv for li in poly.loop_indices]
         au = 0.0
@@ -1467,15 +1470,18 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
         _bm.verts.ensure_lookup_table()
         _bm.edges.ensure_lookup_table()
 
-        # Collect seam verts + 2-hop expansion for gradient blend zone
+        # Collect seam verts + hop-expansion for gradient blend zone.
+        # IMPORTANT: scale hops/iters with relief but cap tightly.
+        # Relief=1.0 with _hops=20 grows the band across the entire mesh on
+        # a dense subdivided cylinder (173k verts), causing a Python-side
+        # O(V × iterations) computation that exceeds the 300s Blender timeout.
+        # Cap: 4 hops (≈ 4-ring wide strip around each seam edge), 8 iters max.
         seam_set: set = set()
         for _e in _bm.edges:
             if _e.seam:
                 seam_set.add(_e.verts[0].index)
                 seam_set.add(_e.verts[1].index)
-        # Wider blend band for larger relief values (PhD: band width scales with
-        # displacement amplitude to fully cover the spike influence zone)
-        _hops = max(4, int(abs(relief) / 0.1) * 2)
+        _hops  = min(4, max(2, int(abs(relief) / 0.5)))      # 2–4 hops max
         for _ in range(_hops):
             _new = set(seam_set)
             for _vi in seam_set:
@@ -1486,9 +1492,11 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
         if seam_set:
             _LAM  =  0.50   # Taubin λ — positive Laplacian (smooth toward average)
             _MU   = -0.53   # Taubin μ — negative step  (restore volume, |μ|>λ)
-            # Scale iterations with relief: larger displacement needs more passes
-            # to fully blend the seam discontinuity. PhD ref: Taubin 1995 §3.2
-            _ITERS = max(15, int(abs(relief) / 0.1) * 3)
+            # Cap iterations to avoid O(V × iters) timeout on large meshes.
+            # 8 passes is sufficient to blend seam discontinuities at any
+            # typical relief value — more iterations blur the texture pattern.
+            # Taubin 1995 §3.2: passband convergence within ~10 iterations.
+            _ITERS = min(8, max(4, int(abs(relief) / 0.5) * 4))
 
             for _ in range(_ITERS):
                 for _factor in (_LAM, _MU):

@@ -1,0 +1,23 @@
+{
+  "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\protection-poco-x6.3mf",
+  "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+  "timestamp": "2026-02-28T11:45:09",
+  "stage": "post_weld",
+  "mesh_class": "UNKNOWN",
+  "features": {},
+  "projection": "unknown",
+  "full_surface": null,
+  "seam_angle_deg": null,
+  "geometry": {
+    "verts": 2686,
+    "polys": 5408,
+    "bbox_mm": [
+      79.6,
+      165.7,
+      13.2
+    ]
+  },
+  "heatmap_png": null,
+  "weld_before": 2686,
+  "weld_after": 2686
+}

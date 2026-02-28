@@ -1,0 +1,33 @@
+{
+  "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\elvish_tpu_inner.3mf",
+  "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+  "timestamp": "2026-02-28T11:45:54",
+  "stage": "post_displace",
+  "mesh_class": "FLAT_SHELL",
+  "features": {
+    "sharp_fraction": 0.5016181229773463,
+    "z_ratio": 0.05692657817276735,
+    "curvature_std": 1.6594846498694782,
+    "euler_characteristic": -2
+  },
+  "projection": "object",
+  "full_surface": false,
+  "seam_angle_deg": 30.0,
+  "geometry": {
+    "verts": 79102,
+    "polys": 79104,
+    "bbox_mm": [
+      77.13,
+      163.04,
+      9.95
+    ]
+  },
+  "heatmap_png": null,
+  "strength_mm": 1.0,
+  "tile_size_mm": 15.0,
+  "mode": "modifier",
+  "coords": "OBJECT",
+  "uv_stretch": {
+    "error": "no_uv_layer"
+  }
+}

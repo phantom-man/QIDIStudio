@@ -1,0 +1,30 @@
+QIDIStudio Texture Pipeline — AI Debug Report
+Run   : 20260228_125807
+Date  : 2026-02-28T12:58:13
+Result: ALL PASS
+
+══════════════════════════════════════════════════════════════════════
+
+[PASS] poco_x6_phone_case
+  model    : C:\Users\User\source\repos\3DPrinting\PhoneCase\STL\protection-poco-x6.3mf
+  expected : FLAT_SHELL
+  actual   : FLAT_SHELL
+  verdict  : PASS — classified as FLAT_SHELL (expected FLAT_SHELL), no DNA mismatch.
+  notes    : Flat rectangular shell ~148×73×8 mm. Should use OBJECT coords, no-full-surface.
+  features : sharp=0.315  z_ratio=0.080  curv_std=0.114  chi=-18
+  geometry : 2686 verts  5408 polys  bbox=[79.6, 165.7, 13.2] mm
+
+[PASS] elvish_tpu_inner
+  model    : C:\Users\User\source\repos\3DPrinting\PhoneCase\STL\elvish_tpu_inner.3mf
+  expected : FLAT_SHELL
+  actual   : FLAT_SHELL
+  verdict  : PASS — classified as FLAT_SHELL (expected FLAT_SHELL), no DNA mismatch.
+  notes    : Ornamental flat back panel — previously misclassified before topology classifier.
+  features : sharp=0.502  z_ratio=0.057  curv_std=1.659  chi=-2
+  geometry : 204 verts  412 polys  bbox=[76.38, 162.49, 9.25] mm
+
+══════════════════════════════════════════════════════════════════════
+
+To diagnose: read this file in a Copilot session and inspect
+  resources/scripts/apply_texture_bpy.py → _classify_mesh_topology()
+  Adjust match/case thresholds based on measured feature values above.

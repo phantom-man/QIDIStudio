@@ -1,0 +1,114 @@
+{
+  "run_id": "20260228_131235",
+  "timestamp": "2026-02-28T13:12:49",
+  "blender": "C:\\Program Files\\Blender Foundation\\Blender 5.0\\blender.exe",
+  "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+  "all_pass": true,
+  "cases": [
+    {
+      "name": "vacuum_nozzle_lower",
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+      "expected_class": "REVOLUTION",
+      "actual_class": "REVOLUTION",
+      "ok": true,
+      "mismatch_flag": false,
+      "remark": "PASS \u2014 classified as REVOLUTION (expected REVOLUTION), no DNA mismatch.",
+      "remediation": "",
+      "blender_rc": 0,
+      "snapshots_dir": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_131235\\vacuum_nozzle_lower\\snapshots",
+      "log": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_131235\\vacuum_nozzle_lower\\blender.log",
+      "notes": "Rotational body (tall cylinder). Should use LSCM 30\u00b0 seams, full-surface.",
+      "stages": [
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:12:36",
+          "stage": "post_weld",
+          "mesh_class": "UNKNOWN",
+          "features": {},
+          "projection": "unknown",
+          "full_surface": null,
+          "seam_angle_deg": null,
+          "geometry": {
+            "verts": 7235,
+            "polys": 14470,
+            "bbox_mm": [
+              42.0,
+              42.0,
+              250.0
+            ]
+          },
+          "heatmap_png": null,
+          "weld_before": 7235,
+          "weld_after": 7235
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:12:36",
+          "stage": "post_classify",
+          "mesh_class": "REVOLUTION",
+          "features": {
+            "sharp_fraction": 0.082930200414651,
+            "z_ratio": 5.9523809523809526,
+            "curvature_std": 0.017902105909999667,
+            "euler_characteristic": 0
+          },
+          "projection": "lscm",
+          "full_surface": true,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 7235,
+            "polys": 14470,
+            "bbox_mm": [
+              42.0,
+              42.0,
+              250.0
+            ]
+          },
+          "heatmap_png": null,
+          "resolved_projection": "lscm"
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:12:47",
+          "stage": "post_displace",
+          "mesh_class": "REVOLUTION",
+          "features": {
+            "sharp_fraction": 0.082930200414651,
+            "z_ratio": 5.9523809523809526,
+            "curvature_std": 0.017902105909999667,
+            "euler_characteristic": 0
+          },
+          "projection": "lscm",
+          "full_surface": true,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 173640,
+            "polys": 173640,
+            "bbox_mm": [
+              42.56,
+              42.64,
+              251.54
+            ]
+          },
+          "heatmap_png": null,
+          "strength_mm": 1.0,
+          "tile_size_mm": 15.0,
+          "mode": "modifier",
+          "coords": "UV(lscm)",
+          "uv_stretch": {
+            "n_faces": 173640,
+            "mean_stretch": 1.1797,
+            "max_stretch": 36.5074,
+            "std_stretch": 0.7958,
+            "high_energy_frac": 0.3988,
+            "n_high_energy_faces": 69255,
+            "dirichlet_energy": 1.2842
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_crevice_nozzle.3mf",
+  "stages": [
+    {
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_crevice_nozzle.3mf",
+      "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+      "timestamp": "2026-02-28T13:01:10",
+      "stage": "post_weld",
+      "mesh_class": "UNKNOWN",
+      "features": {},
+      "projection": "unknown",
+      "full_surface": null,
+      "seam_angle_deg": null,
+      "geometry": {
+        "verts": 14680,
+        "polys": 29130,
+        "bbox_mm": [
+          42.0,
+          41.99,
+          195.0
+        ]
+      },
+      "heatmap_png": null,
+      "weld_before": 14701,
+      "weld_after": 14680
+    },
+    {
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_crevice_nozzle.3mf",
+      "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+      "timestamp": "2026-02-28T13:01:10",
+      "stage": "post_classify",
+      "mesh_class": "REVOLUTION",
+      "features": {
+        "sharp_fraction": 0.08065178693687526,
+        "z_ratio": 4.642857142857143,
+        "curvature_std": 0.009318692127418116,
+        "euler_characteristic": -8
+      },
+      "projection": "lscm",
+      "full_surface": true,
+      "seam_angle_deg": 30.0,
+      "geometry": {
+        "verts": 14680,
+        "polys": 29130,
+        "bbox_mm": [
+          42.0,
+          41.99,
+          195.0
+        ]
+      },
+      "heatmap_png": null,
+      "resolved_projection": "lscm"
+    },
+    {
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_crevice_nozzle.3mf",
+      "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+      "timestamp": "2026-02-28T13:01:16",
+      "stage": "post_displace",
+      "mesh_class": "REVOLUTION",
+      "features": {
+        "sharp_fraction": 0.08065178693687526,
+        "z_ratio": 4.642857142857143,
+        "curvature_std": 0.009318692127418116,
+        "euler_characteristic": -8
+      },
+      "projection": "lscm",
+      "full_surface": true,
+      "seam_angle_deg": 30.0,
+      "geometry": {
+        "verts": 87628,
+        "polys": 87390,
+        "bbox_mm": [
+          42.37,
+          42.36,
+          196.94
+        ]
+      },
+      "heatmap_png": null,
+      "strength_mm": 1.0,
+      "tile_size_mm": 15.0,
+      "mode": "modifier",
+      "coords": "UV(lscm)",
+      "uv_stretch": {
+        "n_faces": 87390,
+        "mean_stretch": 7.2363,
+        "max_stretch": 5504.3654,
+        "std_stretch": 64.1558,
+        "high_energy_frac": 0.7443,
+        "n_high_energy_faces": 65044,
+        "dirichlet_energy": 15.3667
+      }
+    }
+  ]
+}

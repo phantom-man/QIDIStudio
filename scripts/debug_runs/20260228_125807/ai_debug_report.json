@@ -1,0 +1,207 @@
+{
+  "run_id": "20260228_125807",
+  "timestamp": "2026-02-28T12:58:13",
+  "blender": "C:\\Program Files\\Blender Foundation\\Blender 5.0\\blender.exe",
+  "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+  "all_pass": true,
+  "cases": [
+    {
+      "name": "poco_x6_phone_case",
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\protection-poco-x6.3mf",
+      "expected_class": "FLAT_SHELL",
+      "actual_class": "FLAT_SHELL",
+      "ok": true,
+      "mismatch_flag": false,
+      "remark": "PASS \u2014 classified as FLAT_SHELL (expected FLAT_SHELL), no DNA mismatch.",
+      "remediation": "",
+      "blender_rc": 0,
+      "snapshots_dir": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_125807\\poco_x6_phone_case\\snapshots",
+      "log": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_125807\\poco_x6_phone_case\\blender.log",
+      "notes": "Flat rectangular shell ~148\u00d773\u00d78 mm. Should use OBJECT coords, no-full-surface.",
+      "stages": [
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\protection-poco-x6.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T12:58:08",
+          "stage": "post_weld",
+          "mesh_class": "UNKNOWN",
+          "features": {},
+          "projection": "unknown",
+          "full_surface": null,
+          "seam_angle_deg": null,
+          "geometry": {
+            "verts": 2686,
+            "polys": 5408,
+            "bbox_mm": [
+              79.6,
+              165.7,
+              13.2
+            ]
+          },
+          "heatmap_png": null,
+          "weld_before": 2686,
+          "weld_after": 2686
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\protection-poco-x6.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T12:58:08",
+          "stage": "post_classify",
+          "mesh_class": "FLAT_SHELL",
+          "features": {
+            "sharp_fraction": 0.3147189349112426,
+            "z_ratio": 0.079662045902527,
+            "curvature_std": 0.11411508787119448,
+            "euler_characteristic": -18
+          },
+          "projection": "object",
+          "full_surface": false,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 2686,
+            "polys": 5408,
+            "bbox_mm": [
+              79.6,
+              165.7,
+              13.2
+            ]
+          },
+          "heatmap_png": null,
+          "resolved_projection": "object"
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\protection-poco-x6.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T12:58:09",
+          "stage": "post_displace",
+          "mesh_class": "FLAT_SHELL",
+          "features": {
+            "sharp_fraction": 0.3147189349112426,
+            "z_ratio": 0.079662045902527,
+            "curvature_std": 0.11411508787119448,
+            "euler_characteristic": -18
+          },
+          "projection": "object",
+          "full_surface": false,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 259566,
+            "polys": 259584,
+            "bbox_mm": [
+              80.4,
+              166.72,
+              13.93
+            ]
+          },
+          "heatmap_png": null,
+          "strength_mm": 1.0,
+          "tile_size_mm": 15.0,
+          "mode": "modifier",
+          "coords": "OBJECT",
+          "uv_stretch": {
+            "error": "no_uv_layer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "elvish_tpu_inner",
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\elvish_tpu_inner.3mf",
+      "expected_class": "FLAT_SHELL",
+      "actual_class": "FLAT_SHELL",
+      "ok": true,
+      "mismatch_flag": false,
+      "remark": "PASS \u2014 classified as FLAT_SHELL (expected FLAT_SHELL), no DNA mismatch.",
+      "remediation": "",
+      "blender_rc": 0,
+      "snapshots_dir": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_125807\\elvish_tpu_inner\\snapshots",
+      "log": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_125807\\elvish_tpu_inner\\blender.log",
+      "notes": "Ornamental flat back panel \u2014 previously misclassified before topology classifier.",
+      "stages": [
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\elvish_tpu_inner.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T12:58:12",
+          "stage": "post_weld",
+          "mesh_class": "UNKNOWN",
+          "features": {},
+          "projection": "unknown",
+          "full_surface": null,
+          "seam_angle_deg": null,
+          "geometry": {
+            "verts": 204,
+            "polys": 412,
+            "bbox_mm": [
+              76.38,
+              162.49,
+              9.25
+            ]
+          },
+          "heatmap_png": null,
+          "weld_before": 204,
+          "weld_after": 204
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\elvish_tpu_inner.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T12:58:12",
+          "stage": "post_classify",
+          "mesh_class": "FLAT_SHELL",
+          "features": {
+            "sharp_fraction": 0.5016181229773463,
+            "z_ratio": 0.05692657817276735,
+            "curvature_std": 1.6594846498694782,
+            "euler_characteristic": -2
+          },
+          "projection": "object",
+          "full_surface": false,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 204,
+            "polys": 412,
+            "bbox_mm": [
+              76.38,
+              162.49,
+              9.25
+            ]
+          },
+          "heatmap_png": null,
+          "resolved_projection": "object"
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\elvish_tpu_inner.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T12:58:12",
+          "stage": "post_displace",
+          "mesh_class": "FLAT_SHELL",
+          "features": {
+            "sharp_fraction": 0.5016181229773463,
+            "z_ratio": 0.05692657817276735,
+            "curvature_std": 1.6594846498694782,
+            "euler_characteristic": -2
+          },
+          "projection": "object",
+          "full_surface": false,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 79102,
+            "polys": 79104,
+            "bbox_mm": [
+              77.13,
+              163.04,
+              9.95
+            ]
+          },
+          "heatmap_png": null,
+          "strength_mm": 1.0,
+          "tile_size_mm": 15.0,
+          "mode": "modifier",
+          "coords": "OBJECT",
+          "uv_stretch": {
+            "error": "no_uv_layer"
+          }
+        }
+      ]
+    }
+  ]
+}

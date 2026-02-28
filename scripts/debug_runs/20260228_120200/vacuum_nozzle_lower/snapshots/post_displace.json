@@ -1,0 +1,39 @@
+{
+  "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+  "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+  "timestamp": "2026-02-28T12:02:18",
+  "stage": "post_displace",
+  "mesh_class": "REVOLUTION",
+  "features": {
+    "sharp_fraction": 0.082930200414651,
+    "z_ratio": 5.9523809523809526,
+    "curvature_std": 0.017902105909999667,
+    "euler_characteristic": 0
+  },
+  "projection": "lscm",
+  "full_surface": true,
+  "seam_angle_deg": 30.0,
+  "geometry": {
+    "verts": 173640,
+    "polys": 173640,
+    "bbox_mm": [
+      42.56,
+      42.64,
+      251.54
+    ]
+  },
+  "heatmap_png": null,
+  "strength_mm": 1.0,
+  "tile_size_mm": 15.0,
+  "mode": "modifier",
+  "coords": "UV(lscm)",
+  "uv_stretch": {
+    "n_faces": 173640,
+    "mean_stretch": 1.1797,
+    "max_stretch": 36.5074,
+    "std_stretch": 0.7958,
+    "high_energy_frac": 0.3988,
+    "n_high_energy_faces": 69255,
+    "dirichlet_energy": 1.2842
+  }
+}
