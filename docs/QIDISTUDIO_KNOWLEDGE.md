@@ -1,6 +1,6 @@
 # QIDIStudio — Complete Engineering Knowledge Base
 
-_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, _DebugSession, ai_debug_pipeline.py, §15.14)_
+_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, \_DebugSession, ai_debug_pipeline.py, §15.14)_
 
 This document captures all reverse-engineered knowledge about QIDIStudio's source code,
 build system, configuration, and 3MF format. It serves as the single source of truth
@@ -62,45 +62,45 @@ PrusaSlicer (Prusa Research, open-source)
 
 ### Primary Sources
 
-| URL | Purpose |
-|-----|---------|
-| <https://github.com/QIDITECH/QIDIStudio> | QIDI's official public source repo |
-| <https://github.com/phantom-man/QIDIStudio> | **Our fork — primary working repo** |
-| <https://github.com/SoftFever/OrcaSlicer> | OrcaSlicer upstream (most relevant reference for shared code) |
-| <https://github.com/bambulab/BambuStudio> | Bambu Studio (OrcaSlicer's parent) |
-| <https://github.com/prusa3d/PrusaSlicer> | Ultimate upstream for libslic3r |
+| URL                                         | Purpose                                                       |
+| ------------------------------------------- | ------------------------------------------------------------- |
+| <https://github.com/QIDITECH/QIDIStudio>    | QIDI's official public source repo                            |
+| <https://github.com/phantom-man/QIDIStudio> | **Our fork — primary working repo**                           |
+| <https://github.com/SoftFever/OrcaSlicer>   | OrcaSlicer upstream (most relevant reference for shared code) |
+| <https://github.com/bambulab/BambuStudio>   | Bambu Studio (OrcaSlicer's parent)                            |
+| <https://github.com/prusa3d/PrusaSlicer>    | Ultimate upstream for libslic3r                               |
 
 ### Build & Dependencies
 
-| URL | Purpose |
-|-----|---------|
-| <https://github.com/QIDITECH/QIDIStudio/blob/main/doc/How_to_build.md> | Official build guide (Windows/Mac/Linux) |
-| <https://cmake.org/download/> | CMake — use **3.29.x**, NOT 4.x (see build gotchas) |
-| <https://strawberryperl.com/> | Strawberry Perl — required for OpenSSL build step |
-| <https://github.com/nicowillis/pkg-config-lite> | pkg-config-lite for Windows |
+| URL                                                                    | Purpose                                             |
+| ---------------------------------------------------------------------- | --------------------------------------------------- |
+| <https://github.com/QIDITECH/QIDIStudio/blob/main/doc/How_to_build.md> | Official build guide (Windows/Mac/Linux)            |
+| <https://cmake.org/download/>                                          | CMake — use **3.29.x**, NOT 4.x (see build gotchas) |
+| <https://strawberryperl.com/>                                          | Strawberry Perl — required for OpenSSL build step   |
+| <https://github.com/nicowillis/pkg-config-lite>                        | pkg-config-lite for Windows                         |
 
 ### OrcaSlicer Configuration Reference (applies to QIDIStudio)
 
-| URL | Purpose |
-|-----|---------|
-| <https://github.com/SoftFever/OrcaSlicer/wiki> | OrcaSlicer wiki — most settings docs apply to QIDIStudio |
+| URL                                                                               | Purpose                                                                                            |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| <https://github.com/SoftFever/OrcaSlicer/wiki>                                    | OrcaSlicer wiki — most settings docs apply to QIDIStudio                                           |
 | <https://github.com/SoftFever/OrcaSlicer/blob/main/src/libslic3r/PrintConfig.cpp> | **Config key definitions + enums** — authoritative source for `sparse_infill_pattern` values, etc. |
-| <https://github.com/SoftFever/OrcaSlicer/blob/main/src/libslic3r/Config.hpp> | `ConfigOptionMode` enum definition |
+| <https://github.com/SoftFever/OrcaSlicer/blob/main/src/libslic3r/Config.hpp>      | `ConfigOptionMode` enum definition                                                                 |
 
 ### 3MF Format
 
-| URL | Purpose |
-|-----|---------|
-| <https://3mf.io/specification/> | Official 3MF consortium specification |
-| <https://github.com/3MFConsortium/spec_core> | 3MF core spec source |
+| URL                                          | Purpose                               |
+| -------------------------------------------- | ------------------------------------- |
+| <https://3mf.io/specification/>              | Official 3MF consortium specification |
+| <https://github.com/3MFConsortium/spec_core> | 3MF core spec source                  |
 
 ### Community & Support
 
-| URL | Purpose |
-|-----|---------|
-| <https://www.reddit.com/r/QIDI/> | QIDI user community — known issues, firmware gotchas |
-| <https://github.com/QIDITECH/QIDIStudio/issues> | Official bug tracker |
-| <https://github.com/QIDITECH/QIDIStudio/discussions> | Community Q&A |
+| URL                                                  | Purpose                                              |
+| ---------------------------------------------------- | ---------------------------------------------------- |
+| <https://www.reddit.com/r/QIDI/>                     | QIDI user community — known issues, firmware gotchas |
+| <https://github.com/QIDITECH/QIDIStudio/issues>      | Official bug tracker                                 |
+| <https://github.com/QIDITECH/QIDIStudio/discussions> | Community Q&A                                        |
 
 ---
 
@@ -151,13 +151,13 @@ C:\Users\<user>\AppData\Roaming\QIDIStudio\
 
 ### Prerequisites (Windows)
 
-| Tool | Version | Install | Notes |
-|------|---------|---------|-------|
-| CMake | **3.29.8** | <https://cmake.org/download/> | Install to `C:\CMake329\`. Do NOT use CMake 4.x — policy break |
-| Visual Studio | 2022 Community | winget / manual | C++ workload required |
-| Strawberry Perl | 5.42+ | <https://strawberryperl.com/> | Required for OpenSSL configure step |
-| pkg-config-lite | 0.28 | `winget install bloodrock.pkg-config-lite` | Required — libav deps use .pc files |
-| Ninja | 1.13+ | optional | Not needed if using VS generator |
+| Tool            | Version        | Install                                    | Notes                                                          |
+| --------------- | -------------- | ------------------------------------------ | -------------------------------------------------------------- |
+| CMake           | **3.29.8**     | <https://cmake.org/download/>              | Install to `C:\CMake329\`. Do NOT use CMake 4.x — policy break |
+| Visual Studio   | 2022 Community | winget / manual                            | C++ workload required                                          |
+| Strawberry Perl | 5.42+          | <https://strawberryperl.com/>              | Required for OpenSSL configure step                            |
+| pkg-config-lite | 0.28           | `winget install bloodrock.pkg-config-lite` | Required — libav deps use .pc files                            |
+| Ninja           | 1.13+          | optional                                   | Not needed if using VS generator                               |
 
 ### Build Script
 
@@ -217,10 +217,10 @@ if("${QDT_RELEASE_TO_PUBLIC}" STREQUAL "1")
 
 The most important feature flag. Controls whether the app behaves as a "production release":
 
-| Value | Effect |
-|-------|--------|
-| `1` | Production: `iot_environment` defaults to `"3"`, `get_hms_host()` returns production URL, requires `QIDI/QIDINetwork.cpp` (NOT in public repo → build fails) |
-| `0` | Dev/internal: `iot_environment` defaults to `"2"` (PRE/staging). No networking module needed. `get_hms_host()` still gated by `#if !QDT_RELEASE_TO_PUBLIC` |
+| Value | Effect                                                                                                                                                       |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `1`   | Production: `iot_environment` defaults to `"3"`, `get_hms_host()` returns production URL, requires `QIDI/QIDINetwork.cpp` (NOT in public repo → build fails) |
+| `0`   | Dev/internal: `iot_environment` defaults to `"2"` (PRE/staging). No networking module needed. `get_hms_host()` still gated by `#if !QDT_RELEASE_TO_PUBLIC`   |
 
 **Rule: Always build with `QDT_RELEASE_TO_PUBLIC=0`** — the private networking module (`QIDI/QIDINetwork.cpp`) is not in the public source ZIP.
 
@@ -239,11 +239,11 @@ The most important feature flag. Controls whether the app behaves as a "producti
 
 QIDIStudio has 3 UI complexity modes that control which settings are visible:
 
-| Enum value | String | Config key value | What it shows |
-|-----------|--------|-----------------|---------------|
-| `comSimple = 0` | `"simple"` | Basic settings only |
-| `comAdvanced = 1` | `"advanced"` | Most settings |
-| `comDevelop = 2` | `"develop"` | All settings including debug/experimental |
+| Enum value        | String       | Config key value                          | What it shows |
+| ----------------- | ------------ | ----------------------------------------- | ------------- |
+| `comSimple = 0`   | `"simple"`   | Basic settings only                       |
+| `comAdvanced = 1` | `"advanced"` | Most settings                             |
+| `comDevelop = 2`  | `"develop"`  | All settings including debug/experimental |
 
 The mode is stored in `QIDIStudio.conf` under key `"user_mode"`.
 
@@ -293,8 +293,8 @@ Edit `C:\Users\<user>\AppData\Roaming\QIDIStudio\QIDIStudio.conf`:
 
 ```json
 {
-    "user_mode": "develop",
-    "developer_mode": "true"
+  "user_mode": "develop",
+  "developer_mode": "true"
 }
 ```
 
@@ -311,17 +311,17 @@ Edit `C:\Users\<user>\AppData\Roaming\QIDIStudio\QIDIStudio.conf`:
 
 ### Key Configuration Parameters
 
-| Key | Values | Notes |
-|-----|--------|-------|
-| `user_mode` | `"simple"`, `"advanced"`, `"develop"` | UI complexity level |
-| `developer_mode` | `"true"` / `"false"` | Separate boolean, works alongside user_mode |
-| `internal_developer_mode` | `"true"` / `"false"` | Force-reset to `false` on every startup |
-| `iot_environment` | `"0"`=DEV, `"1"`=QA, `"2"`=PRE, `"3"`=PRODUCT | Which cloud env to connect to |
-| `sending_interval` | `"5"` | Telemetry interval |
-| `max_send` | `"3"` | Max retry count |
-| `user_mode` | see above | |
-| `severity_level` | `"fatal"`, `"error"`, `"warning"`, `"info"`, `"debug"`, `"trace"` | Log verbosity |
-| `max_recent_count` | int string e.g. `"18"` | Recent projects count |
+| Key                       | Values                                                            | Notes                                       |
+| ------------------------- | ----------------------------------------------------------------- | ------------------------------------------- |
+| `user_mode`               | `"simple"`, `"advanced"`, `"develop"`                             | UI complexity level                         |
+| `developer_mode`          | `"true"` / `"false"`                                              | Separate boolean, works alongside user_mode |
+| `internal_developer_mode` | `"true"` / `"false"`                                              | Force-reset to `false` on every startup     |
+| `iot_environment`         | `"0"`=DEV, `"1"`=QA, `"2"`=PRE, `"3"`=PRODUCT                     | Which cloud env to connect to               |
+| `sending_interval`        | `"5"`                                                             | Telemetry interval                          |
+| `max_send`                | `"3"`                                                             | Max retry count                             |
+| `user_mode`               | see above                                                         |                                             |
+| `severity_level`          | `"fatal"`, `"error"`, `"warning"`, `"info"`, `"debug"`, `"trace"` | Log verbosity                               |
+| `max_recent_count`        | int string e.g. `"18"`                                            | Recent projects count                       |
 
 ### `iot_environment` Default Bug
 
@@ -351,15 +351,15 @@ is needed for a 3MF to load successfully with all slicer settings intact.
 
 ### Required Metadata Files
 
-| File inside 3MF ZIP | Purpose |
-|---------------------|---------|
-| `3D/3dmodel.model` | The mesh geometry (required OPC part) |
+| File inside 3MF ZIP                | Purpose                                                 |
+| ---------------------------------- | ------------------------------------------------------- |
+| `3D/3dmodel.model`                 | The mesh geometry (required OPC part)                   |
 | `Metadata/project_settings.config` | **The critical one** — all slicer settings as flat JSON |
-| `Metadata/model_settings.config` | Per-object XML + plate definition |
-| `Metadata/slice_info.config` | XML with client type/version headers |
-| `Metadata/cut_information.xml` | Per-object `<cut_id>` placeholders |
-| `Metadata/filament_sequence.json` | `{"plate_1": {"sequence": []}}` |
-| `[Content_Types].xml` | Must include PNG and gcode content types |
+| `Metadata/model_settings.config`   | Per-object XML + plate definition                       |
+| `Metadata/slice_info.config`       | XML with client type/version headers                    |
+| `Metadata/cut_information.xml`     | Per-object `<cut_id>` placeholders                      |
+| `Metadata/filament_sequence.json`  | `{"plate_1": {"sequence": []}}`                         |
+| `[Content_Types].xml`              | Must include PNG and gcode content types                |
 
 ### `project_settings.config` Requirements
 
@@ -372,13 +372,13 @@ is needed for a 3MF to load successfully with all slicer settings intact.
 
 ### Critical Key Names (common sources of confusion)
 
-| Key | Notes |
-|-----|-------|
-| `curr_bed_type` | NOT `bed_type`. Selects which `*_plate_temp` key provides bed temp. Set to `"Textured PEI Plate"` |
-| `printer_settings_id` | Must match system machine preset name e.g. `"Q2 0.4 nozzle"` |
-| `print_compatible_printers` | Array: `["Q2 0.4 nozzle"]` |
+| Key                            | Notes                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `curr_bed_type`                | NOT `bed_type`. Selects which `*_plate_temp` key provides bed temp. Set to `"Textured PEI Plate"` |
+| `printer_settings_id`          | Must match system machine preset name e.g. `"Q2 0.4 nozzle"`                                      |
+| `print_compatible_printers`    | Array: `["Q2 0.4 nozzle"]`                                                                        |
 | `different_settings_to_system` | 3-element array: `[process_diffs, filament_diffs, machine_diffs]` (semicolon-separated key names) |
-| `support_chamber_temp_control` | `"1"` — required for chamber heater activation |
+| `support_chamber_temp_control` | `"1"` — required for chamber heater activation                                                    |
 
 ### Infill Pattern Enum Values (config strings, NOT UI labels)
 
@@ -424,12 +424,12 @@ QIDIStudio connects to QIDI's cloud (HMS = Hardware Management System) for:
 
 Gated by `#if !QDT_RELEASE_TO_PUBLIC`. Returns host URL based on `iot_environment`:
 
-| `iot_environment` | Enum | Host |
-|-------------------|------|------|
-| `"0"` | `ENV_DEV_HOST` | Internal DEV server |
-| `"1"` | `ENV_QAT` | QA/testing server |
-| `"2"` | `ENV_PRE` | PRE/staging server |
-| `"3"` | `ENV_PRODUCT` | Production server |
+| `iot_environment` | Enum           | Host                |
+| ----------------- | -------------- | ------------------- |
+| `"0"`             | `ENV_DEV_HOST` | Internal DEV server |
+| `"1"`             | `ENV_QAT`      | QA/testing server   |
+| `"2"`             | `ENV_PRE`      | PRE/staging server  |
+| `"3"`             | `ENV_PRODUCT`  | Production server   |
 
 **With `QDT_RELEASE_TO_PUBLIC=0`**, the function is compiled in and uses `iot_environment`
 to select the host. With `=1`, the function returns production unconditionally (but that
@@ -455,12 +455,12 @@ send (LAN mode) uses a different path and partially works without the DLL.
 
 ### Temperature Settings (Qidi Q2, 0.4mm hardened steel nozzle)
 
-| Filament | Nozzle | Bed | Chamber | Notes |
-|----------|--------|-----|---------|-------|
-| ASA-GF (Siraya Fibreheart) | 270°C | 100°C | 65°C | Hardened steel runs ~10°C colder than brass |
-| PETG Translucent | 250°C | 75°C | 0°C | No chamber heat — fans off for max clarity |
-| Standard PETG | 240°C | 75°C | 0°C | |
-| QIDI ASA (stock) | 250°C | 90°C | 60°C | System preset values |
+| Filament                   | Nozzle | Bed   | Chamber | Notes                                       |
+| -------------------------- | ------ | ----- | ------- | ------------------------------------------- |
+| ASA-GF (Siraya Fibreheart) | 270°C  | 100°C | 65°C    | Hardened steel runs ~10°C colder than brass |
+| PETG Translucent           | 250°C  | 75°C  | 0°C     | No chamber heat — fans off for max clarity  |
+| Standard PETG              | 240°C  | 75°C  | 0°C     |                                             |
+| QIDI ASA (stock)           | 250°C  | 90°C  | 60°C    | System preset values                        |
 
 ### Maximum Strength ASA-GF Settings
 
@@ -505,7 +505,7 @@ variables resolve to empty strings → 0°C in Klipper.
 
 ### Bug 1: Mode Switcher Completely Missing
 
-- **Cause:** `wxExtensions.cpp` ModeSizer buttons vector is empty (all commented out)  
+- **Cause:** `wxExtensions.cpp` ModeSizer buttons vector is empty (all commented out)
 - **Fix:** Restore buttons + add Developer (see §6)
 
 ### Bug 2: `iot_environment` Defaults to Staging
@@ -594,11 +594,11 @@ GCodeRefiner/
 
 **M2 gear settings (key overrides):**
 
-| Feature | Speed | Temp | Fan |
-|---------|-------|------|-----|
-| Outer wall | 20mm/s | 275°C | 0% |
-| Bridge | 20mm/s | 265°C | 100% |
-| First 2 layers | 10mm/s | 280°C | 0% |
+| Feature        | Speed  | Temp  | Fan  |
+| -------------- | ------ | ----- | ---- |
+| Outer wall     | 20mm/s | 275°C | 0%   |
+| Bridge         | 20mm/s | 265°C | 100% |
+| First 2 layers | 10mm/s | 280°C | 0%   |
 
 ---
 
@@ -608,22 +608,22 @@ All changes relative to `QIDITECH/QIDIStudio` main branch:
 
 ### Applied Changes (in forked source)
 
-| File | Change | Reason |
-|------|--------|--------|
-| `src/slic3r/GUI/wxExtensions.cpp:1048` | Restored 3 mode buttons (Simple, Advanced, Developer) | Mode switcher was completely hidden |
-| `src/slic3r/GUI/MainFrame.cpp:197` | First-run default: `user_mode="develop"`, `developer_mode=true` | Users start in full-access Developer mode |
-| `src/libslic3r/AppConfig.cpp:452` | `iot_environment` default `"2"` → `"3"` in `QDT_RELEASE_TO_PUBLIC=0` branch | Connects to production cloud, not staging |
-| `src/slic3r/CMakeLists.txt:638` | `if(QDT_RELEASE_TO_PUBLIC)` → `if("${QDT_RELEASE_TO_PUBLIC}" STREQUAL "1")` | Prevents false-positive evaluation causing missing-file build error |
-| `src/slic3r/GUI/Gizmos/GLGizmoText.hpp` | Added public `create_volume(ModelVolumeType, const Vec2d&)` and `create_volume(ModelVolumeType)` | Enables text volume creation from menu without duplicating placement logic |
-| `src/slic3r/GUI/Gizmos/GLGizmoText.cpp` | Refactored `on_shortcut_key()` to delegate to `create_volume(MODEL_PART)`; `create_volume()` accepts volume type | Fixes menu-invoked text placement |
-| `src/slic3r/GUI/GUI_Factories.cpp` | Uncommented + fixed text branch: `GLGizmoText`/`GLGizmosManager::Text`; added `append_menu_item_add_text()`; wired into `append_submenu_add_generic()` | "Add Part > Text" menu item was entirely dead (commented out with OrcaSlicer class names) |
-| `src/slic3r/GUI/GUI_Factories.hpp` | Added `append_menu_item_add_text()` declaration | Header needed for new factory function |
-| `src/slic3r/GUI/Gizmos/GLGizmoSVG.hpp` | Added `draw_tiling()` declaration; added `m_tile_x=1`, `m_tile_y=1`, `m_tile_gap=0.f` members | SVG tiling state |
-| `src/slic3r/GUI/Gizmos/GLGizmoSVG.cpp` | Added `draw_tiling()` UI function; added tiling replication logic in `process_job()`; wired `draw_tiling()` call into `draw_window()` | SVG tiling feature — repeat SVG pattern in a configurable grid |
-| `src/slic3r/GUI/Plater.cpp` | Added `apply_skin_to_selection()` + `can_apply_skin()` functions | New "Add Skin…" right-click menu action |
-| `src/slic3r/GUI/Plater.hpp` | Added `apply_skin_to_selection()`, `can_apply_skin()` declarations | Header for above |
-| `src/slic3r/GUI/GUI_Factories.cpp` | Wired "Add Skin…" into object context menu via `append_menu_items_add_skin()` | Menu entry to invoke the Add Skin feature |
-| `resources/scripts/apply_skin.py` | New Python script: heightmap displacement with triplanar projection. Preserves 3MF slicer settings. | The actual skin application logic called by Plater |
+| File                                    | Change                                                                                                                                                 | Reason                                                                                    |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `src/slic3r/GUI/wxExtensions.cpp:1048`  | Restored 3 mode buttons (Simple, Advanced, Developer)                                                                                                  | Mode switcher was completely hidden                                                       |
+| `src/slic3r/GUI/MainFrame.cpp:197`      | First-run default: `user_mode="develop"`, `developer_mode=true`                                                                                        | Users start in full-access Developer mode                                                 |
+| `src/libslic3r/AppConfig.cpp:452`       | `iot_environment` default `"2"` → `"3"` in `QDT_RELEASE_TO_PUBLIC=0` branch                                                                            | Connects to production cloud, not staging                                                 |
+| `src/slic3r/CMakeLists.txt:638`         | `if(QDT_RELEASE_TO_PUBLIC)` → `if("${QDT_RELEASE_TO_PUBLIC}" STREQUAL "1")`                                                                            | Prevents false-positive evaluation causing missing-file build error                       |
+| `src/slic3r/GUI/Gizmos/GLGizmoText.hpp` | Added public `create_volume(ModelVolumeType, const Vec2d&)` and `create_volume(ModelVolumeType)`                                                       | Enables text volume creation from menu without duplicating placement logic                |
+| `src/slic3r/GUI/Gizmos/GLGizmoText.cpp` | Refactored `on_shortcut_key()` to delegate to `create_volume(MODEL_PART)`; `create_volume()` accepts volume type                                       | Fixes menu-invoked text placement                                                         |
+| `src/slic3r/GUI/GUI_Factories.cpp`      | Uncommented + fixed text branch: `GLGizmoText`/`GLGizmosManager::Text`; added `append_menu_item_add_text()`; wired into `append_submenu_add_generic()` | "Add Part > Text" menu item was entirely dead (commented out with OrcaSlicer class names) |
+| `src/slic3r/GUI/GUI_Factories.hpp`      | Added `append_menu_item_add_text()` declaration                                                                                                        | Header needed for new factory function                                                    |
+| `src/slic3r/GUI/Gizmos/GLGizmoSVG.hpp`  | Added `draw_tiling()` declaration; added `m_tile_x=1`, `m_tile_y=1`, `m_tile_gap=0.f` members                                                          | SVG tiling state                                                                          |
+| `src/slic3r/GUI/Gizmos/GLGizmoSVG.cpp`  | Added `draw_tiling()` UI function; added tiling replication logic in `process_job()`; wired `draw_tiling()` call into `draw_window()`                  | SVG tiling feature — repeat SVG pattern in a configurable grid                            |
+| `src/slic3r/GUI/Plater.cpp`             | Added `apply_skin_to_selection()` + `can_apply_skin()` functions                                                                                       | New "Add Skin…" right-click menu action                                                   |
+| `src/slic3r/GUI/Plater.hpp`             | Added `apply_skin_to_selection()`, `can_apply_skin()` declarations                                                                                     | Header for above                                                                          |
+| `src/slic3r/GUI/GUI_Factories.cpp`      | Wired "Add Skin…" into object context menu via `append_menu_items_add_skin()`                                                                          | Menu entry to invoke the Add Skin feature                                                 |
+| `resources/scripts/apply_skin.py`       | New Python script: heightmap displacement with triplanar projection. Preserves 3MF slicer settings.                                                    | The actual skin application logic called by Plater                                        |
 
 ### Feature: "Add Part > Text" Menu (fixed)
 
@@ -631,10 +631,10 @@ All changes relative to `QIDITECH/QIDIStudio` main branch:
 
 **QIDI naming vs OrcaSlicer naming:**
 
-| Concept | OrcaSlicer | QIDI |
-|---------|-----------|------|
-| Text emboss gizmo class | `GLGizmoEmboss` | `GLGizmoText` |
-| EType enum value | `GLGizmosManager::Emboss` | `GLGizmosManager::Text` |
+| Concept                 | OrcaSlicer                | QIDI                    |
+| ----------------------- | ------------------------- | ----------------------- |
+| Text emboss gizmo class | `GLGizmoEmboss`           | `GLGizmoText`           |
+| EType enum value        | `GLGizmosManager::Emboss` | `GLGizmosManager::Text` |
 
 `GLGizmoText` and OrcaSlicer's `GLGizmoEmboss` are effectively the same codebase with different names. Both use `EmbossShape`, `EmbossJob`, `TextConfiguration`, `StyleManager` infrastructure.
 
@@ -742,17 +742,17 @@ Adds **"Add Negative Part → Texture…"** and **"Add Part → Texture…"** it
 
 **Key bugs fixed / design decisions:**
 
-| Bug / Finding | Root cause | Fix/Decision |
-|---|---|---|
-| Displacement spikes on CAD parts | Long thin triangles radiate from holes/fillets in STL; SIMPLE subdiv preserves them; Displace spikes each tip | Vertex group `TopFace` (normal.z > 0.5): walls and holes excluded entirely |
-| `calc_normals_split()` AttributeError | Removed in Blender 4.1+ | Use `poly.normal` directly (no method call needed) |
-| Voxel Remesh destroyed holes | Remesh treats geometry volumetrically, fills bores | Removed; vertex group instead |
-| `direction='NORMAL'` radial streaks | CAD edge-adjacent verts have non-upward normals; NORMAL mapping follows those | `direction='NORMAL'` is correct with vertex group — walls excluded so only truly top-facing normals displace |
-| Zero displacement despite correct script | Mapping Empty not in depsgraph when Displace modifier evaluates | `bpy.context.view_layer.update()` after linking Empty, BEFORE adding Displace modifier |
-| `mid_level=0.5` caused inward push | [0..1] PNG: dark=0→ delta=-0.5×strength (inward) | `mid_level=0.0`: black=baseline, white=+relief, no inward push |
-| Vertex group invalidated after subdiv | Group built on pre-subdiv vertices; apply changes indices | Apply Subdiv FIRST, then build vertex group on final vertex set |
-| bpy pip package silent zero displacement | `bpy.ops.object.convert()` unreliable in background mode for bpy package | Hard `sys.exit(1)` if `IS_FULL_BLENDER=False` — no fallback |
-| `wxEXEC_SYNC` crash during bpy execution | Sync runs wx event loop; paint/timer handlers access stale `scene_selection()` | Use `wxEXEC_BLOCK` (`= wxEXEC_SYNC \| wxEXEC_NOEVENTS`) — no event pumping |
+| Bug / Finding                            | Root cause                                                                                                    | Fix/Decision                                                                                                 |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Displacement spikes on CAD parts         | Long thin triangles radiate from holes/fillets in STL; SIMPLE subdiv preserves them; Displace spikes each tip | Vertex group `TopFace` (normal.z > 0.5): walls and holes excluded entirely                                   |
+| `calc_normals_split()` AttributeError    | Removed in Blender 4.1+                                                                                       | Use `poly.normal` directly (no method call needed)                                                           |
+| Voxel Remesh destroyed holes             | Remesh treats geometry volumetrically, fills bores                                                            | Removed; vertex group instead                                                                                |
+| `direction='NORMAL'` radial streaks      | CAD edge-adjacent verts have non-upward normals; NORMAL mapping follows those                                 | `direction='NORMAL'` is correct with vertex group — walls excluded so only truly top-facing normals displace |
+| Zero displacement despite correct script | Mapping Empty not in depsgraph when Displace modifier evaluates                                               | `bpy.context.view_layer.update()` after linking Empty, BEFORE adding Displace modifier                       |
+| `mid_level=0.5` caused inward push       | [0..1] PNG: dark=0→ delta=-0.5×strength (inward)                                                              | `mid_level=0.0`: black=baseline, white=+relief, no inward push                                               |
+| Vertex group invalidated after subdiv    | Group built on pre-subdiv vertices; apply changes indices                                                     | Apply Subdiv FIRST, then build vertex group on final vertex set                                              |
+| bpy pip package silent zero displacement | `bpy.ops.object.convert()` unreliable in background mode for bpy package                                      | Hard `sys.exit(1)` if `IS_FULL_BLENDER=False` — no fallback                                                  |
+| `wxEXEC_SYNC` crash during bpy execution | Sync runs wx event loop; paint/timer handlers access stale `scene_selection()`                                | Use `wxEXEC_BLOCK` (`= wxEXEC_SYNC \| wxEXEC_NOEVENTS`) — no event pumping                                   |
 
 **CLI / script parameters (`apply_texture_bpy.py`):**
 
@@ -768,12 +768,12 @@ apply_texture_bpy.py <model.stl> <skin.png>
 
 **`_adaptive_subd_level()` table:**
 
-| Face count | Subdiv level | Rationale |
-|---|---|---|
-| ≤ 50 | 4 | Primitive test shapes |
-| ≤ 500 | 3 | Simple mechanical parts |
-| ≤ 5000 | 2 | Typical imported part |
-| > 5000 | 2 | Cap to avoid RAM explosion |
+| Face count | Subdiv level | Rationale                  |
+| ---------- | ------------ | -------------------------- |
+| ≤ 50       | 4            | Primitive test shapes      |
+| ≤ 500      | 3            | Simple mechanical parts    |
+| ≤ 5000     | 2            | Typical imported part      |
+| > 5000     | 2            | Cap to avoid RAM explosion |
 
 **Skin assets location:** `resources/assets/` (subfolders: `armadillo_plates/`, `dragon_scales/`, etc.)  
 Assets are AI-generated PNGs (Vertex AI Imagen 3 or Replicate Flux Schnell) via `scripts/generate_skin_assets.py`.
@@ -797,10 +797,10 @@ Assets are AI-generated PNGs (Vertex AI Imagen 3 or Replicate Flux Schnell) via 
 
 Session knowledge is stored in a local LanceDB vector DB at `data/lancedb/`, table `qidistudio_learnings`.
 
-| Property | Value |
-|----------|-------|
-| Embedding model | `all-MiniLM-L6-v2` (sentence-transformers), 384-dim |
-| Total chunks | 58 (as of 2026-02-27) |
+| Property        | Value                                                                              |
+| --------------- | ---------------------------------------------------------------------------------- |
+| Embedding model | `all-MiniLM-L6-v2` (sentence-transformers), 384-dim                                |
+| Total chunks    | 58 (as of 2026-02-27)                                                              |
 | Sources indexed | `copilot-instructions.md`, `QIDISTUDIO_KNOWLEDGE.md`, `memory/langsmith_prompt.md` |
 
 **Key commands:**
@@ -853,10 +853,10 @@ Session knowledge is stored in a local LanceDB vector DB at `data/lancedb/`, tab
 
 ### Hooks Architecture
 
-| Hook | File | What it does |
-|------|------|--------------|
+| Hook             | File                                   | What it does                                                      |
+| ---------------- | -------------------------------------- | ----------------------------------------------------------------- |
 | UserPromptSubmit | `.github/hooks/prompt_submit_hook.ps1` | Calls `memory/inject.py`; outputs manifest as `additionalContext` |
-| PreCompact | `.github/hooks/precompact_hook.ps1` | Outputs "Save This Protocol" JSON instruction to agent |
+| PreCompact       | `.github/hooks/precompact_hook.ps1`    | Outputs "Save This Protocol" JSON instruction to agent            |
 
 **Critical**: Hook shell commands are NOT visible to the agent. Only the JSON `additionalContext` output reaches the agent. All file writes must be done by the agent itself, not the hook script.
 
@@ -1063,6 +1063,7 @@ The eigenvalues of the Laplace-Beltrami operator are isometry-invariant shape de
 $$\Delta \phi_k = \lambda_k \phi_k, \quad \lambda_0 \leq \lambda_1 \leq \lambda_2 \leq \ldots$$
 
 The first $k$ eigenvalues $(\lambda_0, \lambda_1, \ldots, \lambda_{k-1})$ form the **Shape DNA** — a compact fingerprint that is invariant to rigid motions and scaling (if normalized). Use it to:
+
 - Verify that a printed part matches a CAD model (compare DNA before/after printing)
 - Detect manufacturing defects (abnormal eigenvalue drift)
 - Drive a feedback loop for inverse error compensation
@@ -1091,14 +1092,15 @@ def spectral_distance(dna_a, dna_b):
 
 A **conformal map** preserves angles but not necessarily areas. It is the lowest-distortion parameterization for texture mapping. Three implementations available:
 
-| Method | Boundary | Distortion | Use case |
-|--------|----------|------------|----------|
-| Harmonic | Fixed (circle) | Area distortion possible | Simple disk-topology mesh |
-| LSCM (Least Squares Conformal) | Free | Minimizes angular distortion | General open meshes |
-| ARAP (As-Rigid-As-Possible) | Free | Minimizes distance distortion | When distances matter |
-| SCP (Spectral Conformal) | Free, spectral | Near-optimal conformal | Research-grade quality |
+| Method                         | Boundary       | Distortion                    | Use case                  |
+| ------------------------------ | -------------- | ----------------------------- | ------------------------- |
+| Harmonic                       | Fixed (circle) | Area distortion possible      | Simple disk-topology mesh |
+| LSCM (Least Squares Conformal) | Free           | Minimizes angular distortion  | General open meshes       |
+| ARAP (As-Rigid-As-Possible)    | Free           | Minimizes distance distortion | When distances matter     |
+| SCP (Spectral Conformal)       | Free, spectral | Near-optimal conformal        | Research-grade quality    |
 
 The **Spectral Conformal Parameterization (SCP)** algorithm (DDG course, CMU):
+
 1. Build the complex cotangent Laplacian $L_c$
 2. Build the area matrix $A$ from boundary halfedge traversal
 3. Minimize conformal energy $E_C(z) = E_D(z) - A(z)$
@@ -1115,6 +1117,7 @@ Computing shortest-path distances on curved surfaces. The **Heat Method** is O(n
 Timestep rule: $t = h^2$ where $h$ = mean edge length.
 
 **In libigl:**
+
 ```python
 # See igl.heat_geodesics for the full precomputed version
 # Manual implementation:
@@ -1211,19 +1214,21 @@ _Source: "Advanced Texture Wrapping for CAD" (docs/Advanced Texture Wrapping for
 **LSCM is correct for ALL manifold meshes — both organic and CAD/prismatic parts.**
 The key variable is the **seam-placement threshold**, not the projection method:
 
-| Geometry type | Seam angle | Why |
-|---|---|---|
-| Organic / smooth / curved shells | **60° (1.047 rad)** | Fewer seams → UV flows continuously around curves like skin |
-| CAD / prismatic / vacuum parts | **30° (0.523 rad)** | Every planar panel gets its own island → zero distortion per face; seams fall exactly at design edges (port shoulders, boss rims, gasket seats, fillet roots) |
+| Geometry type                    | Seam angle          | Why                                                                                                                                                           |
+| -------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Organic / smooth / curved shells | **60° (1.047 rad)** | Fewer seams → UV flows continuously around curves like skin                                                                                                   |
+| CAD / prismatic / vacuum parts   | **30° (0.523 rad)** | Every planar panel gets its own island → zero distortion per face; seams fall exactly at design edges (port shoulders, boss rims, gasket seats, fillet roots) |
 
 **The mathematical guarantee:** LSCM minimises $E_{LSCM}(\mathbf{u,v}) = \int_S |\nabla\mathbf{u} - \mathbf{N} \times \nabla\mathbf{v}|^2 \, dA$, which is angle-preserving by definition. On a flat (planar) face, a conformal map is also an isometry — zero stretch, zero distortion. 30° seams ensure each flat panel is a separate island, so every panel gets an exact isometric mapping.
 
 **Critical mistake to avoid:** Using OBJECT (box-map) projection for angular CAD parts. This seems intuitive but is wrong because:
+
 - World-space box projection is seamless only along axis-aligned faces
 - Non-axis-aligned faces (angled ports, chamfers, tapered revolves) get stretch
 - It cannot adapt to the per-panel orientation the way UV+seams can
 
 **`_auto_projection()` logic in `apply_texture_bpy.py`:**
+
 ```python
 # Count edges with dihedral angle >= 30°
 # >= 15% → CAD/prismatic → seam_angle = 30°
@@ -1232,6 +1237,7 @@ The key variable is the **seam-placement threshold**, not the projection method:
 ```
 
 **Blender implementation:**
+
 ```python
 # Step 1: clear stale seams
 bpy.ops.mesh.mark_seam(clear=True)
@@ -1286,6 +1292,7 @@ def get_shape_dna_blender(obj, k=10):
 From **SIGGRAPH 2017: Rethinking Texture Mapping** (Yuksel, Tarini, Lefebvre):
 
 **Core problem with UV maps:**
+
 - Creating UV maps is time-consuming, requires manual authoring
 - Distortions and seams degrade texture filtering quality
 - UV maps are tied to a specific mesh resolution — don't survive LOD changes
@@ -1293,14 +1300,14 @@ From **SIGGRAPH 2017: Rethinking Texture Mapping** (Yuksel, Tarini, Lefebvre):
 
 **Alternatives and when to use them:**
 
-| Method | Best for | Notes |
-|--------|----------|-------|
-| Traditional UV | Most cases, hardware-accelerated | Still dominant for game assets |
-| LSCM / Conformal UV | Artwork requiring low distortion | Our approach for displacement maps |
-| Ptex (per-face textures) | Production VFX (Disney/Pixar) | No seams, per-quad resolution |
-| Mesh Colors | Direct per-vertex/edge color storage | No UV at all; interpolated at render |
-| PolyCube Maps | Geometry with box-like topology | Low-distortion for CAD parts |
-| Volume-encoded UV | Complex topology, no cuts | UV stored as 3D field in volume |
+| Method                   | Best for                             | Notes                                |
+| ------------------------ | ------------------------------------ | ------------------------------------ |
+| Traditional UV           | Most cases, hardware-accelerated     | Still dominant for game assets       |
+| LSCM / Conformal UV      | Artwork requiring low distortion     | Our approach for displacement maps   |
+| Ptex (per-face textures) | Production VFX (Disney/Pixar)        | No seams, per-quad resolution        |
+| Mesh Colors              | Direct per-vertex/edge color storage | No UV at all; interpolated at render |
+| PolyCube Maps            | Geometry with box-like topology      | Low-distortion for CAD parts         |
+| Volume-encoded UV        | Complex topology, no cuts            | UV stored as 3D field in volume      |
 
 **For QIDIStudio displacement workflow:** LSCM conformal mapping is the right choice — it minimizes angular distortion (critical for even displacement), handles arbitrary topology, and produces smooth seams that are easy to hide.
 
@@ -1311,6 +1318,7 @@ From **SIGGRAPH 2017: Rethinking Texture Mapping** (Yuksel, Tarini, Lefebvre):
 From Carnegie Mellon's Discrete Differential Geometry course (K. Crane):
 
 #### Hodge Decomposition
+
 Any 1-form $\omega$ on a surface decomposes uniquely:
 $$\omega = d\alpha + \delta\beta + \gamma$$
 where $d\alpha$ is exact (gradient), $\delta\beta$ is co-exact (curl), $\gamma$ is harmonic.
@@ -1318,12 +1326,14 @@ where $d\alpha$ is exact (gradient), $\delta\beta$ is co-exact (curl), $\gamma$ 
 **Use in QIDIStudio:** Decompose a displacement vector field into its divergence-free and curl-free components before applying it. Helps prevent mesh folding.
 
 #### Vector Field Design (Trivial Connections)
+
 Design smooth tangent vector fields on surfaces by solving:
 $$\min_{\delta\beta} \|\delta\beta\|^2 \quad \text{s.t.} \quad d\delta\beta = u$$
 
 where $u$ encodes desired singularities. Used for designing principal stress directions for fiber orientation in FDM printing.
 
 #### Spectral Conformal Parameterization (SCP)
+
 Minimize conformal energy $E_C(z) = E_D(z) - A(z)$ where `A` is the area form. Find the minimum eigenvector of the energy matrix — this gives the least-distorted flattening.
 
 **Python:** `igl.lscm()` implements a closely related method. For true SCP, use the `buildConformalEnergy` + `solveInversePowerMethod` pattern from the CMU DDG exercises.
@@ -1346,12 +1356,14 @@ numpy>=1.24.0
 ```
 
 **Python version compatibility:**
+
 - `libigl` 2.6.x: Python 3.8–3.13, prebuilt wheels available
 - `robust_laplacian` 1.0.0: Python 3.8–3.12, prebuilt wheels available; may need C++ build for 3.13
 - `trimesh[easy]`: Python 3.8+, fully pure Python core
 - All three work in `bpy_env` (Python 3.11) and `memory_env` (Python 3.13)
 
 **Quick validation:**
+
 ```python
 import igl; print("libigl OK")
 import robust_laplacian; print("robust_laplacian OK")
@@ -1364,17 +1376,17 @@ import trimesh; m = trimesh.creation.icosphere(); print(f"trimesh OK — icosphe
 
 Key papers underpinning the computational metrology pipeline:
 
-| Paper | Authors | Relevance |
-|-------|---------|----------|
-| [Rethinking Texture Mapping](https://www.cemyuksel.com/courses/conferences/siggraph2017-rethinking_texture_mapping/) | Yuksel, Tarini, Lefebvre (SIGGRAPH 2017) | Survey of UV alternatives: Ptex, Mesh Colors, PolyCube, Volume UV |
-| [Shape DNA: Spectral Geometry](https://reuter.mit.edu/papers/reuter-sig06.pdf) | Reuter et al. (2006) | Laplace-Beltrami eigenvalues as isometry-invariant shape fingerprint |
-| [Conformal Geometry of Surfaces](https://archive.ymsc.tsinghua.edu.cn/pacm_download/59/11124-Shing-Tung_Yau_236.pdf) | Gu & Yau | Mathematical foundation for angle-preserving maps on manifolds |
-| [Texture Synthesis over Arbitrary Manifolds](https://history.siggraph.org/learning/texture-synthesis-over-arbitrary-manifold-surfaces-by-wei-and-levoy/) | Wei & Levoy (SIGGRAPH 2001) | Patch-based texture synthesis directly on mesh surface — no UV needed |
-| [Discrete Differential Geometry (DDG)](https://brickisland.net/DDGSpring2024/) | Crane et al. (CMU 15-458) | Cotangent Laplacian, heat geodesics, spectral conformal parameterization |
-| [Least Squares Conformal Maps (LSCM)](https://alice.loria.fr/publications/papers/2002/lscm/lscm.pdf) | Levy et al. (2002) | Original LSCM paper — the algorithm behind `bpy.ops.uv.unwrap(method='CONFORMAL')` |
-| [Non-Shrinking Laplacian Smoothing](https://graphics.stanford.edu/courses/cs468-12-spring/LectureSlides/06_smoothing.pdf) | Taubin (1995) | Two-pass λ+μ smoothing preserving volume. λ=0.5, μ=-0.53. **Implemented** in step 6b of `apply_texture_bpy.py` as seam-blend post-process |
-| [As-Rigid-As-Possible (ARAP)](https://igl.ethz.ch/projects/ARAP/arap_web.pdf) | Sorkine (2007) | Deformation preserving local rigidity — relevant for corner compensation |
-| [Mesh Parameterization Survey](https://www.inf.usi.ch/hormann/papers/Floater.Hormann.2005.SMP.pdf) | Floater & Hormann (2005) | Comprehensive survey of all UV parameterization methods |
+| Paper                                                                                                                                                    | Authors                                  | Relevance                                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| [Rethinking Texture Mapping](https://www.cemyuksel.com/courses/conferences/siggraph2017-rethinking_texture_mapping/)                                     | Yuksel, Tarini, Lefebvre (SIGGRAPH 2017) | Survey of UV alternatives: Ptex, Mesh Colors, PolyCube, Volume UV                                                                         |
+| [Shape DNA: Spectral Geometry](https://reuter.mit.edu/papers/reuter-sig06.pdf)                                                                           | Reuter et al. (2006)                     | Laplace-Beltrami eigenvalues as isometry-invariant shape fingerprint                                                                      |
+| [Conformal Geometry of Surfaces](https://archive.ymsc.tsinghua.edu.cn/pacm_download/59/11124-Shing-Tung_Yau_236.pdf)                                     | Gu & Yau                                 | Mathematical foundation for angle-preserving maps on manifolds                                                                            |
+| [Texture Synthesis over Arbitrary Manifolds](https://history.siggraph.org/learning/texture-synthesis-over-arbitrary-manifold-surfaces-by-wei-and-levoy/) | Wei & Levoy (SIGGRAPH 2001)              | Patch-based texture synthesis directly on mesh surface — no UV needed                                                                     |
+| [Discrete Differential Geometry (DDG)](https://brickisland.net/DDGSpring2024/)                                                                           | Crane et al. (CMU 15-458)                | Cotangent Laplacian, heat geodesics, spectral conformal parameterization                                                                  |
+| [Least Squares Conformal Maps (LSCM)](https://alice.loria.fr/publications/papers/2002/lscm/lscm.pdf)                                                     | Levy et al. (2002)                       | Original LSCM paper — the algorithm behind `bpy.ops.uv.unwrap(method='CONFORMAL')`                                                        |
+| [Non-Shrinking Laplacian Smoothing](https://graphics.stanford.edu/courses/cs468-12-spring/LectureSlides/06_smoothing.pdf)                                | Taubin (1995)                            | Two-pass λ+μ smoothing preserving volume. λ=0.5, μ=-0.53. **Implemented** in step 6b of `apply_texture_bpy.py` as seam-blend post-process |
+| [As-Rigid-As-Possible (ARAP)](https://igl.ethz.ch/projects/ARAP/arap_web.pdf)                                                                            | Sorkine (2007)                           | Deformation preserving local rigidity — relevant for corner compensation                                                                  |
+| [Mesh Parameterization Survey](https://www.inf.usi.ch/hormann/papers/Floater.Hormann.2005.SMP.pdf)                                                       | Floater & Hormann (2005)                 | Comprehensive survey of all UV parameterization methods                                                                                   |
 
 **Phone Case / Prismatic Manifold notes** (source: `docs/Phone Case Metrology & Texture Morphing.md`, 2026-02-27):
 
@@ -1390,15 +1402,15 @@ A phone case is a **disk-topology manifold with holes** — button cutouts are p
 
 ### 15.9 Troubleshooting — Geometry Stack
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `igl.cotmatrix` gives wrong sign | libigl cotmatrix is negative semi-definite | Flip sign: use `-L` when you need positive semi-definite |
-| Shape DNA comparison gives nonsensical distances | Mixed sign conventions between libigl and robust_laplacian | Always use one library for a full pipeline; don't mix L matrices |
-| `eigsh` returns nan | Near-degenerate mesh (zero-area faces, duplicate verts) | Run `trimesh.repair.fix_normals + fill_holes`, or use `mollify_factor=1e-4` in robust_laplacian |
-| UV seams visible in displacement texture | Conformal map has too much angle distortion at boundary | Use LSCM (free boundary) instead of harmonic (fixed boundary) |
-| Blender `bpy.ops.uv.unwrap` fails silently | No faces selected before calling | Add `for face in bm.faces: face.select = True` before `bpy.ops.uv.unwrap()` |
-| Shape DNA comparison false positives | Using combinatorial Laplacian (degree-adjacency) instead of cotangent Laplacian | Use `robust_laplacian.mesh_laplacian()` for production DNA |
-| Inverse compensation diverges | alpha too high, or KDTree matching wrong points | Reduce alpha (try 0.3–0.5), visualize kd.query results first |
+| Symptom                                          | Cause                                                                           | Fix                                                                                             |
+| ------------------------------------------------ | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `igl.cotmatrix` gives wrong sign                 | libigl cotmatrix is negative semi-definite                                      | Flip sign: use `-L` when you need positive semi-definite                                        |
+| Shape DNA comparison gives nonsensical distances | Mixed sign conventions between libigl and robust_laplacian                      | Always use one library for a full pipeline; don't mix L matrices                                |
+| `eigsh` returns nan                              | Near-degenerate mesh (zero-area faces, duplicate verts)                         | Run `trimesh.repair.fix_normals + fill_holes`, or use `mollify_factor=1e-4` in robust_laplacian |
+| UV seams visible in displacement texture         | Conformal map has too much angle distortion at boundary                         | Use LSCM (free boundary) instead of harmonic (fixed boundary)                                   |
+| Blender `bpy.ops.uv.unwrap` fails silently       | No faces selected before calling                                                | Add `for face in bm.faces: face.select = True` before `bpy.ops.uv.unwrap()`                     |
+| Shape DNA comparison false positives             | Using combinatorial Laplacian (degree-adjacency) instead of cotangent Laplacian | Use `robust_laplacian.mesh_laplacian()` for production DNA                                      |
+| Inverse compensation diverges                    | alpha too high, or KDTree matching wrong points                                 | Reduce alpha (try 0.3–0.5), visualize kd.query results first                                    |
 
 ---
 
@@ -1408,13 +1420,13 @@ _Source: `docs/PhD-Level 3D Model Perfection.md`, Model 2311DRK48G. Absorbed 202
 
 #### Device Geometry
 
-| Property | Value | Notes |
-|----------|-------|-------|
-| Model | Xiaomi POCO X6 Pro 5G (2311DRK48G) | |
-| Bezel radius | 1.3 mm | G2-continuous blend — not a simple chamfer |
-| Rear surface | 2.5D glass curve | K ≈ 0 (developable) — no angle distortion on flat back |
-| Corner fillets | Gaussian curvature K > 0 | Must use LSCM conformal mapping to prevent "Skin Bunching" |
-| Camera island | ~genus-1 equivalent, 4 circular cutouts | High-stress zone for UV seams — seam must go around island boundary |
+| Property       | Value                                   | Notes                                                               |
+| -------------- | --------------------------------------- | ------------------------------------------------------------------- |
+| Model          | Xiaomi POCO X6 Pro 5G (2311DRK48G)      |                                                                     |
+| Bezel radius   | 1.3 mm                                  | G2-continuous blend — not a simple chamfer                          |
+| Rear surface   | 2.5D glass curve                        | K ≈ 0 (developable) — no angle distortion on flat back              |
+| Corner fillets | Gaussian curvature K > 0                | Must use LSCM conformal mapping to prevent "Skin Bunching"          |
+| Camera island  | ~genus-1 equivalent, 4 circular cutouts | High-stress zone for UV seams — seam must go around island boundary |
 
 The case is a **disk-topology manifold with holes** (button cutouts = punctures). The camera island adds a genus-1 topological handle/hole — standard planar UV unwrap fails here. LSCM with free boundary handles it correctly.
 
@@ -1485,7 +1497,8 @@ _Implemented 2026-02-28. Replaces the single-heuristic `_auto_projection()` func
 
 #### Problem it solves
 
-The old `_auto_projection()` used only **one feature** (sharp-edge fraction >= 35%) to distinguish CAD from organic meshes.  This failed for:
+The old `_auto_projection()` used only **one feature** (sharp-edge fraction >= 35%) to distinguish CAD from organic meshes. This failed for:
+
 - Ornamental flat panels (elvish back shell) where dense channels push sharp fraction below 35% → misclassified as organic → LSCM UV → spike fans
 - Tall cylindrical bottles that happen to have many hard edges → misclassified as CAD → OBJECT coords → stretched pattern
 - Any new part type that doesn't fit the 35% heuristic
@@ -1494,13 +1507,13 @@ The old `_auto_projection()` used only **one feature** (sharp-edge fraction >= 3
 
 #### Three-feature classifier
 
-| Feature | How measured | What it detects |
-|---------|-------------|----------------|
-| `sharp_fraction` | % of dihedral edges ≥ 30° | CAD / prismatic indicator |
-| `z_ratio` | Z-span / max(X-span, Y-span) | Flat shell vs tall/revolution |
-| `curvature_std` | Std-dev of per-vertex Gaussian angle-deficit K_v | Organic curved vs flat |
+| Feature          | How measured                                     | What it detects               |
+| ---------------- | ------------------------------------------------ | ----------------------------- |
+| `sharp_fraction` | % of dihedral edges ≥ 30°                        | CAD / prismatic indicator     |
+| `z_ratio`        | Z-span / max(X-span, Y-span)                     | Flat shell vs tall/revolution |
+| `curvature_std`  | Std-dev of per-vertex Gaussian angle-deficit K_v | Organic curved vs flat        |
 
-Gaussian angle-deficit: `K_v = 2π − Σ(interior angles at v across incident faces)`.  Flat vertex → K≈0.  Curved/corner vertex → K≠0.  (Source: CMU 15-458 DDG §6.)
+Gaussian angle-deficit: `K_v = 2π − Σ(interior angles at v across incident faces)`. Flat vertex → K≈0. Curved/corner vertex → K≠0. (Source: CMU 15-458 DDG §6.)
 
 #### MeshClass enum
 
@@ -1529,12 +1542,12 @@ match sig.mesh_class:
 
 #### Classification thresholds
 
-| Class | Rule | Rationale |
-|-------|------|----------|
-| FLAT_SHELL | z_ratio < 0.25 | Any plate thinner than 25% of its footprint is a shell |
-| REVOLUTION | z_ratio >= 1.0 AND sharp < 0.20 | Taller than wide, smooth → cylindrical |
-| PRISMATIC | sharp_frac >= 0.35 | High hard-edge density → box/enclosure CAD |
-| ORGANIC | everything else | Low sharp, moderate height → curved freeform |
+| Class      | Rule                            | Rationale                                              |
+| ---------- | ------------------------------- | ------------------------------------------------------ |
+| FLAT_SHELL | z_ratio < 0.25                  | Any plate thinner than 25% of its footprint is a shell |
+| REVOLUTION | z_ratio >= 1.0 AND sharp < 0.20 | Taller than wide, smooth → cylindrical                 |
+| PRISMATIC  | sharp_frac >= 0.35              | High hard-edge density → box/enclosure CAD             |
+| ORGANIC    | everything else                 | Low sharp, moderate height → curved freeform           |
 
 FLAT_SHELL takes precedence over all (checked first in match block).
 
@@ -1564,17 +1577,18 @@ enclosure:         sharp=71%, z_ratio=0.40  → PRISMATIC  → OBJECT, top-face
 
 `_compute_shape_dna()` now accepts `expected_class: MeshClass` and logs a `*** TOPOLOGY MISMATCH ***` line if the DNA contradicts the classifier:
 
-| λ₁/λ₂ ratio | Interpretation | Expected class |
-|-------------|---------------|---------------|
-| > 0.85 | Degenerate eigenvalue pair → rotational symmetry | `REVOLUTION` |
-| 0.50–0.85 | Moderate asymmetry | `ORGANIC` |
-| < 0.50 | Strong asymmetry, spread spectrum | `FLAT_SHELL` / `PRISMATIC` |
+| λ₁/λ₂ ratio | Interpretation                                   | Expected class             |
+| ----------- | ------------------------------------------------ | -------------------------- |
+| > 0.85      | Degenerate eigenvalue pair → rotational symmetry | `REVOLUTION`               |
+| 0.50–0.85   | Moderate asymmetry                               | `ORGANIC`                  |
+| < 0.50      | Strong asymmetry, spread spectrum                | `FLAT_SHELL` / `PRISMATIC` |
 
 **How to use for debugging:** Run apply texture, open `%TEMP%\qidi_texture.log`, search for `TOPOLOGY MISMATCH`. If found, inspect the three feature values (`sharp`, `z_ratio`, `χ`) to determine which threshold needs adjusting.
 
 #### Euler characteristic as tiebreaker
 
 χ = V − E + F is computed before `bm.free()` and stored in `TopologySignature.euler_characteristic`:
+
 - REVOLUTION dispatch now requires `euler_char <= 0` (annular manifold — has a through-hole)
 - Tall smooth mesh with χ > 0 → classified as ORGANIC (e.g. figurine on pedestal), not REVOLUTION
 - Phone cases with multiple cutouts have χ << 0 but are already caught by FLAT_SHELL (z_ratio < 0.25) first
@@ -1708,6 +1722,7 @@ When hunting geometry bugs that only appear in Release builds, use `scripts\debu
 ```
 
 What it does:
+
 - Configures CMake with `CMAKE_BUILD_TYPE=RelWithDebInfo` (optimized + debug symbols `/Zi`)
 - Enables MSVC AddressSanitizer (`/fsanitize=address`) to catch buffer overruns in mesh processing
 - Output goes to `C:\QIDISrc\QIDIStudio\build_debug\`
@@ -1717,6 +1732,7 @@ MSVC ASan equivalent of GCC's `-fsanitize=address`: add `/fsanitize=address` to 
 #### Mixed-Mode Debugging (C++ stepping from Python callsite)
 
 For stepping from `Plater.cpp`'s `wxExecute` call into C++ geometry code:
+
 1. Open the project in full Visual Studio (not VS Code)
 2. Project → Properties → Debugging → **Debugger Type: Mixed**
 3. Set breakpoint in C++ (`Plater.cpp apply_texture()`) and Python (`apply_texture_bpy.py _apply_displacement_blender()`)
@@ -1725,10 +1741,12 @@ For stepping from `Plater.cpp`'s `wxExecute` call into C++ geometry code:
 #### debugpy Attach (Python-only, most common)
 
 For Blender Python-only debugging (no C++ stepping needed):
+
 ```powershell
 .\scripts\run_texture_pipeline.ps1 -Model model.stl -Skin skin.png -Output out.stl -Debug
 # VS Code: Run & Debug -> Python: Remote Attach -> localhost:5678
 ```
+
 `-Debug` sets `QIDI_BPY_DEBUG=1` which triggers `debugpy.listen(5678); debugpy.wait_for_client()` inside the script.
 
 #### Golden Buffer Dump (geometry crash isolation)
@@ -1749,14 +1767,14 @@ Then reproduce in a standalone Python script without Blender overhead.
 
 #### Debugging Bibliography (applied to this codebase)
 
-| Resource | Applied where |
-|---|---|
-| faulthandler (Python stdlib) | `apply_texture_bpy.py` — catches C++/bpy segfaults |
-| debugpy + VS Code Remote Attach | `run_texture_pipeline.ps1 -Debug` flag |
-| MSVC `/fsanitize=address` | `scripts/debug_build.ps1` CMake config |
-| Mixed-Mode Debugging (VS) | Full Visual Studio, Debugger Type=Mixed |
-| GDB `py-bt` | Linux/Mac dev machines only |
-| Golden Buffer Dump | Inline npy export before crashing bpy call |
+| Resource                        | Applied where                                      |
+| ------------------------------- | -------------------------------------------------- |
+| faulthandler (Python stdlib)    | `apply_texture_bpy.py` — catches C++/bpy segfaults |
+| debugpy + VS Code Remote Attach | `run_texture_pipeline.ps1 -Debug` flag             |
+| MSVC `/fsanitize=address`       | `scripts/debug_build.ps1` CMake config             |
+| Mixed-Mode Debugging (VS)       | Full Visual Studio, Debugger Type=Mixed            |
+| GDB `py-bt`                     | Linux/Mac dev machines only                        |
+| Golden Buffer Dump              | Inline npy export before crashing bpy call         |
 
 ---
 
@@ -1775,7 +1793,7 @@ Observe  →  Orient  →  Decide  →  Act
   + PNGs)     class)       anomaly)     code)
 ```
 
-This is Boyd's OODA loop applied to geometric ML.  GPT-4V (arXiv 2303.08774) validates that
+This is Boyd's OODA loop applied to geometric ML. GPT-4V (arXiv 2303.08774) validates that
 multimodal models can reason over image+JSON inputs to produce corrective text — here the
 "image" is the curvature heatmap PNG and the "JSON" is the telemetry record.
 
@@ -1783,13 +1801,13 @@ multimodal models can reason over image+JSON inputs to produce corrective text �
 
 **`apply_texture_bpy.py` additions (2026-02-28)**
 
-| Symbol | Purpose |
-|---|---|
-| `_DebugSession` dataclass | Accumulates `stages` list; created in `main()` when `--debug-snapshots` is set |
-| `_export_debug_snapshot()` | Writes stage JSON + rolling `session_summary.json`; called at `post_weld`, `post_classify`, `post_displace` |
-| `_render_curvature_heatmap()` | EEVEE vertex-colour render of Gaussian K_v; activated by `--render-heatmap` |
-| `--debug-snapshots` argparse flag | Activates telemetry export |
-| `--snapshots-dir` argparse flag | Output directory (default: same dir as `--log`) |
+| Symbol                            | Purpose                                                                                                     |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `_DebugSession` dataclass         | Accumulates `stages` list; created in `main()` when `--debug-snapshots` is set                              |
+| `_export_debug_snapshot()`        | Writes stage JSON + rolling `session_summary.json`; called at `post_weld`, `post_classify`, `post_displace` |
+| `_render_curvature_heatmap()`     | EEVEE vertex-colour render of Gaussian K_v; activated by `--render-heatmap`                                 |
+| `--debug-snapshots` argparse flag | Activates telemetry export                                                                                  |
+| `--snapshots-dir` argparse flag   | Output directory (default: same dir as `--log`)                                                             |
 
 #### JSON Telemetry Schema
 
@@ -1797,28 +1815,28 @@ Each stage writes one JSON file `{stage}.json` and a rolling `session_summary.js
 
 ```json
 {
-  "model":     "/path/to/source.3mf",
-  "skin":      "/path/to/skin.png",
+  "model": "/path/to/source.3mf",
+  "skin": "/path/to/skin.png",
   "timestamp": "2026-02-28T15:30:00",
-  "stage":     "post_classify",
+  "stage": "post_classify",
   "mesh_class": "FLAT_SHELL",
   "features": {
-    "sharp_fraction":       0.12,
-    "z_ratio":              0.08,
-    "curvature_std":        0.03,
+    "sharp_fraction": 0.12,
+    "z_ratio": 0.08,
+    "curvature_std": 0.03,
     "euler_characteristic": -4
   },
-  "projection":     "object",
-  "full_surface":   false,
+  "projection": "object",
+  "full_surface": false,
   "seam_angle_deg": 30.0,
   "geometry": {
-    "verts":   9248,
-    "polys":   18432,
+    "verts": 9248,
+    "polys": 18432,
     "bbox_mm": [72.4, 148.3, 8.2]
   },
   "heatmap_png": null,
   "weld_before": 18432,
-  "weld_after":  9248
+  "weld_after": 9248
 }
 ```
 
@@ -1838,12 +1856,12 @@ The AI reads `ai_debug_report.txt` in a subsequent session to generate targeted 
 
 #### Test Case Registry
 
-| Name | 3MF Path | Expected Class | Notes |
-|---|---|---|---|
-| `poco_x6_phone_case` | `3DPrinting/PhoneCase/STL/protection-poco-x6.3mf` | `FLAT_SHELL` | 148×73×8 mm flat slab |
-| `elvish_tpu_inner` | `3DPrinting/PhoneCase/STL/elvish_tpu_inner.3mf` | `FLAT_SHELL` | Ornamental flat back panel |
-| `vacuum_nozzle_lower` | `3DPrinting/VacuumNozzle/STL/vacuum_nozzle_lower.3mf` | `REVOLUTION` | Rotational body, tall cylinder |
-| `vacuum_crevice_nozzle` | `3DPrinting/VacuumNozzle/STL/vacuum_crevice_nozzle.3mf` | `PRISMATIC` | Tapered rectangular prism |
+| Name                    | 3MF Path                                                | Expected Class | Notes                          |
+| ----------------------- | ------------------------------------------------------- | -------------- | ------------------------------ |
+| `poco_x6_phone_case`    | `3DPrinting/PhoneCase/STL/protection-poco-x6.3mf`       | `FLAT_SHELL`   | 148×73×8 mm flat slab          |
+| `elvish_tpu_inner`      | `3DPrinting/PhoneCase/STL/elvish_tpu_inner.3mf`         | `FLAT_SHELL`   | Ornamental flat back panel     |
+| `vacuum_nozzle_lower`   | `3DPrinting/VacuumNozzle/STL/vacuum_nozzle_lower.3mf`   | `REVOLUTION`   | Rotational body, tall cylinder |
+| `vacuum_crevice_nozzle` | `3DPrinting/VacuumNozzle/STL/vacuum_crevice_nozzle.3mf` | `PRISMATIC`    | Tapered rectangular prism      |
 
 All 3MF files are in `C:\Users\User\source\repos\3DPrinting\` — used READ-ONLY.
 
@@ -1854,16 +1872,16 @@ All 3MF files are in `C:\Users\User\source\repos\3DPrinting\` — used READ-ONLY
 3. If FAIL: the report supplies a **REMEDIATION HINT** naming which threshold to edit in `_classify_mesh_topology()`
 4. Edit the threshold → re-run pipeline → confirm pass
 
-No Blender UI, no human action needed.  The AI is both the test runner and the code editor.
+No Blender UI, no human action needed. The AI is both the test runner and the code editor.
 
 #### Curvature Heatmap (optional)
 
 `_render_curvature_heatmap()` computes discrete Gaussian curvature K_v = 2π − Σ(interior angles)
-per vertex and stores it as a Blender vertex-colour layer `"CurvatureMap"`.  An overhead
+per vertex and stores it as a Blender vertex-colour layer `"CurvatureMap"`. An overhead
 orthographic EEVEE render produces a PNG:
 
 - **Blue** = K ≈ 0 (flat/planar vertex)
-- **Red**  = K > 0 (convex — sphere-like)
+- **Red** = K > 0 (convex — sphere-like)
 - **Green** = K < 0 (saddle — hyperbolic)
 
 This is the same Gaussian curvature used in the `curvature_std` classifier feature,
@@ -1885,7 +1903,7 @@ Convert conformal mapping errors into **visual signals** (checkerboard distortio
 
 Key insight from Lévy 2002: LSCM minimises Dirichlet energy
 $$E_D(\psi) = \int_M |\nabla\psi|^2 \, dA$$
-When $E_D > 2.0$, the projection mode is wrong for the mesh topology.  The AI computes $E_D$
+When $E_D > 2.0$, the projection mode is wrong for the mesh topology. The AI computes $E_D$
 per-pipeline-run without any rendering required.
 
 #### New Infrastructure (2026-02-28)
@@ -1895,34 +1913,35 @@ per-pipeline-run without any rendering required.
 GLSL fragment shader implementing the Jacobian heatmap from docs/AI Debugging Texture Mapping Glitches.md §I.
 Three modes via `u_visualMode` uniform:
 
-| Mode | Value | Description |
-|---|---|---|
-| `CHECKERBOARD` | 0.0 | 8×8 procedural grid; aspect-ratio drift > 15% = high $E_D$ |
-| `HEATMAP`      | 1.0 | `dFdx`/`dFdy` Jacobian approximation; green=conformal, red=compression, blue=expansion |
-| `HYBRID`       | 2.0 | 50/50 blend weighted by local distortion magnitude |
+| Mode           | Value | Description                                                                            |
+| -------------- | ----- | -------------------------------------------------------------------------------------- |
+| `CHECKERBOARD` | 0.0   | 8×8 procedural grid; aspect-ratio drift > 15% = high $E_D$                             |
+| `HEATMAP`      | 1.0   | `dFdx`/`dFdy` Jacobian approximation; green=conformal, red=compression, blue=expansion |
+| `HYBRID`       | 2.0   | 50/50 blend weighted by local distortion magnitude                                     |
 
 Colour semantics (HEATMAP mode):
+
 - **Green** = $\log_2(|dx|/|dy|) \approx 0$ — conformal (angle-preserving)
-- **Red**   = $\log_2 > 0$ — compression zone (camera island, tight corners)
-- **Blue**  = $\log_2 < 0$ — expansion zone (long flat backs)
+- **Red** = $\log_2 > 0$ — compression zone (camera island, tight corners)
+- **Blue** = $\log_2 < 0$ — expansion zone (long flat backs)
 - **Yellow ring** = threshold boundary at 15% drift ($|\log_2| \approx 0.20$)
 
 **`apply_texture_bpy.py` additions**
 
-| Symbol | Purpose |
-|---|---|
+| Symbol                              | Purpose                                                                                                   |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `_render_checkerboard_diagnostic()` | EEVEE render using Blender Checker Texture node; 8×8 grid; shows UV island boundaries as non-square cells |
-| `_calculate_uv_stretch_metrics()` | Per-face L2 area stretch; returns `mean_stretch`, `max_stretch`, `dirichlet_energy`, `high_energy_frac` |
-| `--render-heatmap` argparse flag | Activates both curvature heatmap AND checkerboard render at each debug stage |
-| `checker_png` JSON field | Path to checkerboard diagnostic PNG in each stage record |
-| `uv_stretch` JSON field | Stretch metrics dict in `post_displace` stage record |
+| `_calculate_uv_stretch_metrics()`   | Per-face L2 area stretch; returns `mean_stretch`, `max_stretch`, `dirichlet_energy`, `high_energy_frac`   |
+| `--render-heatmap` argparse flag    | Activates both curvature heatmap AND checkerboard render at each debug stage                              |
+| `checker_png` JSON field            | Path to checkerboard diagnostic PNG in each stage record                                                  |
+| `uv_stretch` JSON field             | Stretch metrics dict in `post_displace` stage record                                                      |
 
 The `uv_stretch` block is computed even without `--render-heatmap` — it is always populated at
 `post_displace` whenever a UV layer exists (LSCM mode).
 
 **`scripts/ai_texture_critic.py`** (new file)
 
-Autonomous texture quality analyser.  Reads `session_summary.json`, applies the diagnostic
+Autonomous texture quality analyser. Reads `session_summary.json`, applies the diagnostic
 decision tree, writes `ai_texture_critic_report.txt`:
 
 ```
@@ -1934,6 +1953,7 @@ IF mean_stretch < 0.5 or > 3.0         → tile_size calibration issue
 ```
 
 Each issue includes:
+
 - **severity**: ERROR / WARNING / INFO
 - **root_cause**: what geometric invariant is violated
 - **remediation**: specific line of code or threshold to change
@@ -1951,7 +1971,7 @@ $$s_i = \frac{A_{3D,i} \cdot A_{UV,\text{total}}}{A_{UV,i} \cdot A_{3D,\text{tot
 Normalised Dirichlet energy:
 $$E_D = \frac{1}{A_{3D,\text{total}}} \sum_i \max\!\left(s_i,\, \frac{1}{s_i}\right) \cdot A_{3D,i}$$
 
-$E_D = 1.0$ → perfect isometric map.  $E_D > 2.0$ → significant conformal distortion.
+$E_D = 1.0$ → perfect isometric map. $E_D > 2.0$ → significant conformal distortion.
 
 #### Complete Debugging Workflow
 
@@ -1970,13 +1990,201 @@ $E_D = 1.0$ → perfect isometric map.  $E_D > 2.0$ → significant conformal di
 
 #### Bibliography
 
-| Source | Concept | Application |
-|---|---|---|
-| Lévy 2002 (ALICE LORIA) | LSCM — UV mapping that minimises $E_D$ | Primary UV algorithm in pipeline |
-| Sander 2001 | L2 stretch metric $\Gamma^2 = (a^2+b^2+c^2+d^2)/2A$ | `_calculate_uv_stretch_metrics()` |
+| Source                        | Concept                                                            | Application                                       |
+| ----------------------------- | ------------------------------------------------------------------ | ------------------------------------------------- |
+| Lévy 2002 (ALICE LORIA)       | LSCM — UV mapping that minimises $E_D$                             | Primary UV algorithm in pipeline                  |
+| Sander 2001                   | L2 stretch metric $\Gamma^2 = (a^2+b^2+c^2+d^2)/2A$                | `_calculate_uv_stretch_metrics()`                 |
 | Nimier-David 2019 (Mitsuba 2) | Differentiable rendering — gradients of rendering w.r.t. UV params | Conceptual foundation for inverse-rendering debug |
-| Crane 2024 CMU 15-458 | DDG §7 conformal parameterisation, SCP algorithm | Seam strategy + Euler characteristic tiebreaker |
-| Taubin 1995 | Non-shrinking Laplacian smoothing | Seam-boundary blending post-displacement |
+| Crane 2024 CMU 15-458         | DDG §7 conformal parameterisation, SCP algorithm                   | Seam strategy + Euler characteristic tiebreaker   |
+| Taubin 1995                   | Non-shrinking Laplacian smoothing                                  | Seam-boundary blending post-displacement          |
+
+---
+
+## §16 PhD Knowledge Acquisition Pipeline
+
+### 16.1 Motivation: Why Standard RAG Is Insufficient
+
+Standard Retrieval-Augmented Generation retrieves similar past answers and injects them into context. For deeply technical research (geometry algorithms, UV theory, C++ compiler internals), this misses:
+
+1. **Cross-domain gaps** — the answer lives in Field B (e.g. topology) but the question is in Field A (e.g. UV mapping).
+2. **Falsification debt** — a retrieved answer may have been contradicted by newer work.
+3. **Synthesis gap** — no agent formalises _why_ two contradictory findings can coexist.
+
+The PhD pipeline addresses these with a Dialectical Triad (Librarian → Skeptic → Synthesizer) run inside a RAML (Retrieval-Augmented Machine Learning) loop.
+
+### 16.2 Board of Directors Architecture
+
+Each agent in the Board plays a permanent epistemic role — not a task role:
+
+| Agent           | Epistemic Role                                             | Model            | Key Tool                       |
+| --------------- | ---------------------------------------------------------- | ---------------- | ------------------------------ |
+| **Librarian**   | First-principles retrieval + Knowledge Gap identification  | Gemini 2.5 Flash | `tavily_search`, `memory_read` |
+| **Skeptic**     | Popperian falsification + adversarial edge-case generation | Gemini 2.5 Flash | `run_command`, `file_read`     |
+| **Synthesizer** | Cross-domain isomorphism + Unified Theory production       | Gemini 2.5 Pro   | `memory_write`                 |
+| **Engineer**    | Code execution + regression guard                          | Gemini 2.5 Pro   | `run_command` (via builder)    |
+
+The existing 4-agent fleet (researcher/builder/verifier/scribe) remains the **execution layer**. The Board of Directors is the **research layer** — it feeds _theories_ into the execution layer rather than tasks.
+
+### 16.3 RAML Pattern
+
+RAML = Retrieval-Augmented Machine Learning. Key invariant:
+
+> **Every failure trace is a first-class knowledge asset.**
+
+Implementation (`agents/phd_pipeline.py`):
+
+1. Before any research cycle, call `_retrieve_prior_failures(question)` — returns LanceDB rows tagged with failure context.
+2. Inject these rows into the Librarian's prompt as "RAML CONTEXT".
+3. After every Synthesizer cycle, call `memory_write` with category `PhD_Synthesis`.
+4. The next cycle begins by querying the _updated_ LanceDB — learning compounds.
+
+This is the "perpetual learning" property described in the papers: the knowledge base grows monotonically, so each research cycle is strictly better informed than the last.
+
+### 16.4 Dialectical Loop Flow
+
+```
+question
+   │
+   ▼
+[RAML] query_similar(failure traces)     ← LanceDB read
+   │
+   ▼
+[Librarian] First Principles Report      ← memory_read + tavily_search
+   │  domain axioms, Knowledge Gap, Hypothesis
+   ▼
+[Skeptic] Falsification Report           ← file_read + run_command
+   │  counter-examples, assumption audit, verdict (ROBUST|FRAGILE|BROKEN)
+   ▼
+[Synthesizer] Unified Theory             ← memory_write
+   │  isomorphism, code consequence, falsifiable prediction
+   ▼
+[if ROBUST] ── exit ─────────────────────→ result dict
+[if FRAGILE/BROKEN] ── next round ──────→ Librarian (with prior synthesis as context)
+```
+
+Maximum rounds: 2 (configurable via `max_rounds`). Early exit when Skeptic says ROBUST.
+
+### 16.5 Tavily Search Integration
+
+Tavily provides real-time ArXiv/GitHub/semantic scholar search without a browser headless overhead.
+
+- Key: `TAVILY_API_KEY` in `.env` (added; key in `deepagents-quickstarts/.env`)
+- Tool: `agents/tools.py::tavily_search` — wraps `TavilySearchResults` from `langchain_community`
+- Protocol: Librarian calls `memory_read` first (≤6 hits). Only calls `tavily_search` if LanceDB misses.
+- Results capped at 10 per call; content truncated to 600 chars per hit.
+
+### 16.6 Isomorphism Discovery (Category Theory Layer)
+
+The Synthesizer is explicitly prompted to find mathematical isomorphisms between domains. Examples already discovered in QIDIStudio work:
+
+| Isomorphism                               | Domain A          | Domain B           | Code Consequence              |
+| ----------------------------------------- | ----------------- | ------------------ | ----------------------------- |
+| Euler characteristic ≅ topological genus  | Discrete Geometry | Algebraic Topology | `chi ≤ -4` → PRISMATIC branch |
+| LSCM conformal energy ≅ Dirichlet energy  | UV Mapping        | Harmonic Analysis  | Identical minimisation target |
+| Displacement depth ≅ normal map intensity | Mesh Geometry     | Rendering          | Scale-matched thresholds      |
+
+### 16.7 Entry Point
+
+```python
+from agents.phd_pipeline import run_phd_research
+
+result = run_phd_research(
+    "How should the topology classifier distinguish high-genus PRISMATIC "
+    "shapes from simple REVOLUTION shapes using Euler characteristic alone?",
+    max_rounds=2,
+    persist=True,
+    thread_id="topo-chi-001",
+)
+print(result["synthesis"])
+```
+
+Returns: `{"question", "synthesis", "librarian", "skeptic", "rounds", "persisted"}`.
+
+### 16.8 Files Added / Modified
+
+| File                            | Role                                                                                |
+| ------------------------------- | ----------------------------------------------------------------------------------- |
+| `agents/phd_pipeline.py`        | Board of Directors dialectical loop, RAML, entry point                              |
+| `agents/prompts/librarian.md`   | Librarian system prompt — first-principles retrieval                                |
+| `agents/prompts/skeptic.md`     | Skeptic system prompt — Popperian falsification                                     |
+| `agents/prompts/synthesizer.md` | Synthesizer system prompt — unified theory production                               |
+| `agents/tools.py`               | Added `tavily_search`, `LIBRARIAN_TOOLS`, `SKEPTIC_TOOLS`, `SYNTHESIZER_TOOLS`      |
+| `agents/agents.py`              | Added `make_librarian()`, `make_skeptic()`, `make_synthesizer()`, extended registry |
+| `.env`                          | Added `TAVILY_API_KEY`                                                              |
+| `memory/requirements.txt`       | Added `tavily-python`, `langchain-community`                                        |
+
+---
+
+## §17 OCP CAD Viewer Integration
+
+### 17.1 Purpose
+
+After the texture pipeline modifies parts, we need to **visualise the texture_modifier STLs** directly in VS Code without launching Blender. OCP CAD Viewer achieves this via a WebSocket + OpenCASCADE renderer embedded in the IDE.
+
+### 17.2 Installation
+
+Install the VS Code extension and Python package:
+
+```powershell
+# 1. VS Code Extension (install from Extensions marketplace):
+#    Extension ID: twiss.ocp-vscode
+#    Name:         OCP CAD Viewer
+
+# 2. Python packages (in your active venv):
+pip install build123d ocp_vscode
+
+# Or via the QIDIStudio requirements:
+.\memory_env\Scripts\python.exe -m pip install build123d ocp_vscode
+```
+
+`build123d` version ≥ 0.8.0 includes `import_stl()` for direct STL loading.
+
+### 17.3 Displaying the 4 Texture-Modified Parts
+
+```python
+# scripts/view_texture_parts.py
+from build123d import import_stl
+from ocp_vscode import show, set_port
+
+set_port(3939)
+
+phone_case    = import_stl(r"C:\...\protection-poco-x6_texture_modifier.stl")
+elvish_tpu    = import_stl(r"C:\...\elvish_tpu_inner_texture_modifier.stl")
+vac_nozzle    = import_stl(r"C:\...\vacuum_nozzle_lower_texture_modifier.stl")
+vac_crevice   = import_stl(r"C:\...\vacuum_crevice_nozzle_texture_modifier.stl")
+
+show(
+    phone_case, elvish_tpu, vac_nozzle, vac_crevice,
+    names=["Poco X6", "Elvish TPU", "Vacuum Nozzle", "Crevice Tool"],
+    colors=[(133,187,243), (89,204,115), (243,174,56), (217,89,89)],
+    reset_camera=True,
+)
+```
+
+Run with: `python scripts/view_texture_parts.py`
+
+### 17.4 Part Inventory
+
+| Part                  | STL Path                                                                 | Classifier | UV Method |
+| --------------------- | ------------------------------------------------------------------------ | ---------- | --------- |
+| Poco X6 phone case    | `3DPrinting/PhoneCase/STL/protection-poco-x6_texture_modifier.stl`       | PRISMATIC  | OBJECT    |
+| Elvish TPU inner      | `3DPrinting/PhoneCase/STL/elvish_tpu_inner_texture_modifier.stl`         | FREEFORM   | LSCM      |
+| Vacuum nozzle lower   | `3DPrinting/VacuumNozzle/STL/vacuum_nozzle_lower_texture_modifier.stl`   | REVOLUTION | LSCM      |
+| Vacuum crevice nozzle | `3DPrinting/VacuumNozzle/STL/vacuum_crevice_nozzle_texture_modifier.stl` | PRISMATIC  | OBJECT    |
+
+### 17.5 OCP Viewer Protocol
+
+1. Open VS Code → `View` → `OCP CAD Viewer` (or `Ctrl+Shift+P → OCP CAD Viewer: Open`)
+2. Run `view_texture_parts.py` — the viewer updates via WebSocket on port 3939.
+3. Navigate parts with mouse: `Left drag` to rotate, `Scroll` to zoom, `Right drag` to pan.
+4. Toggle individual parts in the left panel tree.
+
+### 17.6 Dependency Notes
+
+- `build123d` uses OpenCASCADE under the hood — requires 64-bit Python and Windows 10+.
+- `ocp_vscode` connects to the VS Code extension; the extension must be running before `show()` is called.
+- STL files are imported as tessellated meshes — OCC converts them to `TopoDS_Shell` via `BRep`.
+- For parametric editing, use `build123d` constructors; for read-only display, `import_stl` is sufficient.
 
 ---
 
@@ -2016,16 +2224,16 @@ Set-ItemProperty -Path $uninstPath -Name 'DisplayIcon'    -Value "$exe,0"
 
 ## Appendix B: Qidi Q2 Printer Network Config
 
-| Property | Value |
-|----------|-------|
-| IP | `192.168.0.116` (static DHCP) |
-| Moonraker API | `http://192.168.0.116:7125/` |
-| Web UI (Fluidd) | `http://192.168.0.116/` |
-| Upload endpoint | `POST /server/files/upload` (multipart: `file` + `root=config`) |
-| Firmware restart | `POST /printer/firmware_restart` |
-| Nozzle | 0.4mm hardened steel |
-| Bed size | 270×270×256mm |
-| Firmware | Klipper, CoreXY |
+| Property         | Value                                                           |
+| ---------------- | --------------------------------------------------------------- |
+| IP               | `192.168.0.116` (static DHCP)                                   |
+| Moonraker API    | `http://192.168.0.116:7125/`                                    |
+| Web UI (Fluidd)  | `http://192.168.0.116/`                                         |
+| Upload endpoint  | `POST /server/files/upload` (multipart: `file` + `root=config`) |
+| Firmware restart | `POST /printer/firmware_restart`                                |
+| Nozzle           | 0.4mm hardened steel                                            |
+| Bed size         | 270×270×256mm                                                   |
+| Firmware         | Klipper, CoreXY                                                 |
 
 ## Appendix D: Dev Workflow — NTFS Junction (Single Source of Truth)
 
@@ -2040,6 +2248,7 @@ powershell -ExecutionPolicy Bypass -File scripts\dev_setup.ps1
 ```
 
 What it does:
+
 1. Derives workspace root from `$PSScriptRoot` — no hardcoded workspace path
 2. Checks `install_dir\resources\` exists (build must have run)
 3. Removes the real `install_dir\resources\scripts\` directory
@@ -2055,10 +2264,12 @@ What it does:
 ```
 
 Blender discovery order (mirrors Plater.cpp `find_bpy_python()`):
+
 1. `$env:QIDI_BLENDER_EXE` (explicit override)
 2. Scan `%ProgramFiles%\Blender Foundation\` for newest `blender.exe`
 
 **Debugpy attach workflow:**
+
 ```powershell
 .\scripts\run_texture_pipeline.ps1 -Model model.stl -Skin skin.png -Output out.stl -Debug
 # Then in VS Code: Run & Debug -> Python: Remote Attach -> localhost:5678

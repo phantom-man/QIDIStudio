@@ -24,14 +24,17 @@ from langsmith import Client
 
 from agents.tools import (
     BUILDER_TOOLS,
+    LIBRARIAN_TOOLS,
     RESEARCHER_TOOLS,
     SCRIBE_TOOLS,
+    SKEPTIC_TOOLS,
+    SYNTHESIZER_TOOLS,
     VERIFIER_TOOLS,
 )
 
 # ── Load env ──────────────────────────────────────────────────────────────────
 
-REPO_ROOT  = Path(__file__).parents[1]
+REPO_ROOT = Path(__file__).parents[1]
 load_dotenv(REPO_ROOT / ".env", override=True)
 
 PROMPTS_DIR = REPO_ROOT / "agents" / "prompts"
@@ -39,6 +42,7 @@ PROMPTS_DIR = REPO_ROOT / "agents" / "prompts"
 # ── LangSmith Hub prompt loader ───────────────────────────────────────────────
 
 _hub_client: Client | None = None
+
 
 def _get_client() -> Client:
     global _hub_client
@@ -68,17 +72,21 @@ def load_prompt(agent_id: str) -> str:
         local = PROMPTS_DIR / f"{agent_id}.md"
         if local.exists():
             return local.read_text(encoding="utf-8")
-        raise RuntimeError(f"No prompt found for agent '{agent_id}' (Hub and local both failed)")
+        raise RuntimeError(
+            f"No prompt found for agent '{agent_id}' (Hub and local both failed)"
+        )
 
 
 # ── Model factory ─────────────────────────────────────────────────────────────
 
 # Vertex AI project + region — auth via gcloud ADC (no API key needed)
-_GCP_PROJECT  = os.environ.get("GOOGLE_CLOUD_PROJECT",  "crafty-hook-483415-b3")
+_GCP_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "crafty-hook-483415-b3")
 _GCP_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 
-def _make_llm(model: str, temperature: float = 0.0, **kwargs: Any) -> ChatGoogleGenerativeAI:
+def _make_llm(
+    model: str, temperature: float = 0.0, **kwargs: Any
+) -> ChatGoogleGenerativeAI:
     return ChatGoogleGenerativeAI(
         model=model,
         temperature=temperature,
@@ -93,7 +101,7 @@ def _make_llm(model: str, temperature: float = 0.0, **kwargs: Any) -> ChatGoogle
 # Built-in Gemini tool specs — passed at model construction so LangGraph's
 # tool-count validator only sees our custom LangChain tools.
 _GEMINI_SEARCH_TOOLS = [{"google_search": {}}, {"url_context": {}}]
-_GEMINI_CODE_TOOLS   = [{"code_execution": {}}]
+_GEMINI_CODE_TOOLS = [{"code_execution": {}}]
 
 
 def make_researcher() -> Any:
@@ -103,8 +111,7 @@ def make_researcher() -> Any:
     """
     # Built-in tools configured at model level — not via bind_tools — so
     # LangGraph create_react_agent only counts RESEARCHER_TOOLS.
-    llm = _make_llm("gemini-2.5-flash",
-                    model_kwargs={"tools": _GEMINI_SEARCH_TOOLS})
+    llm = _make_llm("gemini-2.5-flash", model_kwargs={"tools": _GEMINI_SEARCH_TOOLS})
     system = load_prompt("researcher")
     return create_react_agent(llm, tools=RESEARCHER_TOOLS, prompt=system)
 
@@ -113,8 +120,7 @@ def make_builder() -> Any:
     """
     Builder: Gemini 2.5 Pro + Code Execution (best for complex implementation).
     """
-    llm = _make_llm("gemini-2.5-pro",
-                    model_kwargs={"tools": _GEMINI_CODE_TOOLS})
+    llm = _make_llm("gemini-2.5-pro", model_kwargs={"tools": _GEMINI_CODE_TOOLS})
     system = load_prompt("builder")
     return create_react_agent(llm, tools=BUILDER_TOOLS, prompt=system)
 
@@ -137,18 +143,52 @@ def make_scribe() -> Any:
     return create_react_agent(llm, tools=SCRIBE_TOOLS, prompt=system)
 
 
+def make_librarian() -> Any:
+    """
+    Librarian: Gemini 2.5 Flash + Tavily + memory_read + file_read.
+    Board of Directors — deep RAG retrieval + cross-domain web search.
+    """
+    llm = _make_llm("gemini-2.5-flash")
+    system = load_prompt("librarian")
+    return create_react_agent(llm, tools=LIBRARIAN_TOOLS, prompt=system)
+
+
+def make_skeptic() -> Any:
+    """
+    Skeptic: Gemini 2.5 Flash + file execution + memory_read.
+    Board of Directors — Popperian falsification + edge-case enumeration.
+    """
+    llm = _make_llm("gemini-2.5-flash")
+    system = load_prompt("skeptic")
+    return create_react_agent(llm, tools=SKEPTIC_TOOLS, prompt=system)
+
+
+def make_synthesizer() -> Any:
+    """
+    Synthesizer: Gemini 2.5 Pro + memory_write.
+    Board of Directors — cross-domain theory unification + isomorphism detection.
+    """
+    llm = _make_llm("gemini-2.5-pro")
+    system = load_prompt("synthesizer")
+    return create_react_agent(llm, tools=SYNTHESIZER_TOOLS, prompt=system)
+
+
 # ── Agent registry ────────────────────────────────────────────────────────────
 
 _REGISTRY: dict[str, Any] = {}
+
 
 def get_agent(agent_id: str) -> Any:
     """Return a cached agent instance — agents are stateless, safe to reuse."""
     if agent_id not in _REGISTRY:
         factories = {
             "researcher": make_researcher,
-            "builder":    make_builder,
-            "verifier":   make_verifier,
-            "scribe":     make_scribe,
+            "builder": make_builder,
+            "verifier": make_verifier,
+            "scribe": make_scribe,
+            "librarian": make_librarian,
+            "skeptic": make_skeptic,
+            "synthesizer": make_synthesizer,
         }
         if agent_id not in factories:
             raise ValueError(f"Unknown agent: {agent_id!r}. Valid: {list(factories)}")

@@ -18,3 +18,11 @@ pyarrow>=14.0.0
 langgraph>=0.2.0
 langchain-google-genai>=3.1.0
 langgraph-checkpoint-postgres>=2.0.0
+
+# PhD Board of Directors pipeline
+tavily-python>=0.3.0
+langchain-community>=0.2.0
+
+# OCP CAD Viewer + build123d (3D part display)
+build123d>=0.8.0
+ocp_vscode>=2.7.0

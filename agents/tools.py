@@ -16,24 +16,41 @@ from typing import Optional
 
 from langchain.tools import tool
 
+# Tavily search (optional — requires TAVILY_API_KEY in .env)
+try:
+    from langchain_community.tools.tavily_search import (
+        TavilySearchResults as _TavilyBase,
+    )
+
+    _TAVILY_AVAILABLE = True
+except ImportError:
+    _TAVILY_AVAILABLE = False
+
 # ── Paths ────────────────────────────────────────────────────────────────────
 
-REPO_ROOT   = Path(__file__).parents[1]
-MEMORY_PY   = REPO_ROOT / "memory_env" / "Scripts" / "python.exe"
-INJECT_PY   = REPO_ROOT / "memory" / "inject.py"
-EXTRACT_PY  = REPO_ROOT / "memory" / "extract.py"
+REPO_ROOT = Path(__file__).parents[1]
+MEMORY_PY = REPO_ROOT / "memory_env" / "Scripts" / "python.exe"
+INJECT_PY = REPO_ROOT / "memory" / "inject.py"
+EXTRACT_PY = REPO_ROOT / "memory" / "extract.py"
 
 
 # ── LanceDB helpers ───────────────────────────────────────────────────────────
 
+
 def _get_store():
     """Import memory.store lazily (requires memory_env on sys.path)."""
     sys.path.insert(0, str(REPO_ROOT))
-    from memory.store import query_similar, upsert, count as store_count  # noqa: PLC0415
+    from memory.store import (
+        query_similar,
+        upsert,
+        count as store_count,
+    )  # noqa: PLC0415
+
     return query_similar, upsert, store_count
 
 
 # ── Tools ────────────────────────────────────────────────────────────────────
+
 
 @tool
 def memory_read(query: str, n: int = 6) -> str:
@@ -47,14 +64,16 @@ def memory_read(query: str, n: int = 6) -> str:
         rows = query_similar(query, n=n)
         results = [
             {
-                "topic":    r.get("topic", ""),
+                "topic": r.get("topic", ""),
                 "decision": r.get("decision", ""),
-                "content":  (r.get("content") or r.get("decision", ""))[:800],
-                "source":   r.get("source", ""),
+                "content": (r.get("content") or r.get("decision", ""))[:800],
+                "source": r.get("source", ""),
             }
             for r in rows
         ]
-        return json.dumps({"query": query, "hits": len(results), "results": results}, indent=2)
+        return json.dumps(
+            {"query": query, "hits": len(results), "results": results}, indent=2
+        )
     except Exception as exc:
         return json.dumps({"error": str(exc), "results": []})
 
@@ -115,6 +134,45 @@ def file_read(path: str, start_line: int = 1, end_line: int = 120) -> str:
 
 
 @tool
+def tavily_search(query: str, max_results: int = 5) -> str:
+    """
+    Live web search via Tavily — use for ArXiv papers, GitHub repos, technical docs.
+    Always call memory_read FIRST; use this only when the knowledge base misses.
+    query:       natural language or academic search query.
+    max_results: number of results to return (default 5, max 10).
+    Returns JSON list of {title, url, content} hits.
+    """
+    if not _TAVILY_AVAILABLE:
+        return json.dumps(
+            {
+                "error": "tavily-python not installed. Run: pip install tavily-python langchain-community"
+            }
+        )
+    api_key = os.environ.get("TAVILY_API_KEY", "")
+    if not api_key:
+        return json.dumps({"error": "TAVILY_API_KEY not set in .env"})
+    try:
+        searcher = _TavilyBase(api_key=api_key, max_results=min(max_results, 10))
+        raw = searcher.invoke(query)
+        # Normalise to list of dicts
+        results = []
+        for item in raw if isinstance(raw, list) else [raw]:
+            if isinstance(item, dict):
+                results.append(
+                    {
+                        "title": item.get("title", ""),
+                        "url": item.get("url", ""),
+                        "content": item.get("content", "")[:600],
+                    }
+                )
+        return json.dumps(
+            {"query": query, "hits": len(results), "results": results}, indent=2
+        )
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+@tool
 def file_search(pattern: str, search_type: str = "files") -> str:
     """
     Search the workspace.
@@ -123,6 +181,7 @@ def file_search(pattern: str, search_type: str = "files") -> str:
     Returns JSON list of matches (up to 30).
     """
     import glob
+
     try:
         if search_type == "files":
             matches = glob.glob(str(REPO_ROOT / "**" / pattern), recursive=True)
@@ -131,10 +190,21 @@ def file_search(pattern: str, search_type: str = "files") -> str:
         else:
             # content search via grep
             proc = subprocess.run(
-                ["grep", "-rn", "--include=*.cpp", "--include=*.hpp",
-                 "--include=*.py", "--include=*.cmake", "--include=CMakeLists.txt",
-                 "-l", pattern, str(REPO_ROOT / "src")],
-                capture_output=True, text=True, timeout=15,
+                [
+                    "grep",
+                    "-rn",
+                    "--include=*.cpp",
+                    "--include=*.hpp",
+                    "--include=*.py",
+                    "--include=*.cmake",
+                    "--include=CMakeLists.txt",
+                    "-l",
+                    pattern,
+                    str(REPO_ROOT / "src"),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
             )
             lines = [l.strip() for l in proc.stdout.splitlines() if l.strip()][:30]
             return json.dumps({"matches": lines, "count": len(lines)})
@@ -158,15 +228,21 @@ def run_command(cmd: str, output_file: str = "agents/_cmd_out.txt") -> str:
         # Fire and forget — write PID to file header
         full_cmd = f'powershell -NoProfile -Command "& {{ {cmd} }}" 2>&1 | Tee-Object "{out_path}"'
         proc = subprocess.Popen(
-            full_cmd, shell=True, cwd=str(REPO_ROOT),
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0,
+            full_cmd,
+            shell=True,
+            cwd=str(REPO_ROOT),
+            creationflags=(
+                subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
+            ),
         )
-        return json.dumps({
-            "status":      "launched",
-            "pid":         proc.pid,
-            "output_file": str(out_path.relative_to(REPO_ROOT)),
-            "note":        "Read output_file after the command completes — do not block.",
-        })
+        return json.dumps(
+            {
+                "status": "launched",
+                "pid": proc.pid,
+                "output_file": str(out_path.relative_to(REPO_ROOT)),
+                "note": "Read output_file after the command completes — do not block.",
+            }
+        )
     except Exception as exc:
         return json.dumps({"status": "error", "error": str(exc)})
 
@@ -186,18 +262,23 @@ def reindex_memory() -> str:
             stderr=subprocess.STDOUT,
             cwd=str(REPO_ROOT),
         )
-        return json.dumps({
-            "status":      "launched",
-            "pid":         proc.pid,
-            "output_file": "agents/_extract_out.txt",
-        })
+        return json.dumps(
+            {
+                "status": "launched",
+                "pid": proc.pid,
+                "output_file": "agents/_extract_out.txt",
+            }
+        )
     except Exception as exc:
         return json.dumps({"status": "error", "error": str(exc)})
 
 
 # ── Tool sets per agent ───────────────────────────────────────────────────────
 
-RESEARCHER_TOOLS = [memory_read, file_read, file_search]
-BUILDER_TOOLS    = [memory_read, file_read, file_search, run_command]
-VERIFIER_TOOLS   = [memory_read, file_read, file_search]
-SCRIBE_TOOLS     = [memory_read, memory_write, file_read, run_command, reindex_memory]
+RESEARCHER_TOOLS = [memory_read, file_read, file_search, tavily_search]
+BUILDER_TOOLS = [memory_read, file_read, file_search, run_command]
+VERIFIER_TOOLS = [memory_read, file_read, file_search]
+SCRIBE_TOOLS = [memory_read, memory_write, file_read, run_command, reindex_memory]
+LIBRARIAN_TOOLS = [memory_read, file_read, file_search, tavily_search]
+SKEPTIC_TOOLS = [memory_read, file_read, file_search, run_command]
+SYNTHESIZER_TOOLS = [memory_read, memory_write, file_read, file_search]
