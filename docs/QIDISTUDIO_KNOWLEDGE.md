@@ -1,6 +1,6 @@
 # QIDIStudio — Complete Engineering Knowledge Base
 
-_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, \_DebugSession, ai_debug_pipeline.py, §15.14)_
+_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, \_DebugSession, ai_debug_pipeline.py, §15.14) + 2026-02-28 (§18: PhD Cognitive Architecture — full absorption of PSV loop, System 1/2 thinking, HAVEN, Lean 4, cross-domain isomorphisms, applied to all pipelines)_
 
 This document captures all reverse-engineered knowledge about QIDIStudio's source code,
 build system, configuration, and 3MF format. It serves as the single source of truth
@@ -876,7 +876,7 @@ This section documents the theory and implementation toolkit needed for **confor
 
 **Install:** `pip install libigl` (no C++ toolchain needed — prebuilt wheels on PyPI)  
 **License:** GPL-3.0 / MPL-2.0. Use MPL-2.0 subset to stay LGPL-safe.  
-**Docs:** https://libigl.github.io/libigl-python-bindings/  
+**Docs:** <https://libigl.github.io/libigl-python-bindings/>  
 **Latest release:** 2.6.1 (Jul 2025)
 
 Key API examples (all inputs/outputs are numpy arrays or scipy sparse matrices):
@@ -949,7 +949,7 @@ for _ in range(10):
 
 **Install:** C++ library — no pip wheel. Python bindings are experimental and not on PyPI.  
 **License:** MIT  
-**Repo:** https://github.com/nmwsharp/geometry-central  
+**Repo:** <https://github.com/nmwsharp/geometry-central>  
 **Note:** The PhD manuscript lists this under Python libraries but it is primarily a **C++ geometry library**. For Python workflows, use `robust_laplacian` and `libigl` instead — they expose the same surface geometry algorithms (cotangent Laplacian, heat geodesics, parameterization) as pip-installable wheels. Geometry Central is relevant if the pipeline ever moves to a compiled C++ extension inside QIDIStudio itself.
 
 ---
@@ -958,7 +958,7 @@ for _ in range(10):
 
 **Install:** `pip install robust_laplacian`  
 **License:** MIT  
-**Docs:** https://github.com/nmwsharp/robust-laplacians-py  
+**Docs:** <https://github.com/nmwsharp/robust-laplacians-py>  
 **Key property:** Always symmetric **positive** semi-definite. Works on non-manifold meshes, meshes with boundary, and point clouds. Internally builds an intrinsic Delaunay triangulation + intrinsic mollification.
 
 ```python
@@ -988,7 +988,7 @@ evals, evecs = sla.eigsh(L, n_eig, M, sigma=1e-8)
 
 **Install:** `pip install trimesh` (minimal) or `pip install trimesh[easy]` (adds scipy, networkx, etc.)  
 **License:** MIT  
-**Docs:** https://trimesh.org  
+**Docs:** <https://trimesh.org>  
 **Latest:** 4.11.2 (Feb 2026)
 
 ```python
@@ -2185,6 +2185,428 @@ Run with: `python scripts/view_texture_parts.py`
 - `ocp_vscode` connects to the VS Code extension; the extension must be running before `show()` is called.
 - STL files are imported as tessellated meshes — OCC converts them to `TopoDS_Shell` via `BRep`.
 - For parametric editing, use `build123d` constructors; for read-only display, `import_stl` is sufficient.
+
+---
+
+## §18 PhD-Level Cognitive Architecture — Applied to Every Pipeline
+
+_Absorbed 2026-02-28. Sources: docs/AI PhD-Level Problem Solving Framework.md, docs/AI PhD-Level Problem Solving Framework 2.md, docs/AI's PhD-Level Thermal Dissipation Design.md, arXiv:2502.10867v1 (LLM Reasoning Tutorial), github.com/miltonian/principles (Principles Framework), AAAI-23 HAVEN paper, lean-lang.org. All links followed and read in full._
+
+---
+
+### 18.1 Why This Changes Everything
+
+Standard "fix-the-bug" AI reasoning is **System 1 thinking** (Kahneman): fast, pattern-matching, analogical. It predicts the next likely token based on training data — constrained by an "intelligence upper bound" determined by the quality of examples it has seen.
+
+PhD-level reasoning is **System 2 thinking**: deliberate, multi-step, self-correcting. It formulates problems as a Markov Decision Process where each intermediate reasoning step is evaluated by a Process Reward Model (PRM), not just the final answer.
+
+**The critical distinction for this codebase:**
+
+| Standard AI                               | PhD-Level AI                                                                                                                                                                                                                                  |
+| :---------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Here is code to fix TopoDS.Vertex error" | "The error persists because `cadquery_ocp 7.8` renamed ALL static casters to `_s` suffix. I will fix at the import boundary with a proxy class, not at 47 call sites."                                                                        |
+| "Try LSCM for this mesh"                  | "The mesh has $\chi = V - E + F > 0$, indicating a sphere-like topology. LSCM requires a cut seam to produce a disk for unwrapping. OBJECT projection has no such constraint — it will produce lower distortion for $z_\text{ratio} < 0.25$." |
+| "The texture looks patchy"                | "UV Jacobian $J$ has singular values $\sigma_1/\sigma_2 > 4$. This exceeds the acceptable stretch threshold. Root cause: REVOLUTION classifier triggered on $z_\text{ratio} \geq 1$ but $\chi > 0$ — the Euler tiebreaker was missed."        |
+
+---
+
+### 18.2 The Four Doctoral Phases — Mapped to QIDIStudio
+
+Every significant pipeline change must cycle through all four phases in order:
+
+#### Phase 1: First-Principles Deconstruction
+
+Strip the problem to irreducible axioms. Discard "industry standard" shortcuts.
+
+**Mandatory pre-work before ANY pipeline change:**
+
+1. **Assumptions Audit** — List every assumption. For texture mapping: "We must use UV unwrapping" → Question: Is this a mathematical constraint or a legacy choice? Answer: UV unwrapping is one homeomorphism strategy; projection-based methods (OBJECT mode) are equally valid for convex meshes.
+2. **Socratic Interrogation** — "Is this a mathematical constraint or an API limitation?" For OCP `_s` suffix: it's an API change, not a mathematical constraint → fix at the import boundary.
+3. **Fundamental Truths** — Identify the axioms. For conformal UV: Axiom: A conformal map preserves angles. Corollary: LSCM minimizes angle distortion. Constraint: LSCM requires a topological disk (boundary-free surface requires a cut seam).
+
+**QIDIStudio First Principles Manifest (confirmed truths, do NOT contradict without evidence):**
+
+| Domain               | First Principle                                                                                                                                    |
+| :------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UV Mapping           | A conformal map preserves angles; the Laplace-Beltrami operator $\Delta f = \nabla \cdot \nabla f$ governs distortion                              |
+| Mesh Topology        | $\chi = V - E + F$ determines valid unwrapping strategies; $\chi \leq 0$ = annular/toroidal (REVOLUTION)                                           |
+| Texture Displacement | Displacement $d = A \cdot \sin(f \cdot UV + \phi)$ is a vector field on the surface; magnitude determined by sampling height map at UV coordinates |
+| OCP/OpenCASCADE      | `TopoDS` static casters are API-version-dependent; fix at import boundary, not at each call site                                                   |
+| Blender Pipeline     | Blender's `bpy` API requires an active mesh for UV ops; `bpy.ops.uv.unwrap()` operates on `EDIT_MODE` selection                                    |
+| 3MF Format           | QIDIStudio validates `sparse_infill_pattern` on load; invalid values replaced silently                                                             |
+
+#### Phase 2: Differentiable Hypothesis Generation (Tree of Thoughts)
+
+Generate 3–5 competing hypotheses. For each, define **Falsification Criteria** — how you would prove it wrong.
+
+**Template for every non-trivial bug or feature:**
+
+```python
+hypotheses = [
+    {
+        "id": "H1",
+        "claim": "The texture is patchy because the UV seam is placed at a high-curvature edge",
+        "falsification": "Run ai_debug_pipeline.py --render-heatmap; if Jacobian heatmap shows uniform stretch near seam but patches elsewhere, H1 is false",
+        "probability": 0.35,
+    },
+    {
+        "id": "H2",
+        "claim": "Wrong MeshClass assigned — REVOLUTION chosen when FLAT_SHELL was correct",
+        "falsification": "Check session_summary.json post_classify.mesh_class; if FLAT_SHELL, H2 is false",
+        "probability": 0.45,
+    },
+    {
+        "id": "H3",
+        "claim": "Displacement depth too low — E_D < 0.1 threshold",
+        "falsification": "Check session_summary.json post_displace.displacement_stats.max_delta; if > 0.3mm, H3 is false",
+        "probability": 0.20,
+    },
+]
+# ai_texture_critic.py systematically tests all hypotheses against debug snapshot data
+```
+
+**Rule**: Never commit a fix that addresses H-MAX-PROBABILITY without having falsified H2 and H3 first.
+
+#### Phase 3: Dialectical Self-Correction (Pre-Mortem)
+
+Before implementing, run the internal peer review:
+
+- **Author**: "My solution is to add Euler characteristic as a REVOLUTION tiebreaker."
+- **Reviewer**: "If $\chi \leq 0$ but the mesh is a twisted Möbius band (non-orientable), LSCM will produce garbage. Does the classifier handle non-orientable surfaces?"
+- **Synthesizer**: "Add an orientability check (`mesh.is_watertight` proxy) alongside Euler characteristic."
+
+**The Pre-Mortem Question**: _"If this pipeline is producing wrong results in six months, exactly which premise was wrong?"_
+
+Apply this to the `_classify_mesh_topology()` function after every significant change.
+
+#### Phase 4: Synthesis & Meta-Learning
+
+After solving, extract the Generalized Pattern. Add it to the KB. Don't just fix _this_ bug — update the model of _why_ that class of bugs exists.
+
+**Protocol**: After every fix, append to `docs/QIDISTUDIO_KNOWLEDGE.md` Session Learnings Log with:
+
+- Root cause at the axiom level (not symptom level)
+- Generalized pattern (what class of problems does this belong to?)
+- Falsification criteria that confirmed the fix
+
+---
+
+### 18.3 System 1 vs System 2 Thinking — RL Reasoning Formulation
+
+_Source: arXiv:2502.10867v1, Jun Wang, UCL. "A Tutorial on LLM Reasoning: Relevant Methods behind ChatGPT o1."_
+
+The key insight from OpenAI o1's architecture: **reasoning is a Markov Decision Process**.
+
+$$Q \rightarrow \{R_1, R_2, \ldots, R_n\} \rightarrow A$$
+
+Where:
+
+- $Q$ = the problem (e.g., "classify this mesh topology")
+- $R_i$ = intermediate reasoning steps (e.g., "compute sharp_fraction", "compute z_ratio", "check Euler characteristic")
+- $A$ = the action taken (e.g., `MeshClass.FLAT_SHELL`)
+
+**The Process Reward Model (PRM)**: Each reasoning step $R_t$ is scored by:
+$$v_t = v(R_t \mid Q, R_1, \ldots, R_{t-1})$$
+
+**Applied to our texture pipeline:**
+
+The `_classify_mesh_topology()` function IS a hand-crafted PRM. Each feature extraction step (`sharp_fraction`, `z_ratio`, `curvature_std`, `chi`) is a reasoning step with an intermediate reward. The `MeshClass` assignment is the final answer $A$.
+
+**Practically, this means:**
+
+- If `ai_texture_critic.py` reports wrong classification → the PRM assigned wrong intermediate rewards → one of the feature extraction steps is producing incorrect intermediate state
+- Debug by checking each $R_t$ in the debug snapshot, not just the final $A$
+
+**MCTS at inference** (from §4.3 of the paper): For complex mesh classification decisions, use Monte Carlo sampling across multiple projection attempts with different seam placements, evaluated by UV stretch metric. The one with minimum $\sigma_1/\sigma_2$ Jacobian singular value ratio wins.
+
+---
+
+### 18.4 The PSV Loop — Embedded in Agent Fleet
+
+_Source: "AI PhD-Level Problem Solving Framework 2.md"_
+
+**Propose → Solve → Verify** — the three mandatory stages. Our current agent fleet maps as:
+
+| PSV Stage     | QIDIStudio Agent                                  | Current Gap                                              |
+| :------------ | :------------------------------------------------ | :------------------------------------------------------- |
+| **Propose**   | `director` (LangGraph supervisor decomposes task) | ✅ Working                                               |
+| **Solve**     | `builder` (implements C++/Python changes)         | ✅ Working                                               |
+| **Verify**    | `verifier` (checks output)                        | ⚠️ Weak — currently just runs tests, no PRM scoring      |
+| **Backtrack** | (none)                                            | ❌ Missing — when verifier fails, no root-cause location |
+
+**Adding Backtracking to the fleet:**
+
+When `verifier` returns `FAIL`, the director should:
+
+1. Ask verifier: "Which specific hypothesis failed?" (→ H1/H2/H3 from Phase 2)
+2. Route back to `builder` with the specific falsified premise, not a generic "try again"
+3. Scribe records the falsified premise + new hypothesis to LanceDB for future sessions
+
+The Principles Framework (github.com/miltonian/principles) validation shows this approach achieves:
+
+- **33% improvement** in success rates on compositional reasoning (TDAG benchmark)
+- **28.3% increase** in task completion rates (ALFWorld benchmark)
+- **27% performance boost** on interactive tasks (WebShop benchmark)
+
+---
+
+### 18.5 Cross-Domain Isomorphisms Discovered in This Codebase
+
+_Source: "AI PhD-Level Problem Solving Framework 2.md", §IV Cross-Domain Isomorphism_
+
+The hallmark of PhD-level work: recognizing that a problem in **Domain A** is mathematically identical to a solved problem in **Domain B**.
+
+**Known mappings in QIDIStudio:**
+
+| Problem Domain                                 | Isomorphic Domain                         | Borrowed Solution                                          | Status                                        |
+| :--------------------------------------------- | :---------------------------------------- | :--------------------------------------------------------- | :-------------------------------------------- |
+| UV texture stretch on POCO X6 Pro (flat shell) | Heat diffusion on thin plates             | Laplace-Beltrami operator for UV relaxation                | ✅ Absorbed §15.2                             |
+| Mesh topology classification                   | Algebraic topology (Euler characteristic) | $\chi = V - E + F$ as genus indicator                      | ✅ Implemented in `_classify_mesh_topology()` |
+| Conformal UV unwrapping on revolution surfaces | Riemann surface theory                    | LSCM = discrete harmonic map (minimizes $\|J - R\|^2$)     | ✅ Implemented in `apply_texture_bpy.py`      |
+| OCP API version compatibility                  | Decorator/Proxy pattern (GoF)             | `_TopoDSCompat` proxy class — version-transparent dispatch | ✅ Implemented in `build123d` venv patches    |
+| Agent task decomposition                       | Dynamic Programming (Bellman equation)    | Hierarchical value decomposition (HAVEN dual coordination) | ⏳ Partially — HAVEN not yet fully applied    |
+| Texture quality scoring                        | Process Reward Models (arXiv:2502.10867)  | PRM scoring intermediate UV steps, not just final geometry | ⏳ Planned for `ai_texture_critic.py` v2      |
+| Phone case thermal dissipation                 | Minimal surface geometry (Schoen Gyroid)  | Triply Periodic Minimal Surface = maximum $A/V$ ratio      | 📋 Planned — see §18.6                        |
+
+**The Isomorphism Discovery Protocol** (run at the start of any non-trivial feature):
+
+```python
+def find_isomorphism(problem_description: str) -> dict:
+    """
+    1. Parameterize the problem mathematically (what are the variables, constraints, objective?)
+    2. Search LanceDB for 'Mathematical Twins' via semantic similarity
+    3. Check §15 (CMU 15-458 DDG), §16 (PhD Pipeline), §18 (this section) for known mappings
+    4. If no match: ask researcher agent to search arXiv for analogous formulations
+    """
+    return {
+        "domain_a": problem_description,
+        "domain_b": "...",  # from LanceDB / researcher agent
+        "mapping": "...",   # the mathematical translation
+        "adaptation": "...", # how to adapt constants/parameters
+    }
+```
+
+---
+
+### 18.6 Thermal Dissipation Application — POCO X6 Pro Gyroid Backplate
+
+_Source: docs/AI's PhD-Level Thermal Dissipation Design.md — Full 5-phase reasoning trace_
+
+This is the most concrete example of PhD-level reasoning applied to this project's hardware context.
+
+**The Problem (First Principles):**
+
+- **Axiom 1** (Thermodynamics): Heat flux $q = -k\nabla T$. Larger surface area $A$ → more dissipation.
+- **Axiom 2** (Geometry): A flat Euclidean backplate has minimal $A/V$ ratio. Any non-Euclidean topology improves this.
+- **Axiom 3** (Fluid Dynamics): Nusselt number improves with turbulent airflow; complex geometry promotes turbulence.
+
+**The Isomorphism:**
+
+Thermal optimization of a constrained volume = **Minimal Surface** problem from structural engineering. The **Schoen Gyroid** satisfies $H = 0$ (zero mean curvature) at every point — it is a Triply Periodic Minimal Surface (TPMS).
+
+**The Graded Lattice Solution:**
+
+Standard Gyroid is isotropic. The Dimensity 8300 Ultra SoC is a localized heat source. Apply a **Gaussian Radial Basis Function** to lattice density:
+
+$$\omega(d) = \omega_0 + \omega_\text{max} \cdot e^{-d^2 / \sigma^2}$$
+
+where $d$ = distance from SoC center, $\sigma$ = spread parameter (~30mm for POCO X6 Pro form factor).
+
+**Formal Verification (Agent Pipeline):**
+
+```python
+import numpy as np
+
+def generate_graded_gyroid(x, y, z, soc_center=(35, 75, 4), sigma=30.0):
+    """
+    Graded Schoen Gyroid for POCO X6 Pro backplate.
+    soc_center: mm coordinates of Dimensity 8300 Ultra SoC from bottom-left
+    Isosurface at f=0 defines the TPMS shell.
+    """
+    dist = np.sqrt(
+        (x - soc_center[0])**2 +
+        (y - soc_center[1])**2
+    )
+    # Frequency increases near SoC: finer lattice = more surface area at heat source
+    freq = 1.0 + 2.0 * np.exp(-dist**2 / sigma**2)  # omega in [1.0, 3.0]
+    # Gyroid equation: sin(fx)cos(fy) + sin(fy)cos(fz) + sin(fz)cos(fx) = 0
+    return (
+        np.sin(freq * x) * np.cos(freq * y) +
+        np.sin(freq * y) * np.cos(freq * z) +
+        np.sin(freq * z) * np.cos(freq * x)
+    )
+```
+
+**Verification Check (Falsification Criteria):**
+
+- Reynolds number: Air gap = pitch / 2. If gap < 1.5mm, stagnant boundary layer forms. Minimum pitch = 3.6mm → $\text{Re} = \rho v L / \mu \approx 120$ (transitional, acceptable).
+- Structural integrity: TPU minimum wall thickness = 1.2mm. At $\omega = 3.0$, period = $2\pi/3 \approx 2.1$mm → wall = 1.05mm. **Constraint violated** → cap $\omega_\text{max}$ at 2.5.
+
+**Result**: Predicted 12% peak temperature reduction during AnTuTu stress tests vs flat TPU backplate.
+
+**Implementation Path in QIDIStudio:**
+
+1. Generate Gyroid STL via `scripts/generate_gyroid_backplate.py` (planned)
+2. Load as base mesh in QIDIStudio
+3. Apply wood-grain texture via Blender pipeline on the Gyroid surface for aesthetic
+4. Print in graphene-infused TPU filament (`sparse_infill_pattern = "gyroid"` already native in libslic3r)
+
+---
+
+### 18.7 HAVEN Dual Coordination — Applied to Agent Fleet
+
+_Source: AAAI-23, Xu et al. "HAVEN: Hierarchical Cooperative Multi-Agent Reinforcement Learning with Dual Coordination Mechanism"_
+
+**HAVEN's core insight**: Concurrent optimization across multiple agent levels causes instability. The fix is **dual coordination** via specially designed reward functions at two levels:
+
+1. **Inter-level coordination** (hierarchical): Director-level rewards must be consistent with agent-level rewards. In our fleet: `director` decomposition quality is rewarded only when `builder`/`verifier` succeed.
+2. **Inter-agent coordination** (lateral): Agents at the same level must coordinate. In our fleet: `researcher` and `builder` run in parallel but must not produce contradictory assumptions.
+
+**Applied to our LangGraph supervisor:**
+
+```python
+# Current: director → parallel fan-out → aggregate
+# HAVEN upgrade: add dual coordination reward signals
+
+def _director_reward(task, builder_result, verifier_result):
+    """
+    Inter-level: Director gets reward proportional to how well decomposition
+    matched the actual subtask structure that succeeded.
+    """
+    if verifier_result.passed:
+        return 1.0 * _decomposition_quality_score(task, builder_result)
+    else:
+        # Penalize poor decomposition — forces director to learn better task splitting
+        return -0.5 * _falsified_premise_count(verifier_result)
+
+def _builder_coordination_bonus(builder_output, researcher_output):
+    """
+    Inter-agent: builder gets bonus when its implementation is consistent
+    with researcher's findings (no contradictory API assumptions).
+    """
+    return 0.2 if _outputs_consistent(builder_output, researcher_output) else 0.0
+```
+
+**Key result from AAAI-23:** HAVEN outperforms all MARL baselines on StarCraft II micromanagement tasks including 3s5z (3 Stalkers + 5 Zealots vs mirror). The dual coordination mechanism resolves the non-stationarity problem inherent in concurrent multi-agent optimization.
+
+---
+
+### 18.8 Lean 4 / Property-Based Testing — Formal Verification Protocol
+
+_Source: lean-lang.org (AWS Cedar case study, Terence Tao's formalization work)_
+
+**Lean 4** is an open-source proof assistant. AWS uses it to formally verify Cedar (authorization policy language). For our pipeline, we use the lighter-weight alternative: **property-based testing via `hypothesis`** (already in KB §15.12).
+
+**Lean 4's relevance to QIDIStudio:**
+
+The Lean 4 philosophy applied to Python code: instead of testing specific inputs, prove that properties hold for ALL inputs from a valid domain.
+
+**Properties that must hold for `_classify_mesh_topology()`:**
+
+```python
+from hypothesis import given, strategies as st
+import pytest
+
+@given(
+    sharp_fraction=st.floats(min_value=0.0, max_value=1.0),
+    z_ratio=st.floats(min_value=0.0, max_value=10.0),
+    curvature_std=st.floats(min_value=0.0, max_value=5000.0),
+    chi=st.integers(min_value=-1000, max_value=1000),
+)
+def test_classify_never_raises(sharp_fraction, z_ratio, curvature_std, chi):
+    """Property: classifier never crashes on any valid input combination."""
+    sig = TopologySignature(sharp_fraction, z_ratio, curvature_std, chi)
+    result = _classify_mesh_topology(sig)
+    assert result in list(MeshClass)  # must return a valid class
+
+@given(
+    sharp_fraction=st.floats(min_value=0.35, max_value=1.0),  # PRISMATIC condition
+    z_ratio=st.floats(min_value=0.0, max_value=2.0),
+    curvature_std=st.floats(min_value=0.0, max_value=5000.0),
+    chi=st.integers(),
+)
+def test_prismatic_always_object_projection(sharp_fraction, z_ratio, curvature_std, chi):
+    """Property: high sharp_fraction ALWAYS maps to OBJECT projection,
+    regardless of z_ratio or chi. Straight edges dominate."""
+    sig = TopologySignature(sharp_fraction, z_ratio, curvature_std, chi)
+    result = _classify_mesh_topology(sig)
+    assert result == MeshClass.PRISMATIC
+```
+
+**The Lean 4 Formal Proof Philosophy** (applied to our code decisions):
+
+> "We should not merely unit test — we should identify the mathematical theorem that our algorithm is meant to implement, then prove that the implementation is consistent with the theorem."
+
+For conformal UV: the theorem is "LSCM minimizes $\int_M |\nabla u - R \nabla v|^2 dA$" where $R$ is a rotation. The implementation can be verified against this by checking that the energy functional decreases monotonically during the unwrap solve.
+
+---
+
+### 18.9 First Principles Mandate — Checklist Before Any Pipeline Change
+
+This checklist MUST be completed before committing any change to `apply_texture_bpy.py`, `Plater.cpp`, or `agents/orchestrator.py`:
+
+- [ ] **Axiom check**: What mathematical truth governs this code path?
+- [ ] **Assumption audit**: List 3+ assumptions the current code makes. Are any unjustified?
+- [ ] **Hypothesis tree**: Generate ≥3 competing explanations for the observed behavior. Assign probability estimates.
+- [ ] **Falsification plan**: For each hypothesis, specify the exact observable that would falsify it. Run `ai_debug_pipeline.py --render-heatmap` to collect observables.
+- [ ] **Cross-domain check**: Search LanceDB + §18.5 table for an isomorphic solved problem.
+- [ ] **Pre-mortem**: "If this change causes a regression in 3 months, which assumption was wrong?"
+- [ ] **Verify, not just test**: Does the fix satisfy a mathematical property (provable via `hypothesis` tests)?
+- [ ] **Meta-learn**: Append root cause + generalized pattern to Session Learnings Log.
+
+---
+
+### 18.10 The Self-Improving Loop — Closing the Meta-Learning Cycle
+
+_Source: §4.1 of arXiv:2502.10867 — STaR (Self-Taught Reasoner), plus §16 PhD Knowledge Acquisition Pipeline_
+
+STaR's insight: a model can generate its own reasoning steps and use them to improve, without human annotation:
+
+$$\{R_1, \ldots, R_n\} \sim \pi_\text{LLM}(\cdot \mid Q, A)$$
+
+Then test: $A' \sim \pi_\text{LLM}(\cdot \mid Q, \{R\})$. If $A' \approx A$, the reasoning steps $\{R\}$ are valid training data.
+
+**Applied to QIDIStudio agent fleet:**
+
+```
+Session Start:
+  memory/inject.py → loads prior learnings into context (retrieval)
+
+During Session:
+  agents/orchestrator.py → generates reasoning traces (Q → {R} → A)
+  ai_texture_critic.py → scores each pipeline run (verifier / PRM)
+
+Session End:
+  memory/extract.py → extracts generalized patterns (STaR self-training)
+  LanceDB ← new_learnings (persistent world model update)
+
+Next Session:
+  The injected context includes the previous session's validated reasoning steps
+  → The agent does NOT need to re-derive axioms it already proved
+  → Performance improves monotonically across sessions
+```
+
+**The GRPO connection**: The agent fleet is effectively implementing Group Relative Policy Optimization at the session level:
+
+- Each session = one "group" of sampled outputs
+- `verifier` feedback = process reward signal
+- `memory/extract.py` = policy update step
+
+This is why session memory extraction is **mandatory** after every significant session — it is the training step that prevents the agent from repeatedly making the same class of error.
+
+---
+
+### 18.11 Sources Absorbed
+
+| Source                                                                                                  | Key Contribution                                                                              | Applied Where       |
+| :------------------------------------------------------------------------------------------------------ | :-------------------------------------------------------------------------------------------- | :------------------ |
+| [arXiv:2502.10867v1](https://arxiv.org/abs/2502.10867v1) — "A Tutorial on LLM Reasoning"                | System 1/2 thinking, MDP formulation of reasoning, PRM, STaR, GRPO                            | §18.3, §18.10       |
+| [github.com/miltonian/principles](https://github.com/miltonian/principles) — Principles Framework       | First-principles agent decomposition, iterative refinement, TDAG & DRDA validation benchmarks | §18.2, §18.4        |
+| [AAAI-23 HAVEN](https://ojs.aaai.org/index.php/AAAI/article/view/26386) — Hierarchical Cooperative MARL | Dual coordination (inter-level + inter-agent), reward function design for multi-agent systems | §18.7               |
+| [lean-lang.org](https://lean-lang.org/) — Lean 4                                                        | Formal proof philosophy, AWS Cedar case study, property-based verification                    | §18.8               |
+| docs/AI PhD-Level Problem Solving Framework.md                                                          | Doctoral Thinking Framework, Agentic Reasoning table, Optimization vs Invention               | §18.2               |
+| docs/AI PhD-Level Problem Solving Framework 2.md                                                        | PSV Pipeline, Dialectical Self-Correction, Cross-Domain Isomorphism, TDAG/DRDA benchmarks     | §18.2, §18.4, §18.5 |
+| docs/AI's PhD-Level Thermal Dissipation Design.md                                                       | 5-phase reasoning trace, Schoen Gyroid, Graded RBF lattice, Reynolds number verification      | §18.6               |
 
 ---
 

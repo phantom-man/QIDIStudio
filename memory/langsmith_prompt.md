@@ -77,12 +77,12 @@ They were validated through actual runtime testing.
 
 ### 2D. Python Environments
 
-| Env | Python | Purpose | Executable |
-|-----|--------|---------|------------|
-| `.venv` | 3.13 | General scripts | `.venv\Scripts\python.exe` |
-| `bpy_env` | 3.11 | Blender headless (DEPRECATED — use full Blender) | `bpy_env\Scripts\python.exe` |
-| System | 3.13 | CadQuery | `C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe` |
-| deepagents .venv | 3.x | LangChain/LanceDB memory module | `C:\Users\User\source\repos\deepagents-quickstarts\.venv\Scripts\python.exe` |
+| Env              | Python | Purpose                                          | Executable                                                                   |
+| ---------------- | ------ | ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `.venv`          | 3.13   | General scripts                                  | `.venv\Scripts\python.exe`                                                   |
+| `bpy_env`        | 3.11   | Blender headless (DEPRECATED — use full Blender) | `bpy_env\Scripts\python.exe`                                                 |
+| System           | 3.13   | CadQuery                                         | `C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe`           |
+| deepagents .venv | 3.x    | LangChain/LanceDB memory module                  | `C:\Users\User\source\repos\deepagents-quickstarts\.venv\Scripts\python.exe` |
 
 ### 2E. Memory System (This Module)
 
@@ -100,11 +100,11 @@ They were validated through actual runtime testing.
 When extracting learnings at the end of a session (PreCompact trigger or user says "save this"),
 `memory/extract.py` syncs **three categories of knowledge** into LanceDB, not just learnings:
 
-| Source type | LanceDB `topic` prefix | Category |
-|------------|------------------------|----------|
-| Session Learnings Log rows (confirmed gotchas) | *(none — raw topic)* | varies |
-| Protocol sections (`## ...Protocol` / `## ...Layout`) | `protocol: <name>` | `workflow` |
-| Skills routing (`## Skills` trigger table) | `skill: <name>` | `workflow` |
+| Source type                                           | LanceDB `topic` prefix | Category   |
+| ----------------------------------------------------- | ---------------------- | ---------- |
+| Session Learnings Log rows (confirmed gotchas)        | _(none — raw topic)_   | varies     |
+| Protocol sections (`## ...Protocol` / `## ...Layout`) | `protocol: <name>`     | `workflow` |
+| Skills routing (`## Skills` trigger table)            | `skill: <name>`        | `workflow` |
 
 At session-start, `inject.py` retrieves all three and formats them into three separate labelled
 blocks: `[PROTOCOLS]`, `[SKILLS]`, `[ENGINEERING LEARNINGS]`.
@@ -133,8 +133,8 @@ Extract ONLY concrete, specific, reusable facts. NOT vague observations.
 
 Each learning row in the Session Learnings Log table:
 
-| Date | Category | Topic | Decision | Rationale |
-|------|----------|-------|----------|-----------|
+| Date       | Category                                                                                                                                          | Topic                    | Decision                                              | Rationale                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------- | --------------------------- |
 | YYYY-MM-DD | one of: bpy_pipeline / build_system / cpp_gotcha / api_key / hooks_and_memory / gcode_refiner / workflow / tools_and_env / architecture / general | Short phrase (≤10 words) | What was decided/discovered (1-2 sentences, concrete) | Why it matters (1 sentence) |
 
 ### 3C. Where to write
@@ -236,19 +236,27 @@ Hub source of truth: if a prompt stored in LangSmith Hub differs from local copy
 This table is the canonical source synced to LanceDB by `memory/extract.py`.
 Append new rows here after every significant session. Never delete existing rows.
 
-| Date | Category | Topic | Decision | Rationale |
-|------|----------|-------|----------|-----------|
-| 2026-02-27 | bpy_pipeline | calc_normals_split removed Blender 4.1 | Do not call mesh.calc_normals_split(); use poly.normal directly | Removed in Blender 4.1; causes AttributeError mid-pipeline |
-| 2026-02-27 | bpy_pipeline | vertex group built after subdiv | Build TopFace vertex group AFTER applying SUBSURF modifier, not before | Indices change when modifier is applied; pre-subdiv group silently invalidated |
-| 2026-02-27 | bpy_pipeline | CAD STL topology spikes | CAD parts have long thin triangles from holes/fillets; Voxel Remesh destroys holes; vertex group TopFace (normal.z > 0.5) is correct fix | Only top-facing geometry displaced; walls and bores stay sharp |
-| 2026-02-27 | bpy_pipeline | mid_level=0.0 for PNG heightmaps | Use mid_level=0.0 with strength=relief_mm; mid_level=0.5 causes inward push on dark areas | [0..1] PNG: delta = strength × (intensity - mid_level); 0.0 means black=baseline, white=+relief |
-| 2026-02-27 | bpy_pipeline | fail-fast no fallback | apply_texture_bpy.py hard-exits if IS_FULL_BLENDER=False; find_bpy_python() only finds blender.exe | bpy pip package unreliable for modifier apply in background mode; zero fallback policy |
-| 2026-02-27 | bpy_pipeline | depsgraph update before modifiers | Call bpy.context.view_layer.update() after linking new objects and BEFORE adding modifiers that reference them | Depsgraph not auto-updated in background mode; modifier sees null ref → silent zero displacement |
-| 2026-02-27 | bpy_pipeline | mm-scale Cycles lighting | key=150000W at (150,-60,200), fill=40000W at (-80,120,60), world bg (0.15,0.15,0.15) strength=1.2 | scale_length=0.001 makes 5W lights invisible; world strength>1.5 causes cloud/shadow washout |
-| 2026-02-27 | cpp_gotcha | wxEXEC_BLOCK not wxEXEC_SYNC | Use wxEXEC_BLOCK for Blender subprocess; wxEXEC_SYNC runs wx event loop which fires handlers touching stale Selection | wxEXEC_BLOCK = wxEXEC_SYNC OR wxEXEC_NOEVENTS; prevents scene_selection() null crash |
-| 2026-02-27 | cpp_gotcha | ShowModal clears Selection | Capture instance_idx and transform from Selection BEFORE ShowModal(); never dereference selection after dialog close | WM_DESTROY fires focus event on canvas which clears Selection before ShowModal returns |
-| 2026-02-27 | cpp_gotcha | menu guard kills item at startup | Never return early from append_menu_item_* at registration time; guard only inside lambdas | Menus built before plater exists; nullptr guard at top level permanently drops item |
-| 2026-02-27 | hooks_and_memory | PreCompact hook must output JSON | Hook script must output {"hookSpecificOutput":{"hookEventName":"PreCompact","additionalContext":"..."}} to stdout; shell-only actions (git commit) are invisible to agent | VS Code injects additionalContext into agent context; without it agent does nothing on compaction |
-| 2026-02-27 | hooks_and_memory | LanceDB memory architecture | UserPromptSubmit calls memory/inject.py for relevant past learnings; PreCompact injects Save This instruction; agent extracts→writes .md→runs extract.py→git commit | Full persistence loop: learn → store → inject → learn again |
-| 2026-02-27 | build_system | sync script both dirs | Script changes: Copy-Item to BOTH C:\QIDISrc\QIDIStudio\resources\scripts\ AND install_dir\resources\scripts\ | CMake installs from build source; install_dir needs direct copy for immediate testing |
-| 2026-02-27 | build_system | CMake 4.x breaks build | Use cmake 3.29.8 at C:\CMake329\bin\cmake.exe; cmake 4.0 removed backward compat with cmake_minimum_required < 3.5 | Alternative: pass -DCMAKE_POLICY_VERSION_MINIMUM=3.5 to any cmake version |
+| Date       | Category         | Topic                                  | Decision                                                                                                                                                                                                                       | Rationale                                                                                         |
+| ---------- | ---------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | --- | ---------- | ---------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| 2026-02-27 | bpy_pipeline     | calc_normals_split removed Blender 4.1 | Do not call mesh.calc_normals_split(); use poly.normal directly                                                                                                                                                                | Removed in Blender 4.1; causes AttributeError mid-pipeline                                        |
+| 2026-02-27 | bpy_pipeline     | vertex group built after subdiv        | Build TopFace vertex group AFTER applying SUBSURF modifier, not before                                                                                                                                                         | Indices change when modifier is applied; pre-subdiv group silently invalidated                    |
+| 2026-02-27 | bpy_pipeline     | CAD STL topology spikes                | CAD parts have long thin triangles from holes/fillets; Voxel Remesh destroys holes; vertex group TopFace (normal.z > 0.5) is correct fix                                                                                       | Only top-facing geometry displaced; walls and bores stay sharp                                    |
+| 2026-02-27 | bpy_pipeline     | mid_level=0.0 for PNG heightmaps       | Use mid_level=0.0 with strength=relief_mm; mid_level=0.5 causes inward push on dark areas                                                                                                                                      | [0..1] PNG: delta = strength × (intensity - mid_level); 0.0 means black=baseline, white=+relief   |
+| 2026-02-27 | bpy_pipeline     | fail-fast no fallback                  | apply_texture_bpy.py hard-exits if IS_FULL_BLENDER=False; find_bpy_python() only finds blender.exe                                                                                                                             | bpy pip package unreliable for modifier apply in background mode; zero fallback policy            |
+| 2026-02-27 | bpy_pipeline     | depsgraph update before modifiers      | Call bpy.context.view_layer.update() after linking new objects and BEFORE adding modifiers that reference them                                                                                                                 | Depsgraph not auto-updated in background mode; modifier sees null ref → silent zero displacement  |
+| 2026-02-27 | bpy_pipeline     | mm-scale Cycles lighting               | key=150000W at (150,-60,200), fill=40000W at (-80,120,60), world bg (0.15,0.15,0.15) strength=1.2                                                                                                                              | scale_length=0.001 makes 5W lights invisible; world strength>1.5 causes cloud/shadow washout      |
+| 2026-02-27 | cpp_gotcha       | wxEXEC_BLOCK not wxEXEC_SYNC           | Use wxEXEC_BLOCK for Blender subprocess; wxEXEC_SYNC runs wx event loop which fires handlers touching stale Selection                                                                                                          | wxEXEC_BLOCK = wxEXEC_SYNC OR wxEXEC_NOEVENTS; prevents scene_selection() null crash              |
+| 2026-02-27 | cpp_gotcha       | ShowModal clears Selection             | Capture instance_idx and transform from Selection BEFORE ShowModal(); never dereference selection after dialog close                                                                                                           | WM_DESTROY fires focus event on canvas which clears Selection before ShowModal returns            |
+| 2026-02-27 | cpp_gotcha       | menu guard kills item at startup       | Never return early from append*menu_item*\* at registration time; guard only inside lambdas                                                                                                                                    | Menus built before plater exists; nullptr guard at top level permanently drops item               |
+| 2026-02-27 | hooks_and_memory | PreCompact hook must output JSON       | Hook script must output {"hookSpecificOutput":{"hookEventName":"PreCompact","additionalContext":"..."}} to stdout; shell-only actions (git commit) are invisible to agent                                                      | VS Code injects additionalContext into agent context; without it agent does nothing on compaction |
+| 2026-02-27 | hooks_and_memory | LanceDB memory architecture            | UserPromptSubmit calls memory/inject.py for relevant past learnings; PreCompact injects Save This instruction; agent extracts→writes .md→runs extract.py→git commit                                                            | Full persistence loop: learn → store → inject → learn again                                       |
+| 2026-02-27 | build_system     | sync script both dirs                  | Script changes: Copy-Item to BOTH C:\QIDISrc\QIDIStudio\resources\scripts\ AND install_dir\resources\scripts\                                                                                                                  | CMake installs from build source; install_dir needs direct copy for immediate testing             |
+| 2026-02-27 | build_system     | CMake 4.x breaks build                 | Use cmake 3.29.8 at C:\CMake329\bin\cmake.exe; cmake 4.0 removed backward compat with cmake_minimum_required < 3.5                                                                                                             | Alternative: pass -DCMAKE_POLICY_VERSION_MINIMUM=3.5 to any cmake version                         |     | 2026-02-28 | ocp_vscode | OCP 7.8 TopoDS \_s suffix | All OCP 7.8 TopoDS static casters use \_s suffix (Vertex_s, Edge_s, etc.); fix with \_TopoDSCompat proxy class at import boundary, not per-method aliases | OCP 7.9 renamed to plain names; proxy class is version-transparent |
+| 2026-02-28 | ocp_vscode       | ocp_vscode color format                | Colors must be CSS hex strings "#RRGGBB", not float or int tuples; tuples silently render black                                                                                                                                | show() validates hex format only                                                                  |
+| 2026-02-28 | ocp_vscode       | Camera.RESET deprecation               | reset_camera=Camera.RESET replaces deprecated reset_camera=True in ocp_vscode                                                                                                                                                  | Import Camera from ocp_vscode                                                                     |
+| 2026-02-28 | ocp_vscode       | bounding-box layout for multi-part     | Parts need bounding-box layout (x_offset by BB width + gap) for side-by-side display; native STL origins cause overlap                                                                                                         | compute BB per part, move to align BB.min.X to x_offset                                           |
+| 2026-02-28 | phd_framework    | PhD cognitive architecture absorbed    | All 4 sources + 4 links fully read: arXiv:2502.10867, Principles Framework, HAVEN AAAI-23, Lean 4; §18 added to KB; PSV loop, System 1/2, cross-domain isomorphisms, gyroid phone case, HAVEN dual coordination all documented | See docs/QIDISTUDIO_KNOWLEDGE.md §18                                                              |
+| 2026-02-28 | phd_framework    | Cross-domain isomorphisms table        | Texture stretch=heat diffusion; topology classification=Euler characteristic; OCP compat=Proxy pattern; agent fleet=HAVEN dual coordination; PRM scoring=ai_texture_critic.py v2 roadmap                                       | Every new pipeline problem: check §18.5 table first before coding                                 |
+| 2026-02-28 | phd_framework    | First Principles Mandate checklist     | Before any pipeline change: axiom check, assumption audit, hypothesis tree (>=3), falsification plan, cross-domain check, pre-mortem, property-based verification, meta-learn                                                  | Checklist in §18.9 — apply to apply_texture_bpy.py, Plater.cpp, agents/orchestrator.py            |
+| 2026-02-28 | phd_framework    | STaR self-improving loop               | Session memory extraction IS the STaR training step; inject.py=retrieval, orchestrator=reasoning trace, verifier=PRM, extract.py=policy update                                                                                 | Memory extraction is MANDATORY after every session — prevents repeating same class of error       |
+| 2026-02-28 | phd_framework    | Gyroid phone case thermal              | Schoen Gyroid (H=0 TPMS) with Gaussian RBF graded lattice maximizes A/V ratio at SoC; min pitch 3.6mm (constraint: TPU wall >= 1.2mm); predicted 12% temp reduction                                                            | See §18.6 for code; implement as scripts/generate_gyroid_backplate.py                             |
