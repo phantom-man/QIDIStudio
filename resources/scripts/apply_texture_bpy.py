@@ -621,6 +621,23 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     seam_angle_rad = 1.0472  # default: 60° (organic)
     if projection == 'auto':
         projection, seam_angle_rad = _auto_projection(obj, log)
+        # CAD/prismatic mesh detected (30° seam angle): automatically restrict
+        # displacement to the primary outward-facing surface (normal.z > 0.5).
+        #
+        # Rationale: phone cases and other box-like parts have thin walls
+        # (1-2 mm). With full_surface=True the Displace modifier pushes EVERY
+        # face outward along its own normal — the inner face inward, the side
+        # walls sideways, etc. On a 1 mm wall that means both faces move by
+        # up to 'relief' mm in opposing directions, collapsing or inverting
+        # the wall geometry and producing the "crushed case" artifact.
+        #
+        # For organic/smooth parts (60° seam) the full-surface skin-wrap is
+        # correct — a dragon's scales should wrap around all surfaces.
+        if seam_angle_rad <= 0.524 and full_surface:
+            full_surface = False
+            log.log("  CAD auto-mode: restricting displacement to top-facing "
+                    "faces (normal.z > 0.5) — prevents thin-wall crush on "
+                    "box/CAD geometry.")
 
     use_uv = (projection in ('conformal', 'lscm'))
     if use_uv:
