@@ -46,6 +46,7 @@ agents/__pycache__/
 .cursor/
 .claude/
 .agents/
+data/lancedb
 
 # Local debug artifacts / scratch outputs
 /.github/hooks/hook_test_out.txt
