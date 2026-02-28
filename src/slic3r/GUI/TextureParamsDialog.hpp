@@ -26,7 +26,9 @@ public:
                         double             initial_tile_mm = 15.0,
                         double             initial_relief  = 1.2);
 
-    // Accessors – call after ShowModal() == wxID_OK
+    // Accessors – call after ShowModal() == wxID_OK.
+    // Values are cached in OnOK before EndModal fires, so they are safe
+    // even if wx internally destroys child widgets during modal wind-down.
     std::string get_png_path()  const;
     double      get_tile_mm()   const;
     double      get_relief()    const;
@@ -37,8 +39,14 @@ private:
     wxSpinCtrlDouble*  m_tile_ctrl   { nullptr };
     wxSpinCtrlDouble*  m_relief_ctrl { nullptr };
 
+    // Cached copies written in OnOK — always valid after ShowModal() returns.
+    std::string m_cached_png;
+    double      m_cached_tile_mm { 15.0 };
+    double      m_cached_relief  {  1.2 };
+
     void on_browse(wxCommandEvent&);
     void on_quick_adjust(double delta);
+    void on_ok(wxCommandEvent&);
 };
 
 } // namespace GUI
