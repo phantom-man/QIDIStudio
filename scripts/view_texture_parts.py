@@ -1,17 +1,18 @@
 """
 scripts/view_texture_parts.py — Display all 4 texture-modified STL parts.
 
-Primary backend:   trimesh + matplotlib (no OCP dependency — always works)
-Secondary backend: build123d + ocp_vscode (if installed and OCP version matches)
+Backends (auto-selection order):
+  1. pyvista        — interactive 3D, already installed, opens its own window
+  2. matplotlib     — static 4-up subplots, always works
+  3. ocp_vscode     — VS Code OCP CAD Viewer (requires working build123d/OCP)
 
 Usage:
-    From the VS Code terminal:
+    Auto (pyvista if installed, else matplotlib):
         .venv\\Scripts\\python.exe scripts/view_texture_parts.py
 
-    Force matplotlib mode even if build123d is available:
+    Force specific backend:
+        .venv\\Scripts\\python.exe scripts/view_texture_parts.py --pyvista
         .venv\\Scripts\\python.exe scripts/view_texture_parts.py --matplotlib
-
-    VS Code OCP viewer mode (requires working build123d):
         .venv\\Scripts\\python.exe scripts/view_texture_parts.py --ocp
 
 Parts displayed (4 texture_modifier STLs):
@@ -20,11 +21,9 @@ Parts displayed (4 texture_modifier STLs):
     - vacuum_nozzle_lower        (vacuum nozzle, REVOLUTION/LSCM)
     - vacuum_crevice_nozzle      (crevice tool,  PRISMATIC/OBJECT)
 
-Install (trimesh backend — minimal):
-    pip install trimesh matplotlib
-
-Install (OCP backend — full):
-    pip install --force-reinstall --no-cache-dir build123d ocp_vscode
+OCP fix (if --ocp fails with AttributeError TopoDS.Vertex):
+    .venv\\Scripts\\pip uninstall cadquery-ocp -y
+    .venv\\Scripts\\pip install --force-reinstall cadquery-ocp-novtk==7.9.3.1
 """
 
 from __future__ import annotations
@@ -82,11 +81,20 @@ OCP_PORT = 3939  # default OCP CAD Viewer websocket port
 # ── Backend detection ─────────────────────────────────────────────────────────
 
 
+def _has_pyvista() -> bool:
+    try:
+        import pyvista.plotting  # noqa: F401  # triggers DLL load — catches cadquery_vtk conflict
+
+        return True
+    except Exception:
+        return False
+
+
 def _has_build123d() -> bool:
     try:
         import build123d  # noqa: F401
 
-        # Quick smoke-test to catch the TopoDS.Vertex AttributeError
+        # Smoke-test: catch TopoDS.Vertex AttributeError on OCP 7.8 vs 7.9 mismatch
         from build123d import import_stl  # noqa: F401
 
         return True
@@ -112,18 +120,69 @@ def _has_matplotlib() -> bool:
         return False
 
 
-# ── Trimesh + Matplotlib backend ──────────────────────────────────────────────
+# ── pyvista backend (primary — interactive 3D, already installed) ─────────────
+
+
+def show_pyvista() -> None:
+    """Load STLs with pyvista, display interactive 4-up 3D window."""
+    import pyvista as pv  # type: ignore
+
+    items = list(PARTS.values())
+    n = len(items)
+
+    # Check files exist before allocating the plotter
+    missing = [info for info in items if not info["path"].exists()]
+    if missing:
+        for m in missing:
+            print(f"  WARNING: not found — {m['path']}")
+
+    plotter = pv.Plotter(
+        shape=(1, n),
+        title="QIDIStudio — Texture-Modified Parts",
+        window_size=[1600, 600],
+    )
+
+    for idx, info in enumerate(items):
+        path: Path = info["path"]
+        label: str = info["label"]
+        r, g, b = info["color"]
+        alpha: float = info["alpha"]
+
+        plotter.subplot(0, idx)
+        plotter.add_title(label, font_size=7)
+
+        if not path.exists():
+            plotter.add_text("FILE NOT FOUND", color="red", font_size=10)
+            continue
+
+        print(f"  Loading {path.name}... ", end="", flush=True)
+        try:
+            mesh = pv.read(str(path))
+            plotter.add_mesh(
+                mesh,
+                color=[r, g, b],
+                opacity=alpha,
+                smooth_shading=True,
+                show_edges=False,
+                lighting=True,
+            )
+            plotter.reset_camera()
+            plotter.camera.elevation = 20
+            print(f"OK ({mesh.n_cells:,} faces)")
+        except Exception as exc:
+            print(f"FAIL: {exc}")
+            plotter.add_text(f"ERROR:\n{exc}", color="red", font_size=7)
+
+    plotter.link_views()
+    print("\nOpening pyvista window — drag to rotate, scroll to zoom, Q to quit...")
+    plotter.show()
+
+
+# ── Trimesh + Matplotlib backend (static fallback) ────────────────────────────
 
 
 def show_matplotlib() -> None:
-    """Load STLs with trimesh, display 4-up 3D subplots in matplotlib."""
-    if not _has_trimesh():
-        print("ERROR: trimesh not installed. Run:  pip install trimesh matplotlib")
-        sys.exit(1)
-    if not _has_matplotlib():
-        print("ERROR: matplotlib not installed. Run:  pip install trimesh matplotlib")
-        sys.exit(1)
-
+    """Load STLs with trimesh, display static 4-up 3D subplots in matplotlib."""
     import trimesh  # type: ignore
     import matplotlib.pyplot as plt  # type: ignore
     from mpl_toolkits.mplot3d import Axes3D  # type: ignore  # noqa: F401
@@ -160,7 +219,6 @@ def show_matplotlib() -> None:
             mesh = trimesh.load(str(path), force="mesh")
             verts = mesh.vertices
             faces = mesh.faces
-
             poly = Poly3DCollection(
                 verts[faces],
                 alpha=alpha,
@@ -169,10 +227,7 @@ def show_matplotlib() -> None:
                 linewidth=0.05,
             )
             ax.add_collection3d(poly)
-
-            # Auto-scale to mesh bounds
-            mins = verts.min(axis=0)
-            maxs = verts.max(axis=0)
+            mins, maxs = verts.min(axis=0), verts.max(axis=0)
             ax.set_xlim(mins[0], maxs[0])
             ax.set_ylim(mins[1], maxs[1])
             ax.set_zlim(mins[2], maxs[2])
@@ -195,21 +250,29 @@ def show_matplotlib() -> None:
             )
 
     plt.tight_layout()
-    print("\nDisplaying in matplotlib window...")
+    print("\nDisplaying static matplotlib window...")
     plt.show()
 
 
-# ── OCP / build123d backend ───────────────────────────────────────────────────
+# ── OCP / build123d backend (VS Code OCP CAD Viewer) ─────────────────────────
 
 
 def show_ocp() -> None:
     """Load STLs with build123d, send to OCP CAD Viewer in VS Code."""
     from build123d import import_stl  # type: ignore
     from ocp_vscode import show, set_port  # type: ignore
+    from ocp_vscode.comms import port_check  # type: ignore
 
-    print(f"\nOCP CAD Viewer — port {OCP_PORT}")
-    print("Open: View -> OCP CAD Viewer in VS Code\n")
     set_port(OCP_PORT)
+
+    # Fail fast if viewer panel isn't open — don't silently discard the geometry
+    if not port_check(OCP_PORT):
+        raise RuntimeError(
+            f"OCP CAD Viewer not listening on port {OCP_PORT}. "
+            "Open it in VS Code: Ctrl+Shift+P → 'OCP: Open Viewer'"
+        )
+
+    print(f"\nOCP CAD Viewer — port {OCP_PORT}\n")
 
     parts, names, colors, alphas = [], [], [], []
     for info in PARTS.values():
@@ -241,33 +304,75 @@ def show_ocp() -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="View QIDIStudio texture parts")
+    parser = argparse.ArgumentParser(
+        description="View QIDIStudio texture-modified STL parts",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Auto mode selects: OCP CAD Viewer (in VS Code) → pyvista → matplotlib.\n"
+            "OCP fix is already applied via OCP/TopoDS/__init__.py compat shim."
+        ),
+    )
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--ocp", action="store_true", help="Force OCP/build123d backend")
     group.add_argument(
-        "--matplotlib", action="store_true", help="Force matplotlib backend"
+        "--pyvista", action="store_true", help="Force pyvista backend (interactive 3D)"
+    )
+    group.add_argument(
+        "--matplotlib", action="store_true", help="Force matplotlib backend (static)"
+    )
+    group.add_argument(
+        "--ocp",
+        action="store_true",
+        help="Force OCP/build123d backend (VS Code OCP Viewer)",
     )
     args = parser.parse_args()
 
     if args.ocp:
         if not _has_build123d():
-            print("ERROR: build123d/OCP not working. Fix with:")
-            print("  pip install --force-reinstall --no-cache-dir build123d ocp_vscode")
+            print("ERROR: build123d/OCP not working.")
+            print("Fix:")
+            print("  .venv\\Scripts\\pip uninstall cadquery-ocp -y")
+            print(
+                "  .venv\\Scripts\\pip install --force-reinstall cadquery-ocp-novtk==7.9.3.1"
+            )
             sys.exit(1)
         show_ocp()
-    elif args.matplotlib or not _has_build123d():
-        if args.ocp is False and not _has_build123d():
-            print(
-                "(build123d/OCP not available or broken — falling back to matplotlib)\n"
-            )
+        return
+
+    if args.matplotlib:
         show_matplotlib()
-    else:
-        # build123d works — prefer OCP viewer
+        return
+
+    if args.pyvista:
+        if not _has_pyvista():
+            print("ERROR: pyvista not installed. Run: pip install pyvista")
+            sys.exit(1)
+        show_pyvista()
+        return
+
+    # Auto mode: prefer OCP (in-VS-Code) → pyvista → matplotlib
+    if _has_build123d():
         try:
             show_ocp()
+            return
         except Exception as exc:
-            print(f"OCP backend failed ({exc}) — falling back to matplotlib\n")
-            show_matplotlib()
+            print(f"OCP backend failed ({exc}) — falling back to pyvista\n")
+
+    if _has_pyvista():
+        try:
+            show_pyvista()
+            return
+        except Exception as exc:
+            print(f"pyvista backend failed ({exc}) — falling back to matplotlib\n")
+
+    # Ultimate fallback
+    if _has_trimesh() and _has_matplotlib():
+        print("(pyvista unavailable — cadquery_vtk DLL conflict — using matplotlib)\n")
+        show_matplotlib()
+    else:
+        print("ERROR: No display backend available.")
+        print("Install pyvista:    pip install pyvista")
+        print("Install matplotlib: pip install trimesh matplotlib")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
