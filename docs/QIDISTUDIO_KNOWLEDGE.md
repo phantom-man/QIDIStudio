@@ -1400,6 +1400,83 @@ A phone case is a **disk-topology manifold with holes** — button cutouts are p
 
 ---
 
+### 15.10 POCO X6 Pro 5G — Device-Specific PhD Manuscript
+
+_Source: `docs/PhD-Level 3D Model Perfection.md`, Model 2311DRK48G. Absorbed 2026-02-27._
+
+#### Device Geometry
+
+| Property | Value | Notes |
+|----------|-------|-------|
+| Model | Xiaomi POCO X6 Pro 5G (2311DRK48G) | |
+| Bezel radius | 1.3 mm | G2-continuous blend — not a simple chamfer |
+| Rear surface | 2.5D glass curve | K ≈ 0 (developable) — no angle distortion on flat back |
+| Corner fillets | Gaussian curvature K > 0 | Must use LSCM conformal mapping to prevent "Skin Bunching" |
+| Camera island | ~genus-1 equivalent, 4 circular cutouts | High-stress zone for UV seams — seam must go around island boundary |
+
+The case is a **disk-topology manifold with holes** (button cutouts = punctures). The camera island adds a genus-1 topological handle/hole — standard planar UV unwrap fails here. LSCM with free boundary handles it correctly.
+
+#### Seam Placement Strategy
+
+```python
+# Curvature-based seam at camera island boundary
+bpy.ops.mesh.edges_select_sharp(sharpness=0.6)   # ~34 degrees
+bpy.ops.mesh.mark_seam(clear=False)
+
+# LSCM conformal unwrap — minimises shearing around quad-camera layout
+bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.002)
+```
+
+`sharpness=0.6` rad (~34°) targets the island boundary. Using CAD_THRESH=0.35 in `_auto_projection()`, this device will be classified as **CAD/prismatic** and receive 30° seams automatically — which is correct.
+
+#### Shape DNA (Per-Device Fingerprint)
+
+The doc uses a **combinatorial Laplacian** (degree matrix − adjacency), NOT cotangent. For device identification (not shape comparison), this is acceptable — the combinatorial Laplacian is fast on large meshes.
+
+```python
+import numpy as np
+
+num_verts = len(mesh.vertices)
+adj = np.zeros((num_verts, num_verts))
+for edge in mesh.edges:
+    u, v = edge.vertices
+    adj[u, v] = adj[v, u] = 1.0
+deg = np.diag(adj.sum(axis=1))
+laplacian = deg - adj
+dna = np.linalg.eigvalsh(laplacian)[:10]   # first 10 eigenvalues = Shape DNA
+print(f"POCO X6 Pro Shape DNA: {dna}")
+```
+
+> **Production note:** For texture metrology (comparing printed vs CAD), use `robust_laplacian.mesh_laplacian()` (cotangent). For device ID only, combinatorial is fine.
+
+#### Corner Compensation Formula
+
+At every high-curvature vertex on the corner fillet, apply a pre-deformation $\delta$ along the outward normal:
+
+$$\mathbf{v}_{new} = \mathbf{v} + \alpha(H)\,\mathbf{n}$$
+
+where $H = \frac{\kappa_1 + \kappa_2}{2}$ is the **Mean Curvature** at that vertex.
+
+This "fattens" the model at corners so the slicer's path smoothing shrinks it back to exact CAD dimensions. _Not yet implemented in `apply_texture_bpy.py` — future work._
+
+#### G-Code Metrology Threshold
+
+$$d_H(\text{CAD},\, \text{GCode}) \;=\; \max_{a \in \text{CAD}} \min_{b \in \text{GCode}} \|a - b\| < 0.05\,\text{mm}$$
+
+Tighter than the 0.1% threshold from the previous phone case doc — 0.05 mm absolute is the spec for a well-fitting POCO X6 Pro case. If the camera island shows red in the Hausdorff heatmap, increase LSCM margin.
+
+#### Workflow Summary
+
+1. Load POCO X6 Pro case STL into Blender
+2. Curvature seam at camera island boundary (`sharpness=0.6`)
+3. LSCM unwrap (`method='CONFORMAL'`, `margin=0.002`)
+4. Apply displacement texture via `apply_texture_bpy.py`
+5. Compute Shape DNA → embed as `; PROJECT_PERFECTION_ID: e1..e10` in gcode header
+6. Slice → compare Hausdorff to CAD → must be < 0.05 mm
+7. If fail: increase LSCM margin or apply corner compensation
+
+---
+
 ## Appendix A: Windows Registration (Post-Build)
 
 After building, register with Windows (no installer needed):
