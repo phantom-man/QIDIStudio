@@ -1,0 +1,2 @@
+MINI REPORT
+all_pass=False

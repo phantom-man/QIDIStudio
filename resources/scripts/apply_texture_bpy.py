@@ -69,9 +69,18 @@ def _detect_full_blender() -> bool:
 IS_FULL_BLENDER: bool = _detect_full_blender()
 
 if not IS_FULL_BLENDER:
-    print("ERROR: apply_texture_bpy.py must be run via blender.exe --background --python.", flush=True)
-    print("ERROR: The bpy pip package does not support the Displace modifier pipeline.", flush=True)
-    print("ERROR: Install Blender from https://www.blender.org/download/ (version >= 4.0)", flush=True)
+    print(
+        "ERROR: apply_texture_bpy.py must be run via blender.exe --background --python.",
+        flush=True,
+    )
+    print(
+        "ERROR: The bpy pip package does not support the Displace modifier pipeline.",
+        flush=True,
+    )
+    print(
+        "ERROR: Install Blender from https://www.blender.org/download/ (version >= 4.0)",
+        flush=True,
+    )
     sys.exit(1)
 
 
@@ -80,58 +89,86 @@ def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Generate bpy-displaced texture mesh for QIDIStudio"
     )
-    p.add_argument("model_path",
-                   help="Source STL/3MF to texture")
-    p.add_argument("skin_path",
-                   help="Skin asset: PNG/JPG for displacement texture")
-    p.add_argument("--mode",
-                   choices=["part", "negative", "modifier"],
-                   default="modifier",
-                   help="part=add raised shell, negative=add carved shell, modifier=replace mesh")
-    p.add_argument("--tile-size", type=float, default=15.0,
-                   help="Texture repeat size in mm (default 15)")
-    p.add_argument("--relief",   type=float, default=1.0,
-                   help="Displacement amplitude in mm (default 1.0)")
-    p.add_argument("--invert",   action="store_true",
-                   help="Invert the displacement direction")
-    p.add_argument("--gamma",    type=float, default=0.7,
-                   help="Gamma applied to the skin image before displacement (default 0.7)")
-    p.add_argument("--log",      default="",
-                   help="Path for the log file (optional)")
-    p.add_argument("--projection",
-                   choices=["auto", "conformal", "lscm", "object"],
-                   default="auto",
-                   help=("UV projection for texture wrapping: "
-                         "auto=detect from geometry (default — LSCM for organic, OBJECT for angular CAD), "
-                         "lscm=force LSCM conformal UV (angle-preserving, best for smooth curved surfaces), "
-                         "object=force world-space box-map (no seams, best for flat/angular CAD parts), "
-                         "conformal=Smart-UV-Project (arbitrary island cuts, can spike on CAD parts)"))
-    p.add_argument("--full-surface",
-                   dest="full_surface",
-                   action="store_true",
-                   default=True,
-                   help="Displace the ENTIRE surface — skin-wrap mode (default ON)")
-    p.add_argument("--no-full-surface",
-                   dest="full_surface",
-                   action="store_false",
-                   help="Restrict displacement to top-facing faces only (legacy behaviour for flat CAD parts)")
-    p.add_argument("--debug-snapshots",
-                   dest="debug_snapshots",
-                   action="store_true",
-                   help="Export JSON telemetry + curvature heatmap PNGs at each pipeline stage (AI debug mode)")
-    p.add_argument("--snapshots-dir",
-                   dest="snapshots_dir",
-                   default="",
-                   help="Directory for debug snapshot output (default: same directory as --log)")
-    p.add_argument("--render-heatmap",
-                   dest="render_heatmap",
-                   action="store_true",
-                   help=("Render curvature heatmap + UV checkerboard diagnostic PNGs at each debug stage. "
-                         "Requires --debug-snapshots. Uses Blender EEVEE — adds ~5-15s per stage."))
+    p.add_argument("model_path", help="Source STL/3MF to texture")
+    p.add_argument("skin_path", help="Skin asset: PNG/JPG for displacement texture")
+    p.add_argument(
+        "--mode",
+        choices=["part", "negative", "modifier"],
+        default="modifier",
+        help="part=add raised shell, negative=add carved shell, modifier=replace mesh",
+    )
+    p.add_argument(
+        "--tile-size",
+        type=float,
+        default=15.0,
+        help="Texture repeat size in mm (default 15)",
+    )
+    p.add_argument(
+        "--relief",
+        type=float,
+        default=1.0,
+        help="Displacement amplitude in mm (default 1.0)",
+    )
+    p.add_argument(
+        "--invert", action="store_true", help="Invert the displacement direction"
+    )
+    p.add_argument(
+        "--gamma",
+        type=float,
+        default=0.7,
+        help="Gamma applied to the skin image before displacement (default 0.7)",
+    )
+    p.add_argument("--log", default="", help="Path for the log file (optional)")
+    p.add_argument(
+        "--projection",
+        choices=["auto", "conformal", "lscm", "object"],
+        default="auto",
+        help=(
+            "UV projection for texture wrapping: "
+            "auto=detect from geometry (default — LSCM for organic, OBJECT for angular CAD), "
+            "lscm=force LSCM conformal UV (angle-preserving, best for smooth curved surfaces), "
+            "object=force world-space box-map (no seams, best for flat/angular CAD parts), "
+            "conformal=Smart-UV-Project (arbitrary island cuts, can spike on CAD parts)"
+        ),
+    )
+    p.add_argument(
+        "--full-surface",
+        dest="full_surface",
+        action="store_true",
+        default=True,
+        help="Displace the ENTIRE surface — skin-wrap mode (default ON)",
+    )
+    p.add_argument(
+        "--no-full-surface",
+        dest="full_surface",
+        action="store_false",
+        help="Restrict displacement to top-facing faces only (legacy behaviour for flat CAD parts)",
+    )
+    p.add_argument(
+        "--debug-snapshots",
+        dest="debug_snapshots",
+        action="store_true",
+        help="Export JSON telemetry + curvature heatmap PNGs at each pipeline stage (AI debug mode)",
+    )
+    p.add_argument(
+        "--snapshots-dir",
+        dest="snapshots_dir",
+        default="",
+        help="Directory for debug snapshot output (default: same directory as --log)",
+    )
+    p.add_argument(
+        "--render-heatmap",
+        dest="render_heatmap",
+        action="store_true",
+        help=(
+            "Render curvature heatmap + UV checkerboard diagnostic PNGs at each debug stage. "
+            "Requires --debug-snapshots. Uses Blender EEVEE — adds ~5-15s per stage."
+        ),
+    )
     # bpy injects its own args after '--'; strip them
     argv = sys.argv[1:]
     if "--" in argv:
-        argv = argv[argv.index("--") + 1:]
+        argv = argv[argv.index("--") + 1 :]
     return p.parse_args(argv)
 
 
@@ -156,7 +193,9 @@ class Logger:
     def flush(self):
         if self._path:
             try:
-                pathlib.Path(self._path).write_text("\n".join(self._buf), encoding="utf-8")
+                pathlib.Path(self._path).write_text(
+                    "\n".join(self._buf), encoding="utf-8"
+                )
             except Exception:
                 pass
 
@@ -167,7 +206,7 @@ def _reset_scene():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     # Set millimetre units (1 Blender unit = 0.001 m = 1 mm)
-    scene.unit_settings.system      = "METRIC"
+    scene.unit_settings.system = "METRIC"
     scene.unit_settings.scale_length = 0.001
 
 
@@ -178,19 +217,21 @@ def _import_model(path: str, log: Logger) -> list:
 
     if ext == ".stl":
         try:
-            bpy.ops.wm.stl_import(filepath=path)          # Blender 4+ / bpy 5
+            bpy.ops.wm.stl_import(filepath=path)  # Blender 4+ / bpy 5
         except AttributeError:
-            bpy.ops.import_mesh.stl(filepath=path)         # Blender 3.x fallback
+            bpy.ops.import_mesh.stl(filepath=path)  # Blender 3.x fallback
     elif ext == ".3mf":
         # Standalone bpy does not bundle io_scene_3mf; parse the zip directly.
         meshes_created = _import_3mf_manual(path, log)
-        log.log(f"Imported {len(meshes_created)} mesh(es) from '{pathlib.Path(path).name}'")
+        log.log(
+            f"Imported {len(meshes_created)} mesh(es) from '{pathlib.Path(path).name}'"
+        )
         return meshes_created
     elif ext in (".obj", ".OBJ"):
         try:
-            bpy.ops.wm.obj_import(filepath=path)          # Blender 4+
+            bpy.ops.wm.obj_import(filepath=path)  # Blender 4+
         except AttributeError:
-            bpy.ops.import_scene.obj(filepath=path)       # Blender 3
+            bpy.ops.import_scene.obj(filepath=path)  # Blender 3
     else:
         # Fallback: hope the file is STL-compatible
         bpy.ops.import_mesh.stl(filepath=path)
@@ -214,8 +255,7 @@ def _import_3mf_manual(path: str, log: Logger) -> list:
     created = []
 
     with zipfile.ZipFile(path, "r") as zf:
-        model_files = [n for n in zf.namelist()
-                       if n.lower().endswith(".model")]
+        model_files = [n for n in zf.namelist() if n.lower().endswith(".model")]
         if not model_files:
             log.log("  WARNING: no .model files found in 3MF zip")
             return created
@@ -236,29 +276,33 @@ def _import_3mf_manual(path: str, log: Logger) -> list:
 
             for mesh_el in root.iter(f"{{{NS}}}mesh"):
                 verts_el = mesh_el.find(f"{{{NS}}}vertices")
-                tris_el  = mesh_el.find(f"{{{NS}}}triangles")
+                tris_el = mesh_el.find(f"{{{NS}}}triangles")
                 if verts_el is None or tris_el is None:
                     continue
 
                 verts = []
                 for v in verts_el.findall(f"{{{NS}}}vertex"):
                     try:
-                        verts.append((
-                            float(v.get("x", 0)),
-                            float(v.get("y", 0)),
-                            float(v.get("z", 0)),
-                        ))
+                        verts.append(
+                            (
+                                float(v.get("x", 0)),
+                                float(v.get("y", 0)),
+                                float(v.get("z", 0)),
+                            )
+                        )
                     except (ValueError, TypeError):
                         continue
 
                 faces = []
                 for t in tris_el.findall(f"{{{NS}}}triangle"):
                     try:
-                        faces.append((
-                            int(t.get("v1")),
-                            int(t.get("v2")),
-                            int(t.get("v3")),
-                        ))
+                        faces.append(
+                            (
+                                int(t.get("v1")),
+                                int(t.get("v2")),
+                                int(t.get("v3")),
+                            )
+                        )
                     except (ValueError, TypeError):
                         continue
 
@@ -315,6 +359,7 @@ def _gamma_correct_image(img, gamma: float, log: Logger) -> None:
     g_inv = 1.0 / gamma
     try:
         import numpy as np
+
         px = np.array(img.pixels[:], dtype=np.float32).reshape(-1, 4)
         px[:, :3] = np.power(np.clip(px[:, :3], 0.0, None), g_inv)
         img.pixels[:] = px.ravel().tolist()
@@ -322,15 +367,16 @@ def _gamma_correct_image(img, gamma: float, log: Logger) -> None:
         # numpy absent — pure-Python fallback (slow on large textures)
         px = list(img.pixels[:])
         for i in range(0, len(px), 4):
-            px[i]   = max(0.0, px[i]  ) ** g_inv
-            px[i+1] = max(0.0, px[i+1]) ** g_inv
-            px[i+2] = max(0.0, px[i+2]) ** g_inv
+            px[i] = max(0.0, px[i]) ** g_inv
+            px[i + 1] = max(0.0, px[i + 1]) ** g_inv
+            px[i + 2] = max(0.0, px[i + 2]) ** g_inv
         img.pixels[:] = px
     img.update()
     log.log(f"  Gamma correction applied (g={gamma})")
 
 
 # ── Manifold topology classifier ─────────────────────────────────────────
+
 
 class MeshClass(Enum):
     """
@@ -345,10 +391,11 @@ class MeshClass(Enum):
     References: Reuter 2006 (Shape DNA), DDG CMU 15-458 §6, SIGGRAPH 2017
     (Yuksel — Rethinking Texture Mapping), Wadler 1998 (The Expression Problem).
     """
-    FLAT_SHELL  = auto()   # thin plate  (z_ratio < 0.25): lid, back panel, tray
-    PRISMATIC   = auto()   # box CAD     (sharp_frac >= 0.35): enclosure, housing
-    REVOLUTION  = auto()   # tall tube   (z_ratio >= 1.0, low sharp): bottle, vase
-    ORGANIC     = auto()   # freeform    (low sharp, moderate height): dragon, figurine
+
+    FLAT_SHELL = auto()  # thin plate  (z_ratio < 0.25): lid, back panel, tray
+    PRISMATIC = auto()  # box CAD     (sharp_frac >= 0.35): enclosure, housing
+    REVOLUTION = auto()  # tall tube   (z_ratio >= 1.0, low sharp): bottle, vase
+    ORGANIC = auto()  # freeform    (low sharp, moderate height): dragon, figurine
 
 
 @dataclass(frozen=True)
@@ -370,17 +417,20 @@ class TopologySignature:
     use_uv          : True = LSCM UV-based, False = OBJECT world-space box-map
     full_surface    : True = wrap entire mesh, False = top-facing faces only
     """
-    mesh_class:     MeshClass
+
+    mesh_class: MeshClass
     sharp_fraction: float
-    z_ratio:        float
-    curvature_std:  float
-    n_verts:             int
-    euler_characteristic: int   # χ = V − E + F  (Euler characteristic — topological invariant)
-                                # Sphere: χ=2  Disk: χ=1  Annulus/cylinder: χ=0  Higher genus: χ<0
-                                # Source: Spectral Shape Analysis and Transforms (docs/), §I
+    z_ratio: float
+    curvature_std: float
+    n_verts: int
+    euler_characteristic: (
+        int  # χ = V − E + F  (Euler characteristic — topological invariant)
+    )
+    # Sphere: χ=2  Disk: χ=1  Annulus/cylinder: χ=0  Higher genus: χ<0
+    # Source: Spectral Shape Analysis and Transforms (docs/), §I
     seam_angle_rad: float
-    use_uv:         bool
-    full_surface:   bool
+    use_uv: bool
+    full_surface: bool
 
 
 @dataclass
@@ -391,18 +441,23 @@ class _DebugSession:
     _apply_displacement_blender() so each stage can append its record.
     Call _export_debug_snapshot() at post_weld, post_classify, post_displace.
     """
-    model_path:    str
-    skin_path:     str
+
+    model_path: str
+    skin_path: str
     snapshots_dir: str
-    stages:        list = None   # list of JSON-serialisable dicts, one per stage
+    stages: list = None  # list of JSON-serialisable dicts, one per stage
 
     def __post_init__(self):
         if self.stages is None:
             self.stages = []
 
 
-def _compute_shape_dna(obj, k: int = 10, log: "Logger | None" = None,
-                       expected_class: "MeshClass | None" = None):
+def _compute_shape_dna(
+    obj,
+    k: int = 10,
+    log: "Logger | None" = None,
+    expected_class: "MeshClass | None" = None,
+):
     """
     Compute the Shape DNA of a mesh: the first k eigenvalues of the
     combinatorial graph Laplacian (degree matrix − adjacency matrix).
@@ -452,7 +507,9 @@ def _compute_shape_dna(obj, k: int = 10, log: "Logger | None" = None,
     n = len(mesh.vertices)
     if n > 5000:
         if log:
-            log.log(f"  Shape DNA: mesh has {n} verts — too large for in-process DNA, skipping")
+            log.log(
+                f"  Shape DNA: mesh has {n} verts — too large for in-process DNA, skipping"
+            )
         return None
 
     adj = np.zeros((n, n), dtype=np.float32)
@@ -461,7 +518,7 @@ def _compute_shape_dna(obj, k: int = 10, log: "Logger | None" = None,
         adj[u, v] = adj[v, u] = 1.0
     deg = np.diag(adj.sum(axis=1))
     L = deg - adj
-    evals = np.linalg.eigvalsh(L)   # sorted ascending
+    evals = np.linalg.eigvalsh(L)  # sorted ascending
     dna = evals[:k]
     if log:
         dna_str = ",".join(f"{x:.4f}" for x in dna)
@@ -483,9 +540,9 @@ def _compute_shape_dna(obj, k: int = 10, log: "Logger | None" = None,
 
         if expected_class is not None:
             # Detect contradictions between classifier output and spectral evidence
-            revolution_dna  = ratio > 0.85
-            flat_pris_dna   = ratio < 0.50
-            mismatch        = False
+            revolution_dna = ratio > 0.85
+            flat_pris_dna = ratio < 0.50
+            mismatch = False
             match expected_class:
                 case MeshClass.REVOLUTION:
                     if not revolution_dna:
@@ -495,7 +552,9 @@ def _compute_shape_dna(obj, k: int = 10, log: "Logger | None" = None,
                         mismatch = True
                 case MeshClass.ORGANIC:
                     if revolution_dna:
-                        mismatch = True   # organic shouldn't have full rotational symmetry
+                        mismatch = (
+                            True  # organic shouldn't have full rotational symmetry
+                        )
             if mismatch:
                 log.log(
                     f"  Shape DNA: *** TOPOLOGY MISMATCH ***  "
@@ -524,11 +583,12 @@ def _adaptive_subd_level(obj, organic: bool = False) -> int:
       18k-poly box → log4(400k/18k) = 2.1 → level 2 → ~72k verts.
     """
     import math
+
     TARGET = 1_600_000 if organic else 400_000
     n = len(obj.data.polygons)
     if n == 0:
         return 0
-    raw   = math.log(TARGET / n, 4)
+    raw = math.log(TARGET / n, 4)
     level = max(0, min(4, int(raw)))
     return level
 
@@ -551,10 +611,14 @@ def _classify_mesh_topology(obj, log: Logger) -> TopologySignature:
 
     Classification rules (Python 3.10+ match/case, PEP 634)
     --------------------------------------------------------
-    Rule 1 — FLAT_SHELL   : z_ratio < 0.25  (geometry is a thin plate)
-    Rule 2 — REVOLUTION   : z_ratio >= 1.0  AND  sharp_fraction < 0.20
-    Rule 3 — PRISMATIC    : sharp_fraction >= 0.35
-    Rule 4 — ORGANIC      : all other cases
+    Rule 1 — FLAT_SHELL       : z_ratio < 0.25
+    Rule 2 — REVOLUTION       : z_ratio >= 1.0  AND  sharp < 0.20  AND  −2 ≤ χ ≤ 0
+      Simple open cylinder / funnel / bottle.  χ = −2 allows one branch-cut port.
+    Rule 2b — PRISMATIC (complex): z_ratio >= 1.0  AND  sharp < 0.20  AND  χ ≤ −4
+      Tall part with many topology handles (crevice nozzle, multi-port manifold).
+      LSCM would severely distort; OBJECT coords are safer.
+    Rule 3 — PRISMATIC        : sharp_fraction >= 0.35
+    Rule 4 — ORGANIC          : all other cases
 
     UV strategy per class (Lévy 2002, Wadler 1998 Expression Problem)
     ------------------------------------------------------------------
@@ -567,8 +631,8 @@ def _classify_mesh_topology(obj, log: Logger) -> TopologySignature:
     """
     import bmesh, math
 
-    SHARP_RAD   = 0.5236   # 30°
-    ORGANIC_RAD = 1.0472   # 60°
+    SHARP_RAD = 0.5236  # 30°
+    ORGANIC_RAD = 1.0472  # 60°
 
     bm = bmesh.new()
     bm.from_mesh(obj.data)
@@ -576,7 +640,7 @@ def _classify_mesh_topology(obj, log: Logger) -> TopologySignature:
     bm.verts.ensure_lookup_table()
 
     # ── Feature 1: sharp edge fraction ────────────────────────────────────
-    total   = len(bm.edges)
+    total = len(bm.edges)
     sharp30 = 0
     for e in bm.edges:
         linked = e.link_faces
@@ -589,15 +653,15 @@ def _classify_mesh_topology(obj, log: Logger) -> TopologySignature:
     sharp_fraction = sharp30 / total if total > 0 else 0.0
 
     # ── Feature 2: bounding-box Z-ratio ───────────────────────────────────
-    all_co  = [v.co for v in bm.verts]
-    xs      = [c.x for c in all_co]
-    ys      = [c.y for c in all_co]
-    zs      = [c.z for c in all_co]
-    xspan   = max(xs) - min(xs)
-    yspan   = max(ys) - min(ys)
-    zspan   = max(zs) - min(zs)
+    all_co = [v.co for v in bm.verts]
+    xs = [c.x for c in all_co]
+    ys = [c.y for c in all_co]
+    zs = [c.z for c in all_co]
+    xspan = max(xs) - min(xs)
+    yspan = max(ys) - min(ys)
+    zspan = max(zs) - min(zs)
     long_dim = max(xspan, yspan)
-    z_ratio  = (zspan / long_dim) if long_dim > 1e-6 else 0.0
+    z_ratio = (zspan / long_dim) if long_dim > 1e-6 else 0.0
 
     # ── Feature 3: Gaussian curvature std-dev (angle-deficit) ─────────────
     # K_v = 2π − Σ(interior angles at v across incident faces).
@@ -613,7 +677,7 @@ def _classify_mesh_topology(obj, log: Logger) -> TopologySignature:
             angle_sum = 0.0
             for f in v.link_faces:
                 vlist = list(f.verts)
-                n     = len(vlist)
+                n = len(vlist)
                 try:
                     idx = vlist.index(v)
                 except ValueError:
@@ -626,8 +690,8 @@ def _classify_mesh_topology(obj, log: Logger) -> TopologySignature:
             k_vals.append(TWO_PI - angle_sum)
         if len(k_vals) > 1:
             mean_k = sum(k_vals) / len(k_vals)
-            var_k  = sum((k - mean_k) ** 2 for k in k_vals) / len(k_vals)
-            curvature_std = var_k ** 0.5
+            var_k = sum((k - mean_k) ** 2 for k in k_vals) / len(k_vals)
+            curvature_std = var_k**0.5
 
     # ── Feature 4: Euler characteristic (χ = V − E + F) ──────────────────────
     # Topological invariant — isometry-invariant, preserved under deformation.
@@ -646,40 +710,56 @@ def _classify_mesh_topology(obj, log: Logger) -> TopologySignature:
     # Euler characteristic disambiguates REVOLUTION from tall ORGANIC:
     #   Revolution surface (bottle, funnel): open cylinder, χ≈0
     #   Tall organic (figurine on pedestal, staff):  closed surface, χ>0
-    flat      = z_ratio < 0.25
-    tall      = z_ratio >= 1.0
+    flat = z_ratio < 0.25
+    tall = z_ratio >= 1.0
     prismatic = sharp_fraction >= 0.35
-    annular   = euler_char <= 0   # has at least one through-hole or handle
+    annular = euler_char <= 0  # has at least one through-hole or handle
+    # Simple revolution bodies (open cylinder, funnel, bottle) have χ ≈ 0 or χ = -2
+    # at most (one cross-section hole).  χ ≤ -4 indicates a complex assembly
+    # (multiple ports, cutouts, thin-wall cage) whose cross-section topology is
+    # not well-described by a single revolution axis.  Those shapes project
+    # better with OBJECT (top-down) coords than with LSCM cylindrical unwrap.
+    # Threshold: -4 chosen empirically; see docs/Shape Classification… §III.2.
+    simple_annular = -2 <= euler_char <= 0  # pure open cylinder / simple funnel
 
     match (flat, tall, prismatic):
         case (True, _, _):
-            cls            = MeshClass.FLAT_SHELL
+            cls = MeshClass.FLAT_SHELL
             seam_angle_rad = SHARP_RAD
-            use_uv         = False
-            full_surface   = False
+            use_uv = False
+            full_surface = False
+        case (False, True, False) if simple_annular:
+            # Tall + smooth + simple through-hole → confirmed revolution manifold
+            # (bottle, vase, vacuum tube, pipe).  LSCM 30° seams.
+            cls = MeshClass.REVOLUTION
+            seam_angle_rad = SHARP_RAD
+            use_uv = True
+            full_surface = True
         case (False, True, False) if annular:
-            # Tall + smooth + topological through-hole → confirmed annular manifold
-            cls            = MeshClass.REVOLUTION
+            # Tall + smooth + COMPLEX topology (χ ≤ -4: multiple ports, wall openings).
+            # LSCM would produce severe UV distortion on a non-revolution surface.
+            # Treat as PRISMATIC: OBJECT projection is safe and avoids seam artifacts.
+            cls = MeshClass.PRISMATIC
             seam_angle_rad = SHARP_RAD
-            use_uv         = True
-            full_surface   = True
+            use_uv = False
+            full_surface = False
         case (False, True, False):
             # Tall + smooth but no through-hole → tall organic (figurine, pedestal)
             # DNA verification will flag a mismatch if this is wrong.
-            cls            = MeshClass.ORGANIC
+            cls = MeshClass.ORGANIC
             seam_angle_rad = ORGANIC_RAD
-            use_uv         = True
-            full_surface   = True
+            use_uv = True
+            full_surface = True
         case (False, _, True):
-            cls            = MeshClass.PRISMATIC
+            cls = MeshClass.PRISMATIC
             seam_angle_rad = SHARP_RAD
-            use_uv         = False
-            full_surface   = False
+            use_uv = False
+            full_surface = False
         case _:
-            cls            = MeshClass.ORGANIC
+            cls = MeshClass.ORGANIC
             seam_angle_rad = ORGANIC_RAD
-            use_uv         = True
-            full_surface   = True
+            use_uv = True
+            full_surface = True
 
     sig = TopologySignature(
         mesh_class=cls,
@@ -705,8 +785,9 @@ def _classify_mesh_topology(obj, log: Logger) -> TopologySignature:
     return sig
 
 
-def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger,
-                  seam_angle_rad: float = 1.0472):
+def _do_uv_unwrap(
+    obj, tile_size: float, projection: str, log: Logger, seam_angle_rad: float = 1.0472
+):
     """
     UV-unwrap the mesh and scale coordinates so 1 UV unit = tile_size mm
     of actual surface distance.
@@ -732,14 +813,14 @@ def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger,
     import mathutils
 
     bpy.context.view_layer.objects.active = obj
-    bpy.ops.object.select_all(action='DESELECT')
+    bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
 
     with _ops_ctx(obj):
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
 
-        if projection == 'lscm':
+        if projection == "lscm":
             # PhD pipeline (Advanced Texture Wrapping for CAD, §II.1):
             # Place seams at design-edge boundaries using the dihedral threshold
             # resolved by _classify_mesh_topology → TopologySignature.seam_angle_rad:
@@ -751,16 +832,19 @@ def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger,
             #
             # Step 1: clear ALL existing seams (stale from import/prior run).
             import math as _math
+
             seam_deg = _math.degrees(seam_angle_rad)
-            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.select_all(action="SELECT")
             bpy.ops.mesh.mark_seam(clear=True)
             # Step 2: select edges whose dihedral >= seam_angle_rad, mark as seams.
             bpy.ops.mesh.edges_select_sharp(sharpness=seam_angle_rad)
             bpy.ops.mesh.mark_seam(clear=False)
-            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.select_all(action="SELECT")
             try:
-                bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.001)
-                log.log(f"  UV: LSCM (CONFORMAL) unwrap — seams at >={seam_deg:.0f}° edges")
+                bpy.ops.uv.unwrap(method="CONFORMAL", margin=0.001)
+                log.log(
+                    f"  UV: LSCM (CONFORMAL) unwrap — seams at >={seam_deg:.0f}° edges"
+                )
             except Exception as uv_err:
                 log.log(f"  UV: LSCM failed ({uv_err}) — falling back to smart_project")
                 bpy.ops.uv.smart_project(angle_limit=66.0, island_margin=0.0)
@@ -768,67 +852,70 @@ def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger,
             bpy.ops.uv.smart_project(angle_limit=66.0, island_margin=0.0)
             log.log("  UV: Smart UV Project unwrap completed")
 
-        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.mode_set(mode="OBJECT")
 
     # ── Scale UV so 1 UV unit = tile_size mm ─────────────────────────────
     # Estimate mm-per-UV-unit by comparing 3-D edge lengths to UV edge lengths
     # across a random sample of loop edges.  This gives a geodesic calibration
     # that is accurate regardless of mesh scale or UV island packing.
-    mesh    = obj.data
-    uv_lyr  = mesh.uv_layers.active
+    mesh = obj.data
+    uv_lyr = mesh.uv_layers.active
     if uv_lyr is None:
         log.log("  UV: WARNING — no UV layer after unwrap; tiling may be incorrect")
         return
 
-    verts   = mesh.vertices
-    loops_  = mesh.loops
+    verts = mesh.vertices
+    loops_ = mesh.loops
     uv_data = uv_lyr.data
     total_3d = 0.0
     total_uv = 0.0
-    n_samp   = 0
+    n_samp = 0
 
     for poly in mesh.polygons:
         nv = len(poly.loop_indices)
         for k in range(nv):
-            l0  = poly.loop_indices[k]
-            l1  = poly.loop_indices[(k + 1) % nv]
-            v0  = verts[loops_[l0].vertex_index].co
-            v1  = verts[loops_[l1].vertex_index].co
-            u0  = uv_data[l0].uv
-            u1  = uv_data[l1].uv
-            d3  = (v1 - v0).length
-            du  = ((u1[0] - u0[0]) ** 2 + (u1[1] - u0[1]) ** 2) ** 0.5
+            l0 = poly.loop_indices[k]
+            l1 = poly.loop_indices[(k + 1) % nv]
+            v0 = verts[loops_[l0].vertex_index].co
+            v1 = verts[loops_[l1].vertex_index].co
+            u0 = uv_data[l0].uv
+            u1 = uv_data[l1].uv
+            d3 = (v1 - v0).length
+            du = ((u1[0] - u0[0]) ** 2 + (u1[1] - u0[1]) ** 2) ** 0.5
             if du > 1e-10 and d3 > 1e-10:
                 total_3d += d3
-                total_uv  += du
-                n_samp    += 1
+                total_uv += du
+                n_samp += 1
                 if n_samp >= 2000:
                     break
         if n_samp >= 2000:
             break
 
     if total_uv > 1e-10:
-        mm_per_uv = total_3d / total_uv   # current: 1 UV unit = this many mm
-        uv_scale  = mm_per_uv / tile_size  # target:  1 UV unit = tile_size mm
+        mm_per_uv = total_3d / total_uv  # current: 1 UV unit = this many mm
+        uv_scale = mm_per_uv / tile_size  # target:  1 UV unit = tile_size mm
     else:
         # Rare fallback — no usable edge pairs (degenerate UV); use bbox
         import mathutils as mu
-        bb   = [mu.Vector(c) for c in obj.bound_box]
+
+        bb = [mu.Vector(c) for c in obj.bound_box]
         max_mm = max(
             max(v.x for v in bb) - min(v.x for v in bb),
             max(v.y for v in bb) - min(v.y for v in bb),
             max(v.z for v in bb) - min(v.z for v in bb),
         )
-        uv_scale  = max_mm / tile_size
+        uv_scale = max_mm / tile_size
         mm_per_uv = uv_scale * tile_size
         log.log(f"  UV scale: bbox fallback (max_mm={max_mm:.1f})")
 
     for loop_item in uv_lyr.data:
         loop_item.uv = (loop_item.uv[0] * uv_scale, loop_item.uv[1] * uv_scale)
 
-    log.log(f"  UV scale: {uv_scale:.3f}x  "
-            f"(~{mm_per_uv:.2f} mm/UV_unit → tile_size={tile_size}mm, "
-            f"sampled {n_samp} edges)")
+    log.log(
+        f"  UV scale: {uv_scale:.3f}x  "
+        f"(~{mm_per_uv:.2f} mm/UV_unit → tile_size={tile_size}mm, "
+        f"sampled {n_samp} edges)"
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -838,6 +925,7 @@ def _do_uv_unwrap(obj, tile_size: float, projection: str, log: Logger,
 #  classifier thresholds without human intervention.
 #  Refs: GPT-4V (arXiv 2303.08774), Keenan Crane DDG 2024 (conformal maps)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _render_curvature_heatmap(obj, output_png: str, log: "Logger | None") -> bool:
     """Render Gaussian curvature K_v = 2π – Σ(interior angles) as a vertex-colour
@@ -851,6 +939,7 @@ def _render_curvature_heatmap(obj, output_png: str, log: "Logger | None") -> boo
     Returns True on success, False on any error (never raises).
     """
     import bmesh as _bmx, math as _math
+
     try:
         bm = _bmx.new()
         bm.from_mesh(obj.data)
@@ -866,7 +955,7 @@ def _render_curvature_heatmap(obj, output_png: str, log: "Logger | None") -> boo
 
         col_layer = bm.loops.layers.color.new("CurvatureMap")
         for v in bm.verts:
-            t = k_vals[v.index] / k_range   # normalised −1..+1
+            t = k_vals[v.index] / k_range  # normalised −1..+1
             if t >= 0.0:
                 r, g, b = t, 0.0, 1.0 - t  # blue → red (flat → convex)
             else:
@@ -886,57 +975,59 @@ def _render_curvature_heatmap(obj, output_png: str, log: "Logger | None") -> boo
         attr = nt.nodes.new("ShaderNodeAttribute")
         attr.attribute_name = "CurvatureMap"
         bsdf = nt.nodes.new("ShaderNodeBsdfDiffuse")
-        out  = nt.nodes.new("ShaderNodeOutputMaterial")
+        out = nt.nodes.new("ShaderNodeOutputMaterial")
         nt.links.new(attr.outputs["Color"], bsdf.inputs["Color"])
-        nt.links.new(bsdf.outputs["BSDF"],  out.inputs["Surface"])
+        nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
         old_mats = list(obj.data.materials)
         obj.data.materials.clear()
         obj.data.materials.append(mat)
 
         # Overhead orthographic camera
         verts_list = [v.co for v in obj.data.vertices]
-        xs = [v.x for v in verts_list]; ys = [v.y for v in verts_list]
+        xs = [v.x for v in verts_list]
+        ys = [v.y for v in verts_list]
         zs = [v.z for v in verts_list]
-        cx = (min(xs) + max(xs)) * 0.5;  cy = (min(ys) + max(ys)) * 0.5
+        cx = (min(xs) + max(xs)) * 0.5
+        cy = (min(ys) + max(ys)) * 0.5
         span = max(max(xs) - min(xs), max(ys) - min(ys), 1.0)
-        cz   = max(zs) + span * 0.9
+        cz = max(zs) + span * 0.9
 
         cam_data = bpy.data.cameras.new("__dbg_cam__")
-        cam_data.type = 'ORTHO'
+        cam_data.type = "ORTHO"
         cam_data.ortho_scale = span * 1.1
-        cam_obj  = bpy.data.objects.new("__dbg_cam__", cam_data)
+        cam_obj = bpy.data.objects.new("__dbg_cam__", cam_data)
         bpy.context.collection.objects.link(cam_obj)
-        cam_obj.location       = (cx, cy, cz)
+        cam_obj.location = (cx, cy, cz)
         cam_obj.rotation_euler = (0.0, 0.0, 0.0)
         prev_cam = bpy.context.scene.camera
         bpy.context.scene.camera = cam_obj
 
         scn = bpy.context.scene
         prev_engine = scn.render.engine
-        prev_path   = scn.render.filepath
+        prev_path = scn.render.filepath
         prev_format = scn.render.image_settings.file_format
         prev_rx, prev_ry = scn.render.resolution_x, scn.render.resolution_y
 
         try:
-            scn.render.engine                       = 'BLENDER_EEVEE_NEXT'
+            scn.render.engine = "BLENDER_EEVEE_NEXT"
         except Exception:
-            scn.render.engine                       = 'BLENDER_EEVEE'
-        scn.render.filepath                         = output_png
-        scn.render.image_settings.file_format       = 'PNG'
-        scn.render.resolution_x                     = 512
-        scn.render.resolution_y                     = 512
-        scn.render.film_transparent                 = False
+            scn.render.engine = "BLENDER_EEVEE"
+        scn.render.filepath = output_png
+        scn.render.image_settings.file_format = "PNG"
+        scn.render.resolution_x = 512
+        scn.render.resolution_y = 512
+        scn.render.film_transparent = False
 
         os.makedirs(os.path.dirname(output_png) or ".", exist_ok=True)
         bpy.ops.render.render(write_still=True)
 
         # Restore scene
-        scn.render.engine                     = prev_engine
-        scn.render.filepath                   = prev_path
+        scn.render.engine = prev_engine
+        scn.render.filepath = prev_path
         scn.render.image_settings.file_format = prev_format
-        scn.render.resolution_x               = prev_rx
-        scn.render.resolution_y               = prev_ry
-        bpy.context.scene.camera              = prev_cam
+        scn.render.resolution_x = prev_rx
+        scn.render.resolution_y = prev_ry
+        bpy.context.scene.camera = prev_cam
         bpy.data.cameras.remove(cam_data)
         bpy.data.objects.remove(cam_obj)
         bpy.data.materials.remove(mat)
@@ -978,43 +1069,45 @@ def _render_checkerboard_diagnostic(obj, output_png: str, log: "Logger | None") 
         nt = mat.node_tree
         nt.nodes.clear()
 
-        uv_node  = nt.nodes.new("ShaderNodeTexCoord")
+        uv_node = nt.nodes.new("ShaderNodeTexCoord")
         chk_node = nt.nodes.new("ShaderNodeTexChecker")
-        bsdf     = nt.nodes.new("ShaderNodeBsdfDiffuse")
-        out      = nt.nodes.new("ShaderNodeOutputMaterial")
+        bsdf = nt.nodes.new("ShaderNodeBsdfDiffuse")
+        out = nt.nodes.new("ShaderNodeOutputMaterial")
 
         # 8×8 grid — matches docs/AI Debugging 3D Texture Mapping.md §I.1
-        chk_node.inputs["Scale"].default_value    = 8.0
-        chk_node.inputs["Color1"].default_value   = (0.0, 0.0, 0.0, 1.0)
-        chk_node.inputs["Color2"].default_value   = (1.0, 1.0, 1.0, 1.0)
-        nt.links.new(uv_node.outputs["UV"],    chk_node.inputs["Vector"])
+        chk_node.inputs["Scale"].default_value = 8.0
+        chk_node.inputs["Color1"].default_value = (0.0, 0.0, 0.0, 1.0)
+        chk_node.inputs["Color2"].default_value = (1.0, 1.0, 1.0, 1.0)
+        nt.links.new(uv_node.outputs["UV"], chk_node.inputs["Vector"])
         nt.links.new(chk_node.outputs["Color"], bsdf.inputs["Color"])
-        nt.links.new(bsdf.outputs["BSDF"],      out.inputs["Surface"])
+        nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
 
         old_mats = list(obj.data.materials)
         obj.data.materials.clear()
         obj.data.materials.append(mat)
 
         verts_list = [v.co for v in obj.data.vertices]
-        xs = [v.x for v in verts_list]; ys = [v.y for v in verts_list]
+        xs = [v.x for v in verts_list]
+        ys = [v.y for v in verts_list]
         zs = [v.z for v in verts_list]
-        cx   = (min(xs) + max(xs)) * 0.5;  cy = (min(ys) + max(ys)) * 0.5
+        cx = (min(xs) + max(xs)) * 0.5
+        cy = (min(ys) + max(ys)) * 0.5
         span = max(max(xs) - min(xs), max(ys) - min(ys), 1.0)
-        cz   = max(zs) + span * 0.9
+        cz = max(zs) + span * 0.9
 
-        cam_data            = bpy.data.cameras.new("__dbg_chk_cam__")
-        cam_data.type       = "ORTHO"
+        cam_data = bpy.data.cameras.new("__dbg_chk_cam__")
+        cam_data.type = "ORTHO"
         cam_data.ortho_scale = span * 1.1
-        cam_obj             = bpy.data.objects.new("__dbg_chk_cam__", cam_data)
+        cam_obj = bpy.data.objects.new("__dbg_chk_cam__", cam_data)
         bpy.context.collection.objects.link(cam_obj)
-        cam_obj.location       = (cx, cy, cz)
+        cam_obj.location = (cx, cy, cz)
         cam_obj.rotation_euler = (0.0, 0.0, 0.0)
-        prev_cam               = bpy.context.scene.camera
+        prev_cam = bpy.context.scene.camera
         bpy.context.scene.camera = cam_obj
 
-        scn         = bpy.context.scene
+        scn = bpy.context.scene
         prev_engine = scn.render.engine
-        prev_path   = scn.render.filepath
+        prev_path = scn.render.filepath
         prev_format = scn.render.image_settings.file_format
         prev_rx, prev_ry = scn.render.resolution_x, scn.render.resolution_y
 
@@ -1022,21 +1115,21 @@ def _render_checkerboard_diagnostic(obj, output_png: str, log: "Logger | None") 
             scn.render.engine = "BLENDER_EEVEE_NEXT"
         except Exception:
             scn.render.engine = "BLENDER_EEVEE"
-        scn.render.filepath                   = output_png
+        scn.render.filepath = output_png
         scn.render.image_settings.file_format = "PNG"
-        scn.render.resolution_x               = 512
-        scn.render.resolution_y               = 512
-        scn.render.film_transparent           = False
+        scn.render.resolution_x = 512
+        scn.render.resolution_y = 512
+        scn.render.film_transparent = False
 
         os.makedirs(os.path.dirname(output_png) or ".", exist_ok=True)
         bpy.ops.render.render(write_still=True)
 
-        scn.render.engine                     = prev_engine
-        scn.render.filepath                   = prev_path
+        scn.render.engine = prev_engine
+        scn.render.filepath = prev_path
         scn.render.image_settings.file_format = prev_format
-        scn.render.resolution_x               = prev_rx
-        scn.render.resolution_y               = prev_ry
-        bpy.context.scene.camera              = prev_cam
+        scn.render.resolution_x = prev_rx
+        scn.render.resolution_y = prev_ry
+        bpy.context.scene.camera = prev_cam
         bpy.data.cameras.remove(cam_data)
         bpy.data.objects.remove(cam_obj)
         bpy.data.materials.remove(mat)
@@ -1079,14 +1172,14 @@ def _calculate_uv_stretch_metrics(obj, log: "Logger | None") -> dict:
       Sander 2001 — L2 stretch metric Γ² = (a²+b²+c²+d²) / 2A
       docs/AI Debugging 3D Texture Mapping.md §II (AI Texture Critic Prompt)
     """
-    mesh   = obj.data
+    mesh = obj.data
     uv_lyr = mesh.uv_layers.active
     if uv_lyr is None:
         if log:
             log.log("  UV stretch: no UV layer (OBJECT-coords mode?) — skipping")
         return {"error": "no_uv_layer"}
 
-    uv_data  = uv_lyr.data
+    uv_data = uv_lyr.data
     areas_3d: list = []
     areas_uv: list = []
 
@@ -1095,13 +1188,13 @@ def _calculate_uv_stretch_metrics(obj, log: "Logger | None") -> dict:
         # bmesh.types.BMFace.calc_area() is the bmesh equivalent — do NOT
         # call calc_area() on a MeshPolygon; it will raise AttributeError.
         a3 = poly.area
-        n  = len(poly.loop_indices)
+        n = len(poly.loop_indices)
         uv_pts = [uv_data[li].uv for li in poly.loop_indices]
         au = 0.0
         for k in range(n):
             x0, y0 = uv_pts[k]
             x1, y1 = uv_pts[(k + 1) % n]
-            au += (x0 * y1 - x1 * y0)   # shoelace
+            au += x0 * y1 - x1 * y0  # shoelace
         areas_3d.append(a3)
         areas_uv.append(abs(au) * 0.5)
 
@@ -1111,29 +1204,29 @@ def _calculate_uv_stretch_metrics(obj, log: "Logger | None") -> dict:
         return {"error": "degenerate_mesh"}
 
     stretch_vals: list = []
-    dirichlet    = 0.0
+    dirichlet = 0.0
     for a3, au in zip(areas_3d, areas_uv):
         if au < 1e-12:
-            s = 10.0   # collapsed UV island → maximum stretch
+            s = 10.0  # collapsed UV island → maximum stretch
         else:
-            s = (a3 * total_uv) / (au * total_3d)   # normalised area stretch
+            s = (a3 * total_uv) / (au * total_3d)  # normalised area stretch
         stretch_vals.append(s)
         dirichlet += max(s, 1.0 / max(s, 1e-6)) * a3
 
-    n    = len(stretch_vals)
+    n = len(stretch_vals)
     mean = sum(stretch_vals) / n
-    std  = (sum((s - mean) ** 2 for s in stretch_vals) / n) ** 0.5
-    mx   = max(stretch_vals)
+    std = (sum((s - mean) ** 2 for s in stretch_vals) / n) ** 0.5
+    mx = max(stretch_vals)
     high = [s for s in stretch_vals if abs(s - 1.0) > 0.15]
 
     result = {
-        "n_faces":             n,
-        "mean_stretch":        round(mean, 4),
-        "max_stretch":         round(mx,   4),
-        "std_stretch":         round(std,  4),
-        "high_energy_frac":    round(len(high) / n, 4) if n else 0.0,
+        "n_faces": n,
+        "mean_stretch": round(mean, 4),
+        "max_stretch": round(mx, 4),
+        "std_stretch": round(std, 4),
+        "high_energy_frac": round(len(high) / n, 4) if n else 0.0,
         "n_high_energy_faces": len(high),
-        "dirichlet_energy":    round(dirichlet / max(total_3d, 1e-12), 4),
+        "dirichlet_energy": round(dirichlet / max(total_3d, 1e-12), 4),
     }
     if log:
         log.log(
@@ -1146,11 +1239,15 @@ def _calculate_uv_stretch_metrics(obj, log: "Logger | None") -> dict:
     return result
 
 
-def _export_debug_snapshot(session: "_DebugSession", stage: str,
-                            obj, sig: "TopologySignature | None",
-                            log: "Logger | None",
-                            render_heatmap: bool = False,
-                            **extra) -> None:
+def _export_debug_snapshot(
+    session: "_DebugSession",
+    stage: str,
+    obj,
+    sig: "TopologySignature | None",
+    log: "Logger | None",
+    render_heatmap: bool = False,
+    **extra,
+) -> None:
     """Write a JSON telemetry record for *stage* to session.snapshots_dir.
 
     Each call appends a record to session.stages and writes two files:
@@ -1163,6 +1260,7 @@ def _export_debug_snapshot(session: "_DebugSession", stage: str,
     Never raises — all errors are logged and silently ignored.
     """
     import json as _json, datetime as _dt, math as _math
+
     snap_dir = session.snapshots_dir
     if not snap_dir:
         return
@@ -1175,32 +1273,42 @@ def _export_debug_snapshot(session: "_DebugSession", stage: str,
                 ys = [v.co.y for v in obj.data.vertices]
                 zs = [v.co.z for v in obj.data.vertices]
                 if xs:
-                    bbox_mm = [round(max(xs) - min(xs), 2),
-                               round(max(ys) - min(ys), 2),
-                               round(max(zs) - min(zs), 2)]
+                    bbox_mm = [
+                        round(max(xs) - min(xs), 2),
+                        round(max(ys) - min(ys), 2),
+                        round(max(zs) - min(zs), 2),
+                    ]
                 n_verts = len(obj.data.vertices)
                 n_polys = len(obj.data.polygons)
             except Exception:
                 pass
 
         record: dict = {
-            "model":     session.model_path,
-            "skin":      session.skin_path,
+            "model": session.model_path,
+            "skin": session.skin_path,
             "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
-            "stage":     stage,
+            "stage": stage,
             "mesh_class": sig.mesh_class.name if sig else "UNKNOWN",
-            "features": {
-                "sharp_fraction":       sig.sharp_fraction       if sig else None,
-                "z_ratio":              sig.z_ratio              if sig else None,
-                "curvature_std":        sig.curvature_std        if sig else None,
-                "euler_characteristic": sig.euler_characteristic if sig else None,
-            } if sig else {},
-            "projection":      ("lscm" if sig and sig.use_uv else "object") if sig else "unknown",
-            "full_surface":    sig.full_surface    if sig else None,
-            "seam_angle_deg":  round(_math.degrees(sig.seam_angle_rad), 1) if sig else None,
+            "features": (
+                {
+                    "sharp_fraction": sig.sharp_fraction if sig else None,
+                    "z_ratio": sig.z_ratio if sig else None,
+                    "curvature_std": sig.curvature_std if sig else None,
+                    "euler_characteristic": sig.euler_characteristic if sig else None,
+                }
+                if sig
+                else {}
+            ),
+            "projection": (
+                ("lscm" if sig and sig.use_uv else "object") if sig else "unknown"
+            ),
+            "full_surface": sig.full_surface if sig else None,
+            "seam_angle_deg": (
+                round(_math.degrees(sig.seam_angle_rad), 1) if sig else None
+            ),
             "geometry": {
-                "verts":   n_verts,
-                "polys":   n_polys,
+                "verts": n_verts,
+                "polys": n_polys,
                 "bbox_mm": bbox_mm,
             },
             "heatmap_png": None,
@@ -1230,8 +1338,9 @@ def _export_debug_snapshot(session: "_DebugSession", stage: str,
 
         summary_file = os.path.join(snap_dir, "session_summary.json")
         with open(summary_file, "w", encoding="utf-8") as _fh:
-            _json.dump({"model": session.model_path, "stages": session.stages},
-                       _fh, indent=2)
+            _json.dump(
+                {"model": session.model_path, "stages": session.stages}, _fh, indent=2
+            )
 
         if log:
             log.log(f"  [debug-snapshot:{stage}] → {stage_file}")
@@ -1241,13 +1350,21 @@ def _export_debug_snapshot(session: "_DebugSession", stage: str,
             log.log(f"  [debug-snapshot:{stage}] ERROR: {_e}")
 
 
-def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
-                                relief: float, invert: bool, gamma: float,
-                                log: Logger, *, mode: str = "modifier",
-                                projection: str = "object",
-                                full_surface: bool = True,
-                                debug_session: "_DebugSession | None" = None,
-                                render_heatmap: bool = False):
+def _apply_displacement_blender(
+    obj,
+    skin_path: str,
+    tile_size: float,
+    relief: float,
+    invert: bool,
+    gamma: float,
+    log: Logger,
+    *,
+    mode: str = "modifier",
+    projection: str = "object",
+    full_surface: bool = True,
+    debug_session: "_DebugSession | None" = None,
+    render_heatmap: bool = False,
+):
     """
     Full-Blender displacement pipeline — Displace modifier + Simple subdivision.
 
@@ -1279,10 +1396,16 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     obj.data.update()
     log.log(f"  Welded: {before_w}→{len(obj.data.vertices)} verts")
     if debug_session:
-        _export_debug_snapshot(debug_session, "post_weld", obj, None, log,
-                               render_heatmap=render_heatmap,
-                               weld_before=before_w,
-                               weld_after=len(obj.data.vertices))
+        _export_debug_snapshot(
+            debug_session,
+            "post_weld",
+            obj,
+            None,
+            log,
+            render_heatmap=render_heatmap,
+            weld_before=before_w,
+            weld_after=len(obj.data.vertices),
+        )
 
     # ── 1. UV unwrap — BEFORE subdivision (clean low-poly topology) ───────
     # UV coordinates survive Simple subdivision: Blender interpolates them
@@ -1291,9 +1414,9 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     # 'auto' uses geometry analysis (PhD: Advanced Texture Wrapping for CAD):
     #   - always LSCM (angle-preserving conformal maps)
     #   - 30° seams for CAD/prismatic parts, 60° seams for organic shapes
-    seam_angle_rad  = 1.0472   # default: 60° (organic); overridden by classifier
-    _topology_sig: "TopologySignature | None" = None   # set when projection == 'auto'
-    if projection == 'auto':
+    seam_angle_rad = 1.0472  # default: 60° (organic); overridden by classifier
+    _topology_sig: "TopologySignature | None" = None  # set when projection == 'auto'
+    if projection == "auto":
         # ── Polymorphic dispatch via TopologySignature ────────────────────
         # Three intrinsic mesh features (sharp_fraction, z_ratio, curvature_std)
         # are measured and classified into a MeshClass.  A match/case block then
@@ -1307,64 +1430,77 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
                 # World-space XY box-map: no UV islands, no seam boundaries.
                 # LSCM on flat/prismatic parts fragments every face at holes
                 # and hard edges → spike fans at island boundaries.
-                projection     = 'object'
+                projection = "object"
                 seam_angle_rad = sig.seam_angle_rad
-                full_surface   = False
+                full_surface = False
             case MeshClass.REVOLUTION:
                 # Tall cylinders / bottles: LSCM with 30° seams unwraps each
                 # panel cleanly whilst following the curved surface geodesically.
-                projection     = 'lscm'
+                projection = "lscm"
                 seam_angle_rad = sig.seam_angle_rad  # 30°
-                full_surface   = True
+                full_surface = True
             case MeshClass.ORGANIC:
                 # Freeform (dragon, figurine): LSCM with 60° seams minimises
                 # angular distortion across smooth curved regions (Lévy 2002).
-                projection     = 'lscm'
+                projection = "lscm"
                 seam_angle_rad = sig.seam_angle_rad  # 60°
-                full_surface   = True
+                full_surface = True
             case _:
                 # Unknown class — safe fallback: no UV, top-face only.
-                projection     = 'object'
+                projection = "object"
                 seam_angle_rad = 0.5236
-                full_surface   = False
+                full_surface = False
 
     if debug_session:
         import math as _math_dbg
-        _export_debug_snapshot(debug_session, "post_classify", obj, _topology_sig, log,
-                               render_heatmap=render_heatmap,
-                               resolved_projection=projection,
-                               seam_angle_deg=round(_math_dbg.degrees(seam_angle_rad), 1))
+
+        _export_debug_snapshot(
+            debug_session,
+            "post_classify",
+            obj,
+            _topology_sig,
+            log,
+            render_heatmap=render_heatmap,
+            resolved_projection=projection,
+            seam_angle_deg=round(_math_dbg.degrees(seam_angle_rad), 1),
+        )
 
     # UV vs OBJECT: LSCM is correct for curved organic/revolution surfaces
     # (texture follows geodesic distance — Lévy 2002).  OBJECT is correct
     # for flat/prismatic surfaces (no UV island fragmentation, no spike fans).
-    use_uv = (projection in ('conformal', 'lscm')) and full_surface
+    use_uv = (projection in ("conformal", "lscm")) and full_surface
     if use_uv:
         _do_uv_unwrap(obj, tile_size, projection, log, seam_angle_rad=seam_angle_rad)
     elif not full_surface:
-        log.log("  CAD thin-shell: using OBJECT coords (world-space XY box-map) — "
-                "LSCM would fragment the flat face into islands causing spike fans")
+        log.log(
+            "  CAD thin-shell: using OBJECT coords (world-space XY box-map) — "
+            "LSCM would fragment the flat face into islands causing spike fans"
+        )
 
     # ── 2. Simple Subdivision ─────────────────────────────────────────────
     # Pass organic=True for smooth/creature meshes — they use a higher triangle
     # target (1.6M) so small texture tiles are sampled by many subdivided tris.
-    is_organic = (seam_angle_rad > 1.0)  # 60° seam = organic, 30° = CAD
+    is_organic = seam_angle_rad > 1.0  # 60° seam = organic, 30° = CAD
     sub_level = _adaptive_subd_level(obj, organic=is_organic)
     if sub_level > 0:
-        subd = obj.modifiers.new("Subdiv", type='SUBSURF')
-        subd.subdivision_type = 'SIMPLE'
-        subd.levels            = sub_level
-        subd.render_levels     = sub_level
+        subd = obj.modifiers.new("Subdiv", type="SUBSURF")
+        subd.subdivision_type = "SIMPLE"
+        subd.levels = sub_level
+        subd.render_levels = sub_level
         log.log(f"  Subdiv modifier: Simple ×{sub_level}")
         with bpy.context.temp_override(
-            active_object=obj, object=obj,
-            selected_objects=[obj], selected_editable_objects=[obj],
+            active_object=obj,
+            object=obj,
+            selected_objects=[obj],
+            selected_editable_objects=[obj],
         ):
             bpy.ops.object.modifier_apply(modifier="Subdiv")
         obj.data.update()
         log.log(f"  Subdiv applied: {len(obj.data.vertices)} verts")
     else:
-        log.log(f"  Subdiv: skipped (mesh already dense — {len(obj.data.vertices)} verts)")
+        log.log(
+            f"  Subdiv: skipped (mesh already dense — {len(obj.data.vertices)} verts)"
+        )
 
     # ── 3. Vertex group (optional) ────────────────────────────────────────
     vgroup_name = ""
@@ -1373,8 +1509,8 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
         # 0.7 threshold (≈45°) excludes bore-rim chamfer triangles and hole-edge
         # transitions that cause LSCM UV spike fans at circular apertures.
         # Walls, fillets, holes are excluded — they stay perfectly sharp.
-        vg      = obj.vertex_groups.new(name="TopFace")
-        mesh    = obj.data
+        vg = obj.vertex_groups.new(name="TopFace")
+        mesh = obj.data
         vert_max_z = [0.0] * len(mesh.vertices)
         for poly in mesh.polygons:
             nz = poly.normal.z
@@ -1382,11 +1518,15 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
                 if nz > vert_max_z[vi]:
                     vert_max_z[vi] = nz
         top_verts = [i for i, nz in enumerate(vert_max_z) if nz > 0.7]
-        vg.add(top_verts, 1.0, 'REPLACE')
+        vg.add(top_verts, 1.0, "REPLACE")
         vgroup_name = "TopFace"
-        log.log(f"  Vertex group 'TopFace': {len(top_verts)}/{len(mesh.vertices)} verts (normal.z > 0.7)")
+        log.log(
+            f"  Vertex group 'TopFace': {len(top_verts)}/{len(mesh.vertices)} verts (normal.z > 0.7)"
+        )
     else:
-        log.log("  Full-surface mode: no vertex mask — entire surface will be displaced")
+        log.log(
+            "  Full-surface mode: no vertex mask — entire surface will be displaced"
+        )
 
     # ── 4. Load & prepare texture ─────────────────────────────────────────
     img = bpy.data.images.load(skin_path)
@@ -1395,23 +1535,23 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     W, H = img.size[0], img.size[1]
     log.log(f"  Texture loaded: {W}×{H}px  tile_size={tile_size}mm")
 
-    tex           = bpy.data.textures.new("SkinTexture", type='IMAGE')
-    tex.image     = img
-    tex.extension = 'REPEAT'   # tile seamlessly beyond UV island boundaries
+    tex = bpy.data.textures.new("SkinTexture", type="IMAGE")
+    tex.image = img
+    tex.extension = "REPEAT"  # tile seamlessly beyond UV island boundaries
 
     # ── 5. Displace modifier ──────────────────────────────────────────────
     if mode == "negative":
-        strength  = -abs(relief)
+        strength = -abs(relief)
         mid_level = 0.0
     else:
-        strength  = (-relief if invert else relief)
+        strength = -relief if invert else relief
         mid_level = 0.0
 
-    disp           = obj.modifiers.new("Displace", type='DISPLACE')
-    disp.texture   = tex
-    disp.strength  = strength
+    disp = obj.modifiers.new("Displace", type="DISPLACE")
+    disp.texture = tex
+    disp.strength = strength
     disp.mid_level = mid_level
-    disp.direction = 'NORMAL'
+    disp.direction = "NORMAL"
     if vgroup_name:
         disp.vertex_group = vgroup_name
 
@@ -1420,10 +1560,12 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
         # Because the UV was computed conformally (angle-preserving) and scaled
         # to tile_size mm per repeat, the displacement pattern follows the
         # surface geodesically — it wraps around curves just like painted skin.
-        disp.texture_coords = 'UV'
-        log.log(f"  Displace modifier: strength={strength:.2f}mm  "
-                f"coords=UV({projection})  mid={mid_level:.1f}  "
-                f"vgroup={'TopFace' if vgroup_name else 'none'}")
+        disp.texture_coords = "UV"
+        log.log(
+            f"  Displace modifier: strength={strength:.2f}mm  "
+            f"coords=UV({projection})  mid={mid_level:.1f}  "
+            f"vgroup={'TopFace' if vgroup_name else 'none'}"
+        )
     else:
         # OBJECT-based: world-space box-map via a scaling Empty (legacy).
         # Works perfectly for box/flat geometry; stretches on curved surfaces.
@@ -1431,17 +1573,21 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
         bpy.context.collection.objects.link(empty)
         empty.scale = (tile_size, tile_size, tile_size)
         bpy.context.view_layer.update()
-        disp.texture_coords        = 'OBJECT'
+        disp.texture_coords = "OBJECT"
         disp.texture_coords_object = empty
-        log.log(f"  Displace modifier: strength={strength:.2f}mm  "
-                f"coords=OBJECT  empty_scale={tile_size}mm  mid={mid_level:.1f}  "
-                f"vgroup={'TopFace' if vgroup_name else 'none'}")
+        log.log(
+            f"  Displace modifier: strength={strength:.2f}mm  "
+            f"coords=OBJECT  empty_scale={tile_size}mm  mid={mid_level:.1f}  "
+            f"vgroup={'TopFace' if vgroup_name else 'none'}"
+        )
 
     # ── 6. Apply Displace modifier ────────────────────────────────────────
     bpy.context.view_layer.objects.active = obj
     with bpy.context.temp_override(
-        active_object=obj, object=obj,
-        selected_objects=[obj], selected_editable_objects=[obj],
+        active_object=obj,
+        object=obj,
+        selected_objects=[obj],
+        selected_editable_objects=[obj],
     ):
         bpy.ops.object.modifier_apply(modifier="Displace")
 
@@ -1465,6 +1611,7 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     #   (b) crashed with RuntimeError after modifier_apply invalidated _vg ref.
     if use_uv:
         import bmesh as _bm_t
+
         _bm = _bm_t.new()
         _bm.from_mesh(obj.data)
         _bm.verts.ensure_lookup_table()
@@ -1481,7 +1628,7 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
             if _e.seam:
                 seam_set.add(_e.verts[0].index)
                 seam_set.add(_e.verts[1].index)
-        _hops  = min(4, max(2, int(abs(relief) / 0.5)))      # 2–4 hops max
+        _hops = min(4, max(2, int(abs(relief) / 0.5)))  # 2–4 hops max
         for _ in range(_hops):
             _new = set(seam_set)
             for _vi in seam_set:
@@ -1490,8 +1637,8 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
             seam_set = _new
 
         if seam_set:
-            _LAM  =  0.50   # Taubin λ — positive Laplacian (smooth toward average)
-            _MU   = -0.53   # Taubin μ — negative step  (restore volume, |μ|>λ)
+            _LAM = 0.50  # Taubin λ — positive Laplacian (smooth toward average)
+            _MU = -0.53  # Taubin μ — negative step  (restore volume, |μ|>λ)
             # Cap iterations to avoid O(V × iters) timeout on large meshes.
             # 8 passes is sufficient to blend seam discontinuities at any
             # typical relief value — more iterations blur the texture pattern.
@@ -1522,14 +1669,18 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
 
             _bm.to_mesh(obj.data)
             obj.data.update()
-            log.log(f"  Taubin seam-blend: {len(seam_set)} verts, {_ITERS} iters "
-                    f"(lam={_LAM}, mu={_MU}) -- non-shrinking (Taubin 1995)")
+            log.log(
+                f"  Taubin seam-blend: {len(seam_set)} verts, {_ITERS} iters "
+                f"(lam={_LAM}, mu={_MU}) -- non-shrinking (Taubin 1995)"
+            )
 
         _bm.free()
 
-    log.log(f"  Done: relief={strength:.2f}mm  tile={tile_size}mm  mode={mode}  "
-            f"projection={'UV('+projection+')' if use_uv else 'OBJECT'}  "
-            f"full_surface={full_surface}")
+    log.log(
+        f"  Done: relief={strength:.2f}mm  tile={tile_size}mm  mode={mode}  "
+        f"projection={'UV('+projection+')' if use_uv else 'OBJECT'}  "
+        f"full_surface={full_surface}"
+    )
 
     # ── 7. Shape DNA (diagnostic fingerprint + spectral verification) ──────
     # Compute on the post-displacement mesh (before subdivision makes it huge).
@@ -1537,31 +1688,57 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
     # mismatch = potential misclassification → check log for TOPOLOGY MISMATCH.
     # For meshes subdivided beyond 5 000 verts this is skipped automatically.
     _compute_shape_dna(
-        obj, k=10, log=log,
+        obj,
+        k=10,
+        log=log,
         expected_class=_topology_sig.mesh_class if _topology_sig else None,
     )
     if debug_session:
         import math as _math_dbg
-        _export_debug_snapshot(debug_session, "post_displace", obj, _topology_sig, log,
-                               render_heatmap=render_heatmap,
-                               strength_mm=strength,
-                               tile_size_mm=tile_size,
-                               mode=mode,
-                               coords=("UV(" + projection + ")") if use_uv else "OBJECT")
+
+        _export_debug_snapshot(
+            debug_session,
+            "post_displace",
+            obj,
+            _topology_sig,
+            log,
+            render_heatmap=render_heatmap,
+            strength_mm=strength,
+            tile_size_mm=tile_size,
+            mode=mode,
+            coords=("UV(" + projection + ")") if use_uv else "OBJECT",
+        )
 
 
-def _apply_displacement(obj, skin_path: str, tile_size: float,
-                        relief: float, invert: bool, gamma: float,
-                        log: Logger, *, mode: str = "modifier",
-                        projection: str = "object",
-                        full_surface: bool = True,
-                        debug_session: "_DebugSession | None" = None,
-                        render_heatmap: bool = False):
+def _apply_displacement(
+    obj,
+    skin_path: str,
+    tile_size: float,
+    relief: float,
+    invert: bool,
+    gamma: float,
+    log: Logger,
+    *,
+    mode: str = "modifier",
+    projection: str = "object",
+    full_surface: bool = True,
+    debug_session: "_DebugSession | None" = None,
+    render_heatmap: bool = False,
+):
     """Thin wrapper — always delegates to the full-Blender pipeline."""
     _apply_displacement_blender(
-        obj, skin_path, tile_size, relief, invert, gamma, log,
-        mode=mode, projection=projection, full_surface=full_surface,
-        debug_session=debug_session, render_heatmap=render_heatmap,
+        obj,
+        skin_path,
+        tile_size,
+        relief,
+        invert,
+        gamma,
+        log,
+        mode=mode,
+        projection=projection,
+        full_surface=full_surface,
+        debug_session=debug_session,
+        render_heatmap=render_heatmap,
     )
 
 
@@ -1577,8 +1754,8 @@ def _export_stl(obj, out_path: str, log: Logger):
 
     # Evaluate mesh with modifiers applied
     depsgraph = bpy.context.evaluated_depsgraph_get()
-    obj_eval  = obj.evaluated_get(depsgraph)
-    mesh      = obj_eval.to_mesh()
+    obj_eval = obj.evaluated_get(depsgraph)
+    mesh = obj_eval.to_mesh()
     mesh.calc_loop_triangles()
 
     mat = obj.matrix_world  # identity after transform_apply; kept for safety
@@ -1614,7 +1791,12 @@ def _make_output_path(model_path: str, mode: str) -> str:
     p = pathlib.Path(model_path)
     stem = p.stem
     # Avoid accumulating suffixes on repeated runs
-    for suffix in ("_texture_modifier", "_texture_part", "_texture_negative", "_texture"):
+    for suffix in (
+        "_texture_modifier",
+        "_texture_part",
+        "_texture_negative",
+        "_texture",
+    ):
         if stem.endswith(suffix):
             stem = stem[: -len(suffix)]
             break
@@ -1624,29 +1806,36 @@ def _make_output_path(model_path: str, mode: str) -> str:
 # ── main ──────────────────────────────────────────────────────────────────
 def main():
     args = _parse_args()
-    log_path = (
-        args.log
-        or os.path.join(tempfile.gettempdir(), "apply_texture_bpy_log.txt")
+    log_path = args.log or os.path.join(
+        tempfile.gettempdir(), "apply_texture_bpy_log.txt"
     )
     log = Logger(log_path)
 
     try:
         log.log("=== apply_texture_bpy.py ===")
-        log.log(f"IS_FULL_BLENDER={IS_FULL_BLENDER}  binary_path={getattr(bpy.app, 'binary_path', 'n/a')}")
-        log.log(f"mode={args.mode}  tile={args.tile_size}mm  "
-                f"relief={args.relief}mm  invert={args.invert}  gamma={args.gamma}  "
-                f"projection={args.projection}  full_surface={args.full_surface}")
+        log.log(
+            f"IS_FULL_BLENDER={IS_FULL_BLENDER}  binary_path={getattr(bpy.app, 'binary_path', 'n/a')}"
+        )
+        log.log(
+            f"mode={args.mode}  tile={args.tile_size}mm  "
+            f"relief={args.relief}mm  invert={args.invert}  gamma={args.gamma}  "
+            f"projection={args.projection}  full_surface={args.full_surface}"
+        )
         log.log(f"model: {args.model_path}")
         log.log(f"skin : {args.skin_path}")
         # ── DIAGNOSTIC: confirm texture file exists and is non-empty ──────────
         if not args.skin_path:
-            raise RuntimeError("TEXTURE PATH IS EMPTY — png_path was not passed from C++ (check tex_log)")
+            raise RuntimeError(
+                "TEXTURE PATH IS EMPTY — png_path was not passed from C++ (check tex_log)"
+            )
         if not os.path.exists(args.skin_path):
             raise RuntimeError(f"TEXTURE FILE NOT FOUND: '{args.skin_path}'")
         _skin_sz = os.path.getsize(args.skin_path)
         if _skin_sz == 0:
             raise RuntimeError(f"TEXTURE FILE IS ZERO BYTES: '{args.skin_path}'")
-        log.log(f"skin_exists=True  skin_size={_skin_sz} bytes  (file confirmed readable)")
+        log.log(
+            f"skin_exists=True  skin_size={_skin_sz} bytes  (file confirmed readable)"
+        )
 
         # ── Debug snapshot session (AI Vision-in-the-Loop) ────────────────────
         _debug_session: "_DebugSession | None" = None
@@ -1681,9 +1870,13 @@ def main():
             # ── MODIFIER: displace the original mesh in-place, then replace ──
             # _apply_displacement handles UV unwrap internally (Step 1).
             _apply_displacement(
-                original_obj, args.skin_path,
-                args.tile_size, args.relief,
-                args.invert, args.gamma, log,
+                original_obj,
+                args.skin_path,
+                args.tile_size,
+                args.relief,
+                args.invert,
+                args.gamma,
+                log,
                 mode=args.mode,
                 projection=args.projection,
                 full_surface=args.full_surface,
@@ -1712,9 +1905,13 @@ def main():
             invert_mode = (not args.invert) if args.mode == "negative" else args.invert
 
             _apply_displacement(
-                displaced_obj, args.skin_path,
-                args.tile_size, args.relief,
-                invert_mode, args.gamma, log,
+                displaced_obj,
+                args.skin_path,
+                args.tile_size,
+                args.relief,
+                invert_mode,
+                args.gamma,
+                log,
                 mode=args.mode,
                 projection=args.projection,
                 full_surface=args.full_surface,

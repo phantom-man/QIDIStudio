@@ -112,7 +112,8 @@ TEST_CASES: list[dict] = [
         "model": r"C:\Users\User\source\repos\3DPrinting\VacuumNozzle\STL\vacuum_crevice_nozzle.3mf",
         "expected_class": "PRISMATIC",
         "projection": "auto",
-        "notes": "Tapered rectangular prism with thin walls — prismatic, not revolution.",
+        "notes": "Tapered rectangular prism with thin walls — prismatic, not revolution."
+        " χ=−8 (complex topology) triggers Rule 2b: tall+smooth+complex → PRISMATIC.",
     },
 ]
 
@@ -186,12 +187,20 @@ def _run_blender(
         "--log",
         str(log_path),
     ]
+    # Windows: CREATE_NEW_PROCESS_GROUP isolates Blender's process group so
+    # Ctrl+C / SIGBREAK sent to the parent don't propagate.  DEVNULL for stdin
+    # prevents Blender (or any child thread) from blocking on a read from the
+    # parent's console handle – the most common cause of silent hangs when
+    # running multiple headless Blender invocations sequentially.
+    _win_flags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
     with open(stdout_log, "w", encoding="utf-8", errors="replace") as fout:
         result = subprocess.run(
             cmd,
+            stdin=subprocess.DEVNULL,  # no terminal read-back
             stdout=fout,
             stderr=subprocess.STDOUT,
             timeout=300,  # 5-minute hard limit per test case
+            creationflags=_win_flags,
         )
     return result.returncode, ""
 

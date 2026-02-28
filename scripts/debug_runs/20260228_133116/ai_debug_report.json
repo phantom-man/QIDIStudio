@@ -1,0 +1,417 @@
+{
+  "run_id": "20260228_133116",
+  "timestamp": "2026-02-28T13:31:50",
+  "blender": "C:\\Program Files\\Blender Foundation\\Blender 5.0\\blender.exe",
+  "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+  "all_pass": false,
+  "cases": [
+    {
+      "name": "poco_x6_phone_case",
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\protection-poco-x6.3mf",
+      "expected_class": "FLAT_SHELL",
+      "actual_class": "FLAT_SHELL",
+      "ok": true,
+      "mismatch_flag": false,
+      "remark": "PASS \u2014 classified as FLAT_SHELL (expected FLAT_SHELL), no DNA mismatch.",
+      "remediation": "",
+      "blender_rc": 0,
+      "snapshots_dir": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_133116\\poco_x6_phone_case\\snapshots",
+      "log": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_133116\\poco_x6_phone_case\\blender.log",
+      "notes": "Flat rectangular shell ~148\u00d773\u00d78 mm. Should use OBJECT coords, no-full-surface.",
+      "stages": [
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\protection-poco-x6.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:31:17",
+          "stage": "post_weld",
+          "mesh_class": "UNKNOWN",
+          "features": {},
+          "projection": "unknown",
+          "full_surface": null,
+          "seam_angle_deg": null,
+          "geometry": {
+            "verts": 2686,
+            "polys": 5408,
+            "bbox_mm": [
+              79.6,
+              165.7,
+              13.2
+            ]
+          },
+          "heatmap_png": null,
+          "weld_before": 2686,
+          "weld_after": 2686
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\protection-poco-x6.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:31:17",
+          "stage": "post_classify",
+          "mesh_class": "FLAT_SHELL",
+          "features": {
+            "sharp_fraction": 0.3147189349112426,
+            "z_ratio": 0.079662045902527,
+            "curvature_std": 0.11411508787119448,
+            "euler_characteristic": -18
+          },
+          "projection": "object",
+          "full_surface": false,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 2686,
+            "polys": 5408,
+            "bbox_mm": [
+              79.6,
+              165.7,
+              13.2
+            ]
+          },
+          "heatmap_png": null,
+          "resolved_projection": "object"
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\protection-poco-x6.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:31:18",
+          "stage": "post_displace",
+          "mesh_class": "FLAT_SHELL",
+          "features": {
+            "sharp_fraction": 0.3147189349112426,
+            "z_ratio": 0.079662045902527,
+            "curvature_std": 0.11411508787119448,
+            "euler_characteristic": -18
+          },
+          "projection": "object",
+          "full_surface": false,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 259566,
+            "polys": 259584,
+            "bbox_mm": [
+              80.4,
+              166.72,
+              13.93
+            ]
+          },
+          "heatmap_png": null,
+          "strength_mm": 1.0,
+          "tile_size_mm": 15.0,
+          "mode": "modifier",
+          "coords": "OBJECT",
+          "uv_stretch": {
+            "error": "no_uv_layer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "elvish_tpu_inner",
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\elvish_tpu_inner.3mf",
+      "expected_class": "FLAT_SHELL",
+      "actual_class": "FLAT_SHELL",
+      "ok": true,
+      "mismatch_flag": false,
+      "remark": "PASS \u2014 classified as FLAT_SHELL (expected FLAT_SHELL), no DNA mismatch.",
+      "remediation": "",
+      "blender_rc": 0,
+      "snapshots_dir": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_133116\\elvish_tpu_inner\\snapshots",
+      "log": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_133116\\elvish_tpu_inner\\blender.log",
+      "notes": "Ornamental flat back panel \u2014 previously misclassified before topology classifier.",
+      "stages": [
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\elvish_tpu_inner.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:31:22",
+          "stage": "post_weld",
+          "mesh_class": "UNKNOWN",
+          "features": {},
+          "projection": "unknown",
+          "full_surface": null,
+          "seam_angle_deg": null,
+          "geometry": {
+            "verts": 204,
+            "polys": 412,
+            "bbox_mm": [
+              76.38,
+              162.49,
+              9.25
+            ]
+          },
+          "heatmap_png": null,
+          "weld_before": 204,
+          "weld_after": 204
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\elvish_tpu_inner.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:31:22",
+          "stage": "post_classify",
+          "mesh_class": "FLAT_SHELL",
+          "features": {
+            "sharp_fraction": 0.5016181229773463,
+            "z_ratio": 0.05692657817276735,
+            "curvature_std": 1.6594846498694782,
+            "euler_characteristic": -2
+          },
+          "projection": "object",
+          "full_surface": false,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 204,
+            "polys": 412,
+            "bbox_mm": [
+              76.38,
+              162.49,
+              9.25
+            ]
+          },
+          "heatmap_png": null,
+          "resolved_projection": "object"
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\elvish_tpu_inner.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:31:22",
+          "stage": "post_displace",
+          "mesh_class": "FLAT_SHELL",
+          "features": {
+            "sharp_fraction": 0.5016181229773463,
+            "z_ratio": 0.05692657817276735,
+            "curvature_std": 1.6594846498694782,
+            "euler_characteristic": -2
+          },
+          "projection": "object",
+          "full_surface": false,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 79102,
+            "polys": 79104,
+            "bbox_mm": [
+              77.13,
+              163.04,
+              9.95
+            ]
+          },
+          "heatmap_png": null,
+          "strength_mm": 1.0,
+          "tile_size_mm": 15.0,
+          "mode": "modifier",
+          "coords": "OBJECT",
+          "uv_stretch": {
+            "error": "no_uv_layer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "vacuum_nozzle_lower",
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+      "expected_class": "REVOLUTION",
+      "actual_class": "REVOLUTION",
+      "ok": true,
+      "mismatch_flag": false,
+      "remark": "PASS \u2014 classified as REVOLUTION (expected REVOLUTION), no DNA mismatch.",
+      "remediation": "",
+      "blender_rc": 0,
+      "snapshots_dir": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_133116\\vacuum_nozzle_lower\\snapshots",
+      "log": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_133116\\vacuum_nozzle_lower\\blender.log",
+      "notes": "Rotational body (tall cylinder). Should use LSCM 30\u00b0 seams, full-surface.",
+      "stages": [
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:31:24",
+          "stage": "post_weld",
+          "mesh_class": "UNKNOWN",
+          "features": {},
+          "projection": "unknown",
+          "full_surface": null,
+          "seam_angle_deg": null,
+          "geometry": {
+            "verts": 7235,
+            "polys": 14470,
+            "bbox_mm": [
+              42.0,
+              42.0,
+              250.0
+            ]
+          },
+          "heatmap_png": null,
+          "weld_before": 7235,
+          "weld_after": 7235
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:31:24",
+          "stage": "post_classify",
+          "mesh_class": "REVOLUTION",
+          "features": {
+            "sharp_fraction": 0.082930200414651,
+            "z_ratio": 5.9523809523809526,
+            "curvature_std": 0.017902105909999667,
+            "euler_characteristic": 0
+          },
+          "projection": "lscm",
+          "full_surface": true,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 7235,
+            "polys": 14470,
+            "bbox_mm": [
+              42.0,
+              42.0,
+              250.0
+            ]
+          },
+          "heatmap_png": null,
+          "resolved_projection": "lscm"
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:31:36",
+          "stage": "post_displace",
+          "mesh_class": "REVOLUTION",
+          "features": {
+            "sharp_fraction": 0.082930200414651,
+            "z_ratio": 5.9523809523809526,
+            "curvature_std": 0.017902105909999667,
+            "euler_characteristic": 0
+          },
+          "projection": "lscm",
+          "full_surface": true,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 173640,
+            "polys": 173640,
+            "bbox_mm": [
+              42.56,
+              42.64,
+              251.54
+            ]
+          },
+          "heatmap_png": null,
+          "strength_mm": 1.0,
+          "tile_size_mm": 15.0,
+          "mode": "modifier",
+          "coords": "UV(lscm)",
+          "uv_stretch": {
+            "n_faces": 173640,
+            "mean_stretch": 1.1797,
+            "max_stretch": 36.5074,
+            "std_stretch": 0.7958,
+            "high_energy_frac": 0.3988,
+            "n_high_energy_faces": 69255,
+            "dirichlet_energy": 1.2842
+          }
+        }
+      ]
+    },
+    {
+      "name": "vacuum_crevice_nozzle",
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_crevice_nozzle.3mf",
+      "expected_class": "PRISMATIC",
+      "actual_class": "REVOLUTION",
+      "ok": false,
+      "mismatch_flag": false,
+      "remark": "FAIL \u2014 classified as REVOLUTION but expected PRISMATIC.  Review sharp_fraction / z_ratio thresholds in _classify_mesh_topology().",
+      "remediation": "REMEDIATION HINT:\n  Measured: sharp_fraction=0.08065178693687526, z_ratio=4.642857142857143, curvature_std=0.009318692127418116, euler_characteristic=-8\n  \u2192 z_ratio \u2265 REVOLUTION threshold and sharp_fraction is low.\n    If model is actually PRISMATIC, raise PRISMATIC sharp_fraction threshold.",
+      "blender_rc": 0,
+      "snapshots_dir": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_133116\\vacuum_crevice_nozzle\\snapshots",
+      "log": "C:\\Users\\User\\source\\repos\\QIDIStudio\\scripts\\debug_runs\\20260228_133116\\vacuum_crevice_nozzle\\blender.log",
+      "notes": "Tapered rectangular prism with thin walls \u2014 prismatic, not revolution.",
+      "stages": [
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_crevice_nozzle.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:31:41",
+          "stage": "post_weld",
+          "mesh_class": "UNKNOWN",
+          "features": {},
+          "projection": "unknown",
+          "full_surface": null,
+          "seam_angle_deg": null,
+          "geometry": {
+            "verts": 14680,
+            "polys": 29130,
+            "bbox_mm": [
+              42.0,
+              41.99,
+              195.0
+            ]
+          },
+          "heatmap_png": null,
+          "weld_before": 14701,
+          "weld_after": 14680
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_crevice_nozzle.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:31:42",
+          "stage": "post_classify",
+          "mesh_class": "REVOLUTION",
+          "features": {
+            "sharp_fraction": 0.08065178693687526,
+            "z_ratio": 4.642857142857143,
+            "curvature_std": 0.009318692127418116,
+            "euler_characteristic": -8
+          },
+          "projection": "lscm",
+          "full_surface": true,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 14680,
+            "polys": 29130,
+            "bbox_mm": [
+              42.0,
+              41.99,
+              195.0
+            ]
+          },
+          "heatmap_png": null,
+          "resolved_projection": "lscm"
+        },
+        {
+          "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_crevice_nozzle.3mf",
+          "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "timestamp": "2026-02-28T13:31:49",
+          "stage": "post_displace",
+          "mesh_class": "REVOLUTION",
+          "features": {
+            "sharp_fraction": 0.08065178693687526,
+            "z_ratio": 4.642857142857143,
+            "curvature_std": 0.009318692127418116,
+            "euler_characteristic": -8
+          },
+          "projection": "lscm",
+          "full_surface": true,
+          "seam_angle_deg": 30.0,
+          "geometry": {
+            "verts": 87628,
+            "polys": 87390,
+            "bbox_mm": [
+              42.37,
+              42.36,
+              196.94
+            ]
+          },
+          "heatmap_png": null,
+          "strength_mm": 1.0,
+          "tile_size_mm": 15.0,
+          "mode": "modifier",
+          "coords": "UV(lscm)",
+          "uv_stretch": {
+            "n_faces": 87390,
+            "mean_stretch": 7.2363,
+            "max_stretch": 5504.3654,
+            "std_stretch": 64.1558,
+            "high_energy_frac": 0.7443,
+            "n_high_energy_faces": 65044,
+            "dirichlet_energy": 15.3667
+          }
+        }
+      ]
+    }
+  ]
+}

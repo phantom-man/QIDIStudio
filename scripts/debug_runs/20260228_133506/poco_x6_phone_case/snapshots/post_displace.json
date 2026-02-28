@@ -1,0 +1,33 @@
+{
+  "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\protection-poco-x6.3mf",
+  "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+  "timestamp": "2026-02-28T13:35:08",
+  "stage": "post_displace",
+  "mesh_class": "FLAT_SHELL",
+  "features": {
+    "sharp_fraction": 0.3147189349112426,
+    "z_ratio": 0.079662045902527,
+    "curvature_std": 0.11411508787119448,
+    "euler_characteristic": -18
+  },
+  "projection": "object",
+  "full_surface": false,
+  "seam_angle_deg": 30.0,
+  "geometry": {
+    "verts": 259566,
+    "polys": 259584,
+    "bbox_mm": [
+      80.4,
+      166.72,
+      13.93
+    ]
+  },
+  "heatmap_png": null,
+  "strength_mm": 1.0,
+  "tile_size_mm": 15.0,
+  "mode": "modifier",
+  "coords": "OBJECT",
+  "uv_stretch": {
+    "error": "no_uv_layer"
+  }
+}

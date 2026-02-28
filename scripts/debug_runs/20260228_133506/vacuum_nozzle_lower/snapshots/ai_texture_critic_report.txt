@@ -1,0 +1,36 @@
+========================================================================
+  AI TEXTURE CRITIC REPORT
+========================================================================
+  Model    : C:\Users\User\source\repos\3DPrinting\VacuumNozzle\STL\vacuum_nozzle_lower.3mf
+  Stages   : 3
+  Topology : REVOLUTION  (projection=lscm)
+  Overall  : WARN
+========================================================================
+
+  WARNINGS (2)
+  --------------------------------------------------------------------
+  [1] [post_displace] High Dirichlet energy: 69255/173640 faces (39.9%) have stretch > 15%
+      Root cause : UV island boundaries create discontinuities (spike fans) where the Displace modifier samples the texture at different offsets per island. Most common at camera islands, circular ports, and sharp boss rims.
+      Remediation: 1. In _classify_mesh_topology(): reduce seam_angle_rad from 60° to 30°    (change ORGANIC_RAD seam from 1.047 to 0.524) if mesh is FLAT_SHELL/PRISMATIC.
+2. If mesh is REVOLUTION (tall cylinder), verify annular=True (χ≤0).
+3. If all else fails, force --projection object for this mesh.
+4. Increase Taubin smoothing iterations (_ITERS in _apply_displacement_blender)    from max(15,...) to max(25,...) to better blend seam discontinuities.
+
+  [2] [post_displace] Local UV stretch near seam boundaries: max_stretch = 36.5 (warn threshold 5.0).  Mean = 1.180 (acceptable).
+      Root cause : LSCM seam-cut triangles typically have higher stretch than interior faces — this is expected for cylindrical/revolution meshes with 30° seam angles. max_stretch 37 << 50 (degenerate threshold), so no UV collapse.
+      Remediation: If texture shows visible tiling at seam lines, reduce seam_angle_rad from 30° to 20° in _classify_mesh_topology() for REVOLUTION meshes to create more, smaller islands with lower per-island stretch.
+
+  INFO (2)
+  --------------------------------------------------------------------
+  [I] [post_weld] Weld ratio: 7235/7235 verts (100.0% retained). Very few duplicate vertices removed.
+  [I] [post_classify] Topology: class=REVOLUTION  projection=lscm  sharp=8.3%  z_ratio=5.952  K_std=0.0179  χ=0
+
+========================================================================
+  BIBLIOGRAPHY (mathematical foundations of this analysis):
+  Lévy 2002    — LSCM: Least Squares Conformal Maps for UV
+  Sander 2001  — L2 stretch metric for UV quality evaluation
+  Reuter 2006  — Shape DNA: spectral geometry fingerprinting
+  Crane 2024   — Discrete Differential Geometry (CMU 15-458)
+  Taubin 1995  — Non-shrinking Laplacian smoothing (seam blend)
+  Chazal 2009  — Euler characteristic & topological invariants
+========================================================================

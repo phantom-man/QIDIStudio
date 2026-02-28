@@ -1,0 +1,24 @@
+========================================================================
+  AI TEXTURE CRITIC REPORT
+========================================================================
+  Model    : C:\Users\User\source\repos\3DPrinting\VacuumNozzle\STL\vacuum_crevice_nozzle.3mf
+  Stages   : 3
+  Topology : PRISMATIC  (projection=object)
+  Overall  : PASS
+========================================================================
+
+  INFO (3)
+  --------------------------------------------------------------------
+  [I] [post_weld] Weld ratio: 14680/14701 verts (99.9% retained). Very few duplicate vertices removed.
+  [I] [post_classify] Topology: class=PRISMATIC  projection=object  sharp=8.1%  z_ratio=4.643  K_std=0.0093  χ=-8
+  [I] [post_displace] No UV stretch data (OBJECT-coords mode)
+
+========================================================================
+  BIBLIOGRAPHY (mathematical foundations of this analysis):
+  Lévy 2002    — LSCM: Least Squares Conformal Maps for UV
+  Sander 2001  — L2 stretch metric for UV quality evaluation
+  Reuter 2006  — Shape DNA: spectral geometry fingerprinting
+  Crane 2024   — Discrete Differential Geometry (CMU 15-458)
+  Taubin 1995  — Non-shrinking Laplacian smoothing (seam blend)
+  Chazal 2009  — Euler characteristic & topological invariants
+========================================================================

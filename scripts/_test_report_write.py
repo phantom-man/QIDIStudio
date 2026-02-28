@@ -1,20 +1,37 @@
 """Direct test of report-writing code using existing snapshot data.
 Run: python scripts/_test_report_write.py
 """
+
 import json, pathlib, sys, traceback, tempfile, os, datetime
 
-os.chdir(r'C:\Users\User\source\repos\QIDIStudio')
-sys.path.insert(0, '.')
+os.chdir(r"C:\Users\User\source\repos\QIDIStudio")
+sys.path.insert(0, ".")
 
 # Use the latest complete run data
-run_dirs = sorted(pathlib.Path(r'C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs').glob('20260228_1248*'))
-run_dirs += sorted(pathlib.Path(r'C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs').glob('20260228_125424*'))
-run_dirs += sorted(pathlib.Path(r'C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs').glob('20260228_130048*'))
+run_dirs = sorted(
+    pathlib.Path(r"C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs").glob(
+        "20260228_1248*"
+    )
+)
+run_dirs += sorted(
+    pathlib.Path(r"C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs").glob(
+        "20260228_125424*"
+    )
+)
+run_dirs += sorted(
+    pathlib.Path(r"C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs").glob(
+        "20260228_130048*"
+    )
+)
 
 if not run_dirs:
     # Try any dir with 4 cases
-    all_dirs = sorted(pathlib.Path(r'C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs').iterdir())
-    run_dirs = [d for d in all_dirs if (d / 'vacuum_nozzle_lower').exists()]
+    all_dirs = sorted(
+        pathlib.Path(
+            r"C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs"
+        ).iterdir()
+    )
+    run_dirs = [d for d in all_dirs if (d / "vacuum_nozzle_lower").exists()]
 
 if not run_dirs:
     print("No suitable run dir found")
@@ -27,17 +44,17 @@ from scripts.ai_debug_pipeline import _validate_snapshots, _remediation_hint, TE
 
 all_results = []
 any_failure = False
-cases_by_name = {c['name']: c for c in TEST_CASES}
+cases_by_name = {c["name"]: c for c in TEST_CASES}
 
 for case_dir in sorted(run_dir.iterdir()):
     if not case_dir.is_dir():
         continue
-    snap_dir = case_dir / 'snapshots'
+    snap_dir = case_dir / "snapshots"
     if not snap_dir.exists():
         continue
     name = case_dir.name
-    case = cases_by_name.get(name, {'name': name, 'expected_class': 'UNKNOWN'})
-    expected = case['expected_class']
+    case = cases_by_name.get(name, {"name": name, "expected_class": "UNKNOWN"})
+    expected = case["expected_class"]
     print(f"  Validating {name} (expected {expected})...", flush=True)
     try:
         validation = _validate_snapshots(snap_dir, expected)
@@ -46,23 +63,28 @@ for case_dir in sorted(run_dir.iterdir()):
         print(f"    {ok_str}: {validation['remark']}", flush=True)
         if not validation["ok"]:
             any_failure = True
-        all_results.append({
-            "name": name,
-            "model": case.get("model", ""),
-            "expected_class": expected,
-            "actual_class": validation["actual_class"],
-            "ok": validation["ok"],
-            "mismatch_flag": validation["mismatch_flag"],
-            "remark": validation["remark"],
-            "remediation": hint,
-            "blender_rc": 0,
-            "snapshots_dir": str(snap_dir),
-            "log": str(case_dir / "blender.log"),
-            "notes": case.get("notes", ""),
-            "stages": validation["stages"],
-        })
+        all_results.append(
+            {
+                "name": name,
+                "model": case.get("model", ""),
+                "expected_class": expected,
+                "actual_class": validation["actual_class"],
+                "ok": validation["ok"],
+                "mismatch_flag": validation["mismatch_flag"],
+                "remark": validation["remark"],
+                "remediation": hint,
+                "blender_rc": 0,
+                "snapshots_dir": str(snap_dir),
+                "log": str(case_dir / "blender.log"),
+                "notes": case.get("notes", ""),
+                "stages": validation["stages"],
+            }
+        )
     except Exception as e:
-        print(f"    ERROR in _validate_snapshots or _remediation_hint: {type(e).__name__}: {e}", flush=True)
+        print(
+            f"    ERROR in _validate_snapshots or _remediation_hint: {type(e).__name__}: {e}",
+            flush=True,
+        )
         traceback.print_exc()
         sys.exit(1)
 
@@ -86,7 +108,12 @@ except Exception as e:
     sys.exit(1)
 
 print("\nBuilding text report lines...", flush=True)
-lines = ["QIDIStudio Texture Pipeline — AI Debug Report", f"Result: {'ALL PASS' if not any_failure else 'FAILURES DETECTED'}", "", "=" * 70]
+lines = [
+    "QIDIStudio Texture Pipeline — AI Debug Report",
+    f"Result: {'ALL PASS' if not any_failure else 'FAILURES DETECTED'}",
+    "",
+    "=" * 70,
+]
 try:
     for r in all_results:
         ok_str = "PASS" if r["ok"] else ("SKIP" if r["ok"] is None else "FAIL")
