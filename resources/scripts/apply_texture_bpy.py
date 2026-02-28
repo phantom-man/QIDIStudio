@@ -726,52 +726,75 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
 
     log.log(f"  Modifiers applied: {len(obj.data.vertices)} verts post-apply")
 
-    # ── 6b. Seam-boundary smoothing — removes UV-discontinuity starburst fans ─
-    # After the Displace modifier, vertices on UV seam edges may be displaced
-    # by whichever UV island Blender chose for that vertex. Adjacent faces on
-    # the OTHER side of the seam see that same displaced position but expected
-    # the other island's UV value → displacement spikes fan out from seam rings.
-    # Fix: smooth a 2-hop vertex band around every seam edge to blend the
-    # transition. CAD meshes (30° seams, flat panels) benefit equally.
+    # ── 6b. Taubin seam-boundary smoothing ────────────────────────────
+    # Post-displacement, UV seam vertices show starburst spike fans where
+    # Blender's DISPLACE modifier assigns inconsistent UV lookups at island
+    # boundaries. Smooth a 2-hop band around every seam edge using Taubin's
+    # NON-SHRINKING algorithm (Taubin 1995):
+    #   Step 1: Move each vertex TOWARD its neighbours by factor λ (smoothing)
+    #   Step 2: Move each vertex AWAY from neighbours by factor μ (expansion)
+    #   |mu| slightly > lam so the two steps don't fully cancel — net result
+    #   is smoothing without mesh volume loss.
+    #
+    # λ=0.5, μ=-0.53: standard Taubin passband parameters.
+    # 5 iterations = enough to blend discontinuity without blurring texture.
+    #
+    # This replaces the former Blender SMOOTH modifier approach which:
+    #   (a) shrank the mesh (single-direction Laplacian), and
+    #   (b) crashed with RuntimeError after modifier_apply invalidated _vg ref.
     if use_uv:
-        import bmesh as _bm_sb
-        _bm = _bm_sb.new()
+        import bmesh as _bm_t
+        _bm = _bm_t.new()
         _bm.from_mesh(obj.data)
         _bm.verts.ensure_lookup_table()
         _bm.edges.ensure_lookup_table()
+
+        # Collect seam verts + 2-hop expansion for gradient blend zone
         seam_set: set = set()
         for _e in _bm.edges:
             if _e.seam:
                 seam_set.add(_e.verts[0].index)
                 seam_set.add(_e.verts[1].index)
-        # Expand 2 hops for a gradient blend zone (avoids hard edge at boundary)
         for _ in range(2):
             _new = set(seam_set)
             for _vi in seam_set:
                 for _le in _bm.verts[_vi].link_edges:
-                    for _vtx in _le.verts:
-                        _new.add(_vtx.index)
+                    _new.add(_le.other_vert(_bm.verts[_vi]).index)
             seam_set = _new
-        _bm.free()
+
         if seam_set:
-            _vg = obj.vertex_groups.new(name="_SeamBlend")
-            _vg.add(list(seam_set), 1.0, 'REPLACE')
-            _sm = obj.modifiers.new("_SeamSmooth", type='SMOOTH')
-            _sm.iterations   = 5
-            _sm.factor       = 0.8
-            _sm.vertex_group = "_SeamBlend"
-            with bpy.context.temp_override(
-                active_object=obj, object=obj,
-                selected_objects=[obj], selected_editable_objects=[obj],
-            ):
-                bpy.ops.object.modifier_apply(modifier="_SeamSmooth")
-            # NOTE: modifier_apply invalidates the Python vertex-group reference
-            # stored in _vg. Look up by name after apply to avoid RuntimeError.
-            _vg2 = obj.vertex_groups.get("_SeamBlend")
-            if _vg2 is not None:
-                obj.vertex_groups.remove(_vg2)
+            _LAM  =  0.50   # Taubin λ — positive Laplacian (smooth toward average)
+            _MU   = -0.53   # Taubin μ — negative step  (restore volume, |μ|>λ)
+            _ITERS = 5
+
+            for _ in range(_ITERS):
+                for _factor in (_LAM, _MU):
+                    _new_co = {}
+                    for _vi in seam_set:
+                        _v = _bm.verts[_vi]
+                        _nbrs = [_le.other_vert(_v) for _le in _v.link_edges]
+                        if not _nbrs:
+                            continue
+                        _ax = sum(n.co.x for n in _nbrs) / len(_nbrs)
+                        _ay = sum(n.co.y for n in _nbrs) / len(_nbrs)
+                        _az = sum(n.co.z for n in _nbrs) / len(_nbrs)
+                        _cx, _cy, _cz = _v.co.x, _v.co.y, _v.co.z
+                        _new_co[_vi] = (
+                            _cx + _factor * (_ax - _cx),
+                            _cy + _factor * (_ay - _cy),
+                            _cz + _factor * (_az - _cz),
+                        )
+                    for _vi, _co in _new_co.items():
+                        _bm.verts[_vi].co.x = _co[0]
+                        _bm.verts[_vi].co.y = _co[1]
+                        _bm.verts[_vi].co.z = _co[2]
+
+            _bm.to_mesh(obj.data)
             obj.data.update()
-            log.log(f"  Seam blend: {len(seam_set)} verts smoothed at UV boundaries (5 iters)")
+            log.log(f"  Taubin seam-blend: {len(seam_set)} verts, {_ITERS} iters "
+                    f"(lam={_LAM}, mu={_MU}) -- non-shrinking (Taubin 1995)")
+
+        _bm.free()
 
     log.log(f"  Done: relief={strength:.2f}mm  tile={tile_size}mm  mode={mode}  "
             f"projection={'UV('+projection+')' if use_uv else 'OBJECT'}  "

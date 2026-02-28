@@ -1369,8 +1369,20 @@ Key papers underpinning the computational metrology pipeline:
 | [Conformal Geometry of Surfaces](https://archive.ymsc.tsinghua.edu.cn/pacm_download/59/11124-Shing-Tung_Yau_236.pdf) | Gu & Yau | Mathematical foundation for angle-preserving maps on manifolds |
 | [Texture Synthesis over Arbitrary Manifolds](https://history.siggraph.org/learning/texture-synthesis-over-arbitrary-manifold-surfaces-by-wei-and-levoy/) | Wei & Levoy (SIGGRAPH 2001) | Patch-based texture synthesis directly on mesh surface — no UV needed |
 | [Discrete Differential Geometry (DDG)](https://brickisland.net/DDGSpring2024/) | Crane et al. (CMU 15-458) | Cotangent Laplacian, heat geodesics, spectral conformal parameterization |
+| [Least Squares Conformal Maps (LSCM)](https://alice.loria.fr/publications/papers/2002/lscm/lscm.pdf) | Levy et al. (2002) | Original LSCM paper — the algorithm behind `bpy.ops.uv.unwrap(method='CONFORMAL')` |
+| [Non-Shrinking Laplacian Smoothing](https://graphics.stanford.edu/courses/cs468-12-spring/LectureSlides/06_smoothing.pdf) | Taubin (1995) | Two-pass λ+μ smoothing preserving volume. λ=0.5, μ=-0.53. **Implemented** in step 6b of `apply_texture_bpy.py` as seam-blend post-process |
+| [As-Rigid-As-Possible (ARAP)](https://igl.ethz.ch/projects/ARAP/arap_web.pdf) | Sorkine (2007) | Deformation preserving local rigidity — relevant for corner compensation |
+| [Mesh Parameterization Survey](https://www.inf.usi.ch/hormann/papers/Floater.Hormann.2005.SMP.pdf) | Floater & Hormann (2005) | Comprehensive survey of all UV parameterization methods |
 
-**CAD-specific caveat:** The full pipeline (conformal UV + spectral DNA + Hausdorff + inverse compensation) is designed for CAD parts with hard edges. The conformal UV step creates seam artifacts at hard edges, but the DNA comparison + error compensation loop corrects for this. For displacement textures without the metrology loop, OBJECT-coordinate mapping avoids seam problems entirely (current QIDIStudio approach).
+**Phone Case / Prismatic Manifold notes** (source: `docs/Phone Case Metrology & Texture Morphing.md`, 2026-02-27):
+
+A phone case is a **disk-topology manifold with holes** — button cutouts are punctures in the manifold. Three techniques from that doc that extend our pipeline:
+
+- **`protect_mechanical_features`** = 30° seam + LSCM. Confirms our existing implementation is correct. ✓
+- **Corner compensation** (`apply_corner_compensation`): Push high-curvature corner verts outward along their normal by ~0.05mm to pre-compensate for slicer path compression at filleted corners. _Future work — not yet in `apply_texture_bpy.py`._
+- **G-Code DNA injection** (`finalize_metrology`): After slicing, embed Shape DNA eigenvalues as `; PROJECT_PERFECTION_ID: e1,e2,...` in gcode header for post-print verification. Hausdorff metric $d_H = \max_{a \in CAD} \min_{b \in GCode} \|a-b\|$ — if deviation >0.1% texture appears smeared. _Future work._
+
+**Taubin smoothing** (step 6b, implemented 2026-02-27): Replaces the former Blender SMOOTH modifier which (a) shrank the mesh and (b) crashed with `RuntimeError` when `modifier_apply` invalidated the Python vertex-group reference. Pure-Python bmesh implementation — no modifier needed, no stale refs possible.
 
 ---
 
