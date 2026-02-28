@@ -46,3 +46,61 @@ agents/__pycache__/
 .cursor/
 .claude/
 .agents/
+
+# Local debug artifacts / scratch outputs
+/.github/hooks/hook_test_out.txt
+/all_logs.txt
+/bpy_log_out.txt
+/build_out.txt
+/build_tail.txt
+/env_setup.txt
+/git_log.txt
+/git_status.txt
+/script_check_out.txt
+/script_locations_out.txt
+/script_locs.txt
+/test_box_log.txt
+/test_dragon_log.txt
+/test_dragon2_log.txt
+/test_phd_log.txt
+/test_run_log.txt
+/tex_log_tail.txt
+
+# Accidental files created from pasted shell commands
+/1; Get-Content*
+/ersUsersourcereposQIDIStudio; git log*
+/rc = *
+
+# Local memory/cache state
+/data/
+memory/__pycache__/
+memory/query_paper_out.txt
+
+# Agent local polling/debug artifacts
+agents/_*.json
+agents/_*.ps1
+agents/comms_out.txt
+
+# Generated texture/debug assets
+resources/model/*_texture_*.stl
+scripts/__pycache__/
+scripts/archive/
+scripts/*_preview.png
+scripts/*_out.txt
+scripts/*_smoke.txt
+scripts/check_out.txt
+scripts/proc_gen.txt
+scripts/flat_plate*.stl
+scripts/plate_*.stl
+scripts/dev_texture_loop.py
+scripts/blay.py
+scripts/make_plate_stl.py
+scripts/preview_stl.py
+scripts/test_flat_plate.py
+
+# Local text scratch files in src/
+src/gl_tiling.txt
+src/svg_hpp.txt
+
+# Local manuscript export
+/Computational Metrology PhD Manuscript.docx
