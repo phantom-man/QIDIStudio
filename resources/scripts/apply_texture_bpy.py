@@ -765,7 +765,11 @@ def _apply_displacement_blender(obj, skin_path: str, tile_size: float,
                 selected_objects=[obj], selected_editable_objects=[obj],
             ):
                 bpy.ops.object.modifier_apply(modifier="_SeamSmooth")
-            obj.vertex_groups.remove(_vg)
+            # NOTE: modifier_apply invalidates the Python vertex-group reference
+            # stored in _vg. Look up by name after apply to avoid RuntimeError.
+            _vg2 = obj.vertex_groups.get("_SeamBlend")
+            if _vg2 is not None:
+                obj.vertex_groups.remove(_vg2)
             obj.data.update()
             log.log(f"  Seam blend: {len(seam_set)} verts smoothed at UV boundaries (5 iters)")
 

@@ -7,8 +7,10 @@
 
 #include "GUI.hpp"          // _L()
 #include "I18N.hpp"
+#include "libslic3r/Utils.hpp" // resources_dir()
 
 #include <algorithm>
+#include <boost/filesystem.hpp>
 
 namespace Slic3r {
 namespace GUI {
@@ -64,6 +66,12 @@ TextureParamsDialog::TextureParamsDialog(wxWindow*          parent,
                                        wxSP_ARROW_KEYS,
                                        1.0, 200.0, initial_tile_mm, 0.5);
     m_tile_ctrl->SetDigits(1);
+    // Explicit SetValue ensures the committed internal value matches the
+    // displayed default even if the user never touches the control.
+    // On Windows, wxSpinCtrlDouble can return 0 from GetValue() when only
+    // the constructor's `initial` param was used and the control was never
+    // interacted with.
+    m_tile_ctrl->SetValue(initial_tile_mm);
     grid->Add(m_tile_ctrl, 1, wxEXPAND);
 
     // ----------------------------------------------------------------
@@ -76,6 +84,7 @@ TextureParamsDialog::TextureParamsDialog(wxWindow*          parent,
                                          wxSP_ARROW_KEYS,
                                          0.1, 20.0, initial_relief, 0.1);
     m_relief_ctrl->SetDigits(2);
+    m_relief_ctrl->SetValue(initial_relief);  // force-commit default, same reason
     grid->Add(m_relief_ctrl, 1, wxEXPAND);
 
     main_sizer->Add(grid, 0, wxEXPAND | wxALL, 12);
@@ -112,6 +121,11 @@ TextureParamsDialog::TextureParamsDialog(wxWindow*          parent,
     wxButton* ok_btn     = new wxButton(this, wxID_OK,     _L("OK"));
     wxButton* cancel_btn = new wxButton(this, wxID_CANCEL, _L("Cancel"));
     ok_btn->SetDefault();
+    // Intercept OK so we can snapshot widget values into plain POD fields
+    // BEFORE EndModal fires.  wx can begin unwinding child widget state
+    // during the modal-loop wind-down; reading m_*_ctrl after that point
+    // is unsafe on Windows.
+    ok_btn->Bind(wxEVT_BUTTON, &TextureParamsDialog::on_ok, this);
     dlg_btns->Add(ok_btn,     0, wxRIGHT, 8);
     dlg_btns->Add(cancel_btn, 0);
     main_sizer->Add(dlg_btns, 0, wxALIGN_RIGHT | wxALL, 12);
@@ -122,9 +136,25 @@ TextureParamsDialog::TextureParamsDialog(wxWindow*          parent,
 
 void TextureParamsDialog::on_browse(wxCommandEvent& /*evt*/)
 {
+    // Default to resources/assets/ if it exists — saves the user navigating
+    // there every time.  Falls back to the directory of the currently-selected
+    // PNG (if any), then to wxEmptyString (OS default).
+    namespace fs = boost::filesystem;
+    wxString default_dir = wxEmptyString;
+
+    const std::string assets_dir = Slic3r::resources_dir() + "/assets";
+    if (fs::is_directory(assets_dir)) {
+        default_dir = wxString::FromUTF8(assets_dir);
+    } else {
+        // Fall back to the directory of the currently-selected file.
+        const wxString cur = m_png_ctrl->GetValue();
+        if (!cur.IsEmpty())
+            default_dir = wxFileName(cur).GetPath();
+    }
+
     wxFileDialog dlg(this,
                      _L("Select Texture Image"),
-                     wxEmptyString,
+                     default_dir,
                      wxEmptyString,
                      _L("Image files") + " (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg"
                          + "|" + _L("All files") + " (*.*)|*.*",
@@ -140,19 +170,31 @@ void TextureParamsDialog::on_quick_adjust(double delta)
     m_relief_ctrl->SetValue(v);
 }
 
+void TextureParamsDialog::on_ok(wxCommandEvent& /*evt*/)
+{
+    // Snapshot all widget values into plain fields BEFORE EndModal triggers
+    // the modal-loop wind-down.  On Windows the wind-down restores focus to
+    // the parent 3D canvas which can fire handlers that clear the Selection
+    // and corrupt widget state before ShowModal() actually returns.
+    m_cached_png      = std::string(m_png_ctrl->GetValue().ToUTF8());
+    m_cached_tile_mm  = m_tile_ctrl->GetValue();
+    m_cached_relief   = m_relief_ctrl->GetValue();
+    EndModal(wxID_OK);
+}
+
 std::string TextureParamsDialog::get_png_path() const
 {
-    return m_png_ctrl->GetValue().ToUTF8().data();
+    return m_cached_png;
 }
 
 double TextureParamsDialog::get_tile_mm() const
 {
-    return m_tile_ctrl->GetValue();
+    return m_cached_tile_mm;
 }
 
 double TextureParamsDialog::get_relief() const
 {
-    return m_relief_ctrl->GetValue();
+    return m_cached_relief;
 }
 
 } // namespace GUI
