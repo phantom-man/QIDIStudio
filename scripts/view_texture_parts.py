@@ -21,9 +21,10 @@ Parts displayed (4 texture_modifier STLs):
     - vacuum_nozzle_lower        (vacuum nozzle, REVOLUTION/LSCM)
     - vacuum_crevice_nozzle      (crevice tool,  PRISMATIC/OBJECT)
 
-OCP fix (if --ocp fails with AttributeError TopoDS.Vertex):
+Requires: cadquery-ocp-novtk==7.9.3.1  (OCP 7.9 API — TopoDS.Vertex)
+  If build123d import fails run:
     .venv\\Scripts\\pip uninstall cadquery-ocp -y
-    .venv\\Scripts\\pip install --force-reinstall cadquery-ocp-novtk==7.9.3.1
+    .venv\\Scripts\\pip install cadquery-ocp-novtk==7.9.3.1
 """
 
 from __future__ import annotations
@@ -90,15 +91,21 @@ def _has_pyvista() -> bool:
         return False
 
 
+_BUILD123D_IMPORT_ERROR: str | None = None
+
+
 def _has_build123d() -> bool:
+    global _BUILD123D_IMPORT_ERROR
     try:
         import build123d  # noqa: F401
-
-        # Smoke-test: catch TopoDS.Vertex AttributeError on OCP 7.8 vs 7.9 mismatch
         from build123d import import_stl  # noqa: F401
 
+        _BUILD123D_IMPORT_ERROR = None
         return True
-    except Exception:
+    except Exception as exc:
+        import traceback
+
+        _BUILD123D_IMPORT_ERROR = traceback.format_exc()
         return False
 
 
@@ -259,8 +266,8 @@ def show_matplotlib() -> None:
 
 def show_ocp() -> None:
     """Load STLs with build123d, send to OCP CAD Viewer in VS Code."""
-    from build123d import import_stl  # type: ignore
-    from ocp_vscode import show, set_port  # type: ignore
+    from build123d import import_stl, Location, Vector  # type: ignore
+    from ocp_vscode import show, set_port, Camera  # type: ignore
     from ocp_vscode.comms import port_check  # type: ignore
 
     set_port(OCP_PORT)
@@ -275,6 +282,9 @@ def show_ocp() -> None:
     print(f"\nOCP CAD Viewer — port {OCP_PORT}\n")
 
     parts, names, colors, alphas = [], [], [], []
+    x_offset = 0.0
+    GAP_MM = 20.0  # spacing between parts
+
     for info in PARTS.values():
         path: Path = info["path"]
         if not path.exists():
@@ -283,12 +293,29 @@ def show_ocp() -> None:
         print(f"  Loading {path.name}... ", end="", flush=True)
         try:
             part = import_stl(str(path))
+
+            # Compute bounding box and centre-then-place along X axis
+            bb = part.bounding_box()
+            # Move part so its bounding box min-X aligns to current x_offset,
+            # and centred on Y/Z
+            dx = x_offset - bb.min.X
+            dy = -(bb.min.Y + bb.max.Y) / 2
+            dz = -(bb.min.Z + bb.max.Z) / 2
+            part = part.moved(Location(Vector(dx, dy, dz)))
+
+            x_offset += (bb.max.X - bb.min.X) + GAP_MM
+
             parts.append(part)
             names.append(info["label"])
+            # ocp_vscode expects CSS hex colour strings e.g. "#84BAEF"
             r, g, b = info["color"]
-            colors.append((int(r * 255), int(g * 255), int(b * 255)))
+            colors.append(f"#{int(r*255):02X}{int(g*255):02X}{int(b*255):02X}")
             alphas.append(info["alpha"])
-            print("OK")
+            print(
+                f"OK  ({bb.max.X - bb.min.X:.0f} × "
+                f"{bb.max.Y - bb.min.Y:.0f} × "
+                f"{bb.max.Z - bb.min.Z:.0f} mm)"
+            )
         except Exception as exc:
             print(f"FAIL: {exc}")
 
@@ -296,7 +323,13 @@ def show_ocp() -> None:
         print("No parts loaded.")
         sys.exit(1)
 
-    show(*parts, names=names, colors=colors, alphas=alphas, reset_camera=True)
+    show(
+        *parts,
+        names=names,
+        colors=colors,
+        alphas=alphas,
+        reset_camera=Camera.RESET,
+    )
     print("Display sent to OCP CAD Viewer.")
 
 
@@ -309,7 +342,7 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Auto mode selects: OCP CAD Viewer (in VS Code) → pyvista → matplotlib.\n"
-            "OCP fix is already applied via OCP/TopoDS/__init__.py compat shim."
+            "OCP requires cadquery-ocp-novtk==7.9.3.1 (OCP 7.9 - TopoDS.Vertex API)."
         ),
     )
     group = parser.add_mutually_exclusive_group()
@@ -329,11 +362,13 @@ def main() -> None:
     if args.ocp:
         if not _has_build123d():
             print("ERROR: build123d/OCP not working.")
-            print("Fix:")
+            if _BUILD123D_IMPORT_ERROR:
+                print("\n--- build123d import traceback ---")
+                print(_BUILD123D_IMPORT_ERROR)
+                print("--- end traceback ---\n")
+            print("Ensure OCP 7.9 is installed:")
             print("  .venv\\Scripts\\pip uninstall cadquery-ocp -y")
-            print(
-                "  .venv\\Scripts\\pip install --force-reinstall cadquery-ocp-novtk==7.9.3.1"
-            )
+            print("  .venv\\Scripts\\pip install cadquery-ocp-novtk==7.9.3.1")
             sys.exit(1)
         show_ocp()
         return
