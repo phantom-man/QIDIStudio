@@ -1,5 +1,4 @@
-#ifndef slic3r_Flow_hpp_
-#define slic3r_Flow_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "Config.hpp"
@@ -145,4 +144,3 @@ extern Flow support_material_interface_flow(const PrintObject *object, float lay
 
 }
 
-#endif

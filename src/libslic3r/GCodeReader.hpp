@@ -1,5 +1,4 @@
-#ifndef slic3r_GCodeReader_hpp_
-#define slic3r_GCodeReader_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include <cmath>
@@ -193,4 +192,3 @@ private:
 
 } /* namespace Slic3r */
 
-#endif /* slic3r_GCodeReader_hpp_ */

@@ -1,7 +1,6 @@
 // Based on implementation by @platsch
 
-#ifndef slic3r_Slicing_hpp_
-#define slic3r_Slicing_hpp_
+#pragma once
 
 #include <cstring>
 #include <map>
@@ -205,4 +204,3 @@ namespace cereal
 	template<class Archive> void serialize(Archive& archive, Slic3r::t_layer_height_range &lhr) { archive(lhr.first, lhr.second); }
 }
 
-#endif /* slic3r_Slicing_hpp_ */

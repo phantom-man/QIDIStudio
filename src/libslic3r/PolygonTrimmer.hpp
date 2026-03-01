@@ -1,5 +1,4 @@
-#ifndef slic3r_PolygonTrimmer_hpp_
-#define slic3r_PolygonTrimmer_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include <vector>
@@ -29,4 +28,3 @@ std::vector<TrimmedLoop> trim_loops(const Polygons &loops, const EdgeGrid::Grid 
 
 } // namespace Slic3r
 
-#endif /* slic3r_PolygonTrimmer_hpp_ */

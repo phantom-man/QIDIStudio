@@ -1,5 +1,4 @@
-#ifndef slic3r_FlushVolCalc_hpp_
-#define slic3r_FlushVolCalc_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "FlushVolPredictor.hpp"
@@ -39,4 +38,3 @@ private:
 
 }
 
-#endif

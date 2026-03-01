@@ -1,5 +1,4 @@
-#ifndef slic3r_MutablePriorityQueue_hpp_
-#define slic3r_MutablePriorityQueue_hpp_
+#pragma once
 
 #include <assert.h>
 #include <type_traits>
@@ -450,4 +449,3 @@ inline void MutableSkipHeapPriorityQueue<T, LessPredicate, IndexSetter, blocking
 	}
 }
 
-#endif /* slic3r_MutablePriorityQueue_hpp_ */

@@ -1,5 +1,4 @@
-#ifndef slic3r_PrincipalComponents2D_hpp_
-#define slic3r_PrincipalComponents2D_hpp_
+#pragma once
 
 #include "AABBTreeLines.hpp"
 #include "BoundingBox.hpp"
@@ -20,5 +19,3 @@ std::tuple<float, Vec2f, Vec2f, float> compute_moments_of_area_of_triangle(const
 std::tuple<Vec2f, Vec2f> compute_principal_components(const Polygons &polys);
 
 }
-
-#endif

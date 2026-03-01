@@ -1,5 +1,4 @@
-#ifndef slic3r_enum_bitmask_hpp_
-#define slic3r_enum_bitmask_hpp_
+#pragma once
 
 // enum_bitmask for passing a set of attributes to a function in a type safe way.
 // Adapted from https://gpfault.net/posts/typesafe-bitmasks.txt.html
@@ -84,4 +83,3 @@ constexpr std::enable_if_t<is_enum_bitmask_type_v<option_type>, enum_bitmask<opt
 
 } // namespace Slic3r
 
-#endif // slic3r_enum_bitmask_hpp_

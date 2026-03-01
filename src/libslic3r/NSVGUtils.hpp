@@ -1,5 +1,4 @@
-#ifndef slic3r_NSVGUtils_hpp_
-#define slic3r_NSVGUtils_hpp_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -79,4 +78,3 @@ size_t get_shapes_count(const NSVGimage &image);
 //void save(const NSVGimage &image, std::ostream &data);
 //bool save(const NSVGimage &image, const std::string &svg_file_path);
 } // namespace Slic3r
-#endif // slic3r_NSVGUtils_hpp_

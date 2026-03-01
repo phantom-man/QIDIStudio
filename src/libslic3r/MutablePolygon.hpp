@@ -1,5 +1,4 @@
-#ifndef slic3r_MutablePolygon_hpp_
-#define slic3r_MutablePolygon_hpp_
+#pragma once
 
 #include "Point.hpp"
 #include "Polygon.hpp"
@@ -369,4 +368,3 @@ inline ExPolygons smooth_outward(ExPolygons expolygons, coord_t clip_dist_scaled
 
 }
 
-#endif // slic3r_MutablePolygon_hpp_

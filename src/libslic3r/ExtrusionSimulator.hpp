@@ -1,5 +1,4 @@
-#ifndef slic3r_ExtrusionSimulator_hpp_
-#define slic3r_ExtrusionSimulator_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "ExtrusionEntity.hpp"
@@ -56,4 +55,3 @@ private:
 
 }
 
-#endif /* slic3r_ExtrusionSimulator_hpp_ */

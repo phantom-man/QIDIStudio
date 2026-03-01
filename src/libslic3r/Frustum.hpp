@@ -1,5 +1,4 @@
-#ifndef slic3r_Frustum_hpp_
-#define slic3r_Frustum_hpp_
+#pragma once
 
 #include "Point.hpp"
 #include "BoundingBox.hpp"
@@ -58,4 +57,3 @@ const int FrustumClipMaskArray[6] = {
 const Vec4f FrustumClipPlane[6] = {{-1, 0, 0, 1}, {1, 0, 0, 1}, {0, -1, 0, 1}, {0, 1, 0, 1}, {0, 0, -1, 1}, {0, 0, 1, 1}};
 }
 
-#endif

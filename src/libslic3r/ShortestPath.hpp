@@ -1,5 +1,4 @@
-#ifndef slic3r_ShortestPath_hpp_
-#define slic3r_ShortestPath_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "ExtrusionEntity.hpp"
@@ -55,4 +54,3 @@ Polylines 							 chain_lines(const std::vector<Line> &lines, const double point
 
 } // namespace Slic3r
 
-#endif /* slic3r_ShortestPath_hpp_ */

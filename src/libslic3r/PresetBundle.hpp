@@ -1,5 +1,4 @@
-#ifndef slic3r_PresetBundle_hpp_
-#define slic3r_PresetBundle_hpp_
+#pragma once
 
 #include "Preset.hpp"
 #include "AppConfig.hpp"
@@ -390,4 +389,3 @@ extern void convert_filament_preset_name(std::string& machine_name, std::string&
 
 } // namespace Slic3r
 
-#endif /* slic3r_PresetBundle_hpp_ */

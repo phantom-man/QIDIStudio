@@ -1,5 +1,4 @@
-#ifndef slic3r_Preset_hpp_
-#define slic3r_Preset_hpp_
+#pragma once
 
 #include <deque>
 #include <set>
@@ -1049,4 +1048,3 @@ private:
 
 } // namespace Slic3r
 
-#endif /* slic3r_Preset_hpp_ */

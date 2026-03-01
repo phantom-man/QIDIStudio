@@ -1,5 +1,4 @@
-#ifndef slic3r_GCodeSender_hpp_
-#define slic3r_GCodeSender_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include <queue>
@@ -73,4 +72,3 @@ namespace Slic3r
 
 } // namespace Slic3r
 
-#endif /* slic3r_GCodeSender_hpp_ */

@@ -2,8 +2,7 @@
 ///|/
 ///|/ PrusaSlicer is released under the terms of the AGPLv3 or higher
 ///|/
-#ifndef slic3r_ClipperZUtils_hpp_
-#define slic3r_ClipperZUtils_hpp_
+#pragma once
 
 #include <numeric>
 #include <vector>
@@ -162,4 +161,3 @@ private:
 } // namespace ClipperZUtils
 } // namespace Slic3r
 
-#endif // slic3r_ClipperZUtils_hpp_

@@ -1,5 +1,4 @@
-#ifndef slic3r_Channel_hpp_
-#define slic3r_Channel_hpp_
+#pragma once
 
 #include <memory>
 #include <deque>
@@ -98,4 +97,3 @@ private:
 
 } // namespace Slic3r
 
-#endif // slic3r_Channel_hpp_

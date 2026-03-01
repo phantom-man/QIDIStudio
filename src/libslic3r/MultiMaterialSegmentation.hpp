@@ -1,5 +1,4 @@
-#ifndef slic3r_MultiMaterialSegmentation_hpp_
-#define slic3r_MultiMaterialSegmentation_hpp_
+#pragma once
 
 #include <utility>
 #include <vector>
@@ -46,4 +45,3 @@ template<> struct segment_traits<Slic3r::ColoredLine>
 };
 } // namespace boost::polygon
 
-#endif // slic3r_MultiMaterialSegmentation_hpp_

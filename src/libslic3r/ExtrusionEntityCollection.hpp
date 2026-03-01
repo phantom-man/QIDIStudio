@@ -1,5 +1,4 @@
-#ifndef slic3r_ExtrusionEntityCollection_hpp_
-#define slic3r_ExtrusionEntityCollection_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "Exception.hpp"
@@ -150,4 +149,3 @@ private:
 
 } // namespace Slic3r
 
-#endif

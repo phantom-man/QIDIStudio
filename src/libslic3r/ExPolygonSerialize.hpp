@@ -1,5 +1,4 @@
-#ifndef slic3r_ExPolygonSerialize_hpp_
-#define slic3r_ExPolygonSerialize_hpp_
+#pragma once
 
 #include "ExPolygon.hpp"
 #include "Point.hpp" // Cereal serialization of Point
@@ -25,4 +24,3 @@ void serialize(Archive &archive, Slic3r::ExPolygon &expoly) {
 }
 
 } // namespace Slic3r
-#endif // slic3r_ExPolygonSerialize_hpp_

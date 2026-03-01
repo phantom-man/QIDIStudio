@@ -1,5 +1,4 @@
-#ifndef slic3r_IntersectionPoints_hpp_
-#define slic3r_IntersectionPoints_hpp_
+#pragma once
 
 #include "ExPolygon.hpp"
 
@@ -20,4 +19,3 @@ IntersectionsLines get_intersections(const ExPolygon &expolygon);
 IntersectionsLines get_intersections(const ExPolygons &expolygons);
 
 } // namespace Slic3r
-#endif // slic3r_IntersectionPoints_hpp_

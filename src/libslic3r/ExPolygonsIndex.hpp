@@ -1,5 +1,4 @@
-#ifndef slic3r_ExPolygonsIndex_hpp_
-#define slic3r_ExPolygonsIndex_hpp_
+#pragma once
 
 #include "ExPolygon.hpp"
 namespace Slic3r {
@@ -71,4 +70,3 @@ public:
 };
 
 } // namespace Slic3r
-#endif // slic3r_ExPolygonsIndex_hpp_

@@ -1,5 +1,4 @@
-#ifndef slic3r_Circle_hpp_
-#define slic3r_Circle_hpp_
+#pragma once
 
 #include "Point.hpp"
 #include "Line.hpp"
@@ -132,4 +131,3 @@ private:
 
 }
 
-#endif

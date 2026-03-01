@@ -1,5 +1,4 @@
-#ifndef slic3r_BlacklistedLibraryCheck_hpp_
-#define slic3r_BlacklistedLibraryCheck_hpp_
+#pragma once
 
 #ifdef  WIN32
 #include <windows.h>
@@ -43,4 +42,3 @@ private:
 
 } // namespace Slic3r
 
-#endif //slic3r_BlacklistedLibraryCheck_hpp_

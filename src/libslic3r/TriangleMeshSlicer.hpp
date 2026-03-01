@@ -1,5 +1,4 @@
-#ifndef slic3r_TriangleMeshSlicer_hpp_
-#define slic3r_TriangleMeshSlicer_hpp_
+#pragma once
 
 #include <functional>
 #include <vector>
@@ -141,4 +140,3 @@ void cut_mesh(
 
 }
 
-#endif // slic3r_TriangleMeshSlicer_hpp_

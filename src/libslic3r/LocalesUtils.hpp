@@ -1,5 +1,4 @@
-#ifndef slic3r_LocalesUtils_hpp_
-#define slic3r_LocalesUtils_hpp_
+#pragma once
 
 #include <string>
 #include <clocale>
@@ -45,4 +44,3 @@ double string_to_double_decimal_point(const std::string_view str, size_t* pos = 
 
 } // namespace Slic3r
 
-#endif // slic3r_LocalesUtils_hpp_

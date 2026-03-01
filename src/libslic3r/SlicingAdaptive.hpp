@@ -1,7 +1,6 @@
 // Based on implementation by @platsch
 
-#ifndef slic3r_SlicingAdaptive_hpp_
-#define slic3r_SlicingAdaptive_hpp_
+#pragma once
 
 #include "Slicing.hpp"
 #include "admesh/stl.h"
@@ -39,4 +38,3 @@ protected:
 
 }; // namespace Slic3r
 
-#endif /* slic3r_SlicingAdaptive_hpp_ */

@@ -1,5 +1,4 @@
-#ifndef slic3r_ObjectID_hpp_
-#define slic3r_ObjectID_hpp_
+#pragma once
 
 #include <cereal/access.hpp>
 #include <cereal/types/base_class.hpp>
@@ -197,4 +196,3 @@ extern ObjectID wipe_tower_instance_id();
 
 } // namespace Slic3r
 
-#endif /* slic3r_ObjectID_hpp_ */

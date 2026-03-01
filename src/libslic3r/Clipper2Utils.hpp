@@ -1,5 +1,4 @@
-#ifndef slic3r_Clipper2Utils_hpp_
-#define slic3r_Clipper2Utils_hpp_
+#pragma once
 
 #include "ExPolygon.hpp"
 #include "Polygon.hpp"
@@ -15,5 +14,4 @@ ExPolygons         offset_ex_2(const ExPolygons &expolygons, double delta);
 ExPolygons         offset2_ex_2(const ExPolygons &expolygons, double delta1, double delta2);
 }
 
-#endif
 

@@ -1,5 +1,4 @@
-#ifndef slic3r_Extruder_hpp_
-#define slic3r_Extruder_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "Point.hpp"
@@ -93,4 +92,3 @@ inline bool operator> (const Extruder &e1, const Extruder &e2) { return e1.id() 
 
 }
 
-#endif

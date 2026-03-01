@@ -1,5 +1,4 @@
-#ifndef slic3r_CutSurface_hpp_
-#define slic3r_CutSurface_hpp_
+#pragma once
 
 #include <vector>
 #include <admesh/stl.h> // indexed_triangle_set
@@ -71,4 +70,3 @@ indexed_triangle_set its_mask(const indexed_triangle_set &its, const std::vector
 bool corefine_test(const std::string &model_path, const std::string &shape_path);
 
 } // namespace Slic3r
-#endif // slic3r_CutSurface_hpp_

@@ -1,5 +1,4 @@
-#ifndef slic3r_FaceDetector_hpp_
-#define slic3r_FaceDetector_hpp_
+#pragma once
 
 #include "Point.hpp"
 
@@ -22,4 +21,3 @@ private:
 
 }
 
-#endif // #ifndef slic3r_FaceDetector_hpp_

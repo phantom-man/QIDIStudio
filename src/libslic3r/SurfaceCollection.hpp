@@ -1,5 +1,4 @@
-#ifndef slic3r_SurfaceCollection_hpp_
-#define slic3r_SurfaceCollection_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "Surface.hpp"
@@ -78,4 +77,3 @@ public:
 
 }
 
-#endif

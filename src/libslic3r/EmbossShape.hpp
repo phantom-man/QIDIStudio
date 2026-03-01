@@ -1,5 +1,4 @@
-#ifndef slic3r_EmbossShape_hpp_
-#define slic3r_EmbossShape_hpp_
+#pragma once
 
 #include <string>
 #include <optional>
@@ -210,4 +209,3 @@ template<class Archive> void serialize(Archive &ar, Slic3r::ExPolygonsWithId &o)
 template<class Archive> void serialize(Archive &ar, Slic3r::HealedExPolygons &o) { ar(o.expolygons, o.is_healed); }
 }; // namespace cereal
 
-#endif // slic3r_EmbossShape_hpp_

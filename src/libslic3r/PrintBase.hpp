@@ -1,5 +1,4 @@
-#ifndef slic3r_PrintBase_hpp_
-#define slic3r_PrintBase_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include <set>
@@ -685,4 +684,3 @@ private:
 
 } // namespace Slic3r
 
-#endif /* slic3r_PrintBase_hpp_ */

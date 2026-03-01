@@ -1,5 +1,4 @@
-#ifndef slic3r_FileParserError_hpp_
-#define slic3r_FileParserError_hpp_
+#pragma once
 
 #include "libslic3r.h"
 
@@ -49,4 +48,3 @@ private:
 
 }; // Slic3r
 
-#endif // slic3r_FileParserError_hpp_

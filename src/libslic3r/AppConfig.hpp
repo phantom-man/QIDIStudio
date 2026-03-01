@@ -1,5 +1,4 @@
-#ifndef slic3r_AppConfig_hpp_
-#define slic3r_AppConfig_hpp_
+#pragma once
 
 #include <set>
 #include <map>
@@ -305,4 +304,3 @@ private:
 
 } // namespace Slic3r
 
-#endif /* slic3r_AppConfig_hpp_ */

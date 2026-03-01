@@ -1,5 +1,4 @@
-#ifndef slic3r_Config_hpp_
-#define slic3r_Config_hpp_
+#pragma once
 
 #include <assert.h>
 #include <map>
@@ -2855,4 +2854,3 @@ protected:
 
 }
 
-#endif

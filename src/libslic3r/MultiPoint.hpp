@@ -1,5 +1,4 @@
-#ifndef slic3r_MultiPoint_hpp_
-#define slic3r_MultiPoint_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include <algorithm>
@@ -150,4 +149,3 @@ inline double area(const Points &polygon) {
 
 } // namespace Slic3r
 
-#endif

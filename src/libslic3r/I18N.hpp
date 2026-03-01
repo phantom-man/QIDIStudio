@@ -1,5 +1,4 @@
-#ifndef slic3r_I18N_hpp_
-#define slic3r_I18N_hpp_
+#pragma once
 
 #include <string>
 
@@ -34,4 +33,3 @@ namespace I18N {
 	}
 #endif
 
-#endif /* slic3r_I18N_hpp_ */

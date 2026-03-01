@@ -1,5 +1,4 @@
-#ifndef slic3r_CustomGCode_hpp_
-#define slic3r_CustomGCode_hpp_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -130,4 +129,3 @@ std::vector<std::pair<double, unsigned int>> custom_tool_changes(const Info& cus
 
 
 
-#endif /* slic3r_CustomGCode_hpp_ */

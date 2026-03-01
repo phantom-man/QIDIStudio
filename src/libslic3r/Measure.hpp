@@ -2,8 +2,7 @@
 ///|/
 ///|/ PrusaSlicer is released under the terms of the AGPLv3 or higher
 ///|/
-#ifndef Slic3r_Measure_hpp_
-#define Slic3r_Measure_hpp_
+#pragma once
 
 #include <optional>
 #include <memory>
@@ -242,4 +241,3 @@ inline bool are_perpendicular(const SurfaceFeature& f1, const SurfaceFeature& f2
 } // namespace Measure
 } // namespace Slic3r
 
-#endif // Slic3r_Measure_hpp_

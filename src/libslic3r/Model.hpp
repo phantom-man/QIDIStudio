@@ -1,5 +1,4 @@
-#ifndef slic3r_Model_hpp_
-#define slic3r_Model_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "enum_bitmask.hpp"
@@ -1834,4 +1833,3 @@ namespace cereal
     template <class Archive> struct specialize<Archive, Slic3r::ModelConfigObject, cereal::specialization::member_serialize> {};
 }
 
-#endif /* slic3r_Model_hpp_ */

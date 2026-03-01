@@ -1,5 +1,4 @@
-#ifndef slic3r_CurvaAnalyzer_hpp_
-#define slic3r_CurvaAnalyzer_hpp_
+#pragma once
 
 #include "ExtrusionEntityCollection.hpp"
 
@@ -24,4 +23,3 @@ public:
 
 }
 
-#endif

@@ -2,7 +2,7 @@
 
 ### PhD-Level Technology Stack & Best Practices Audit
 
-_Maintained by: GitHub Copilot | Research date: 2026-02-28 | **Updated: 2026-02-28 (P1+P2+partial P3 implemented)** | Based on: C++ Core Guidelines, CppCon 2023–2025, ISO WG21 papers, cppreference.com compiler support tables, lemire.me, LLVM blog_
+_Maintained by: GitHub Copilot | Research date: 2026-02-28 | **Updated: 2026-02-28 (P1+P2+P3 — full #pragma once sweep)** | Based on: C++ Core Guidelines, CppCon 2023–2025, ISO WG21 papers, cppreference.com compiler support tables, lemire.me, LLVM blog_
 
 ---
 
@@ -20,7 +20,7 @@ _Maintained by: GitHub Copilot | Research date: 2026-02-28 | **Updated: 2026-02-
 | P2       | `#pragma once` migration script             | ✅ **DONE**     | `scripts/migrate_pragma_once.py` (NEW)                                                                                  |
 | P2       | `#pragma once` — pilot (2 headers)          | ✅ **DONE**     | `Format/STL.hpp`, `Format/AMF.hpp`                                                                                      |
 | P2       | `std::unordered_map` in Config              | ⚠️ **DEFERRED** | `Config.hpp` — sorted-iter dependency                                                                                   |
-| P3       | `#pragma once` — 11 core headers            | ✅ **DONE**     | `Point`, `BoundingBox`, `ExPolygon`, `Polygon`, `Polyline`, `Line`, `Layer`, `GCode`, `Surface`, `GCodeWriter`, `Print` |
+| P3       | `#pragma once` — ALL libslic3r headers      | ✅ **DONE**     | 80+ headers in `src/libslic3r/*.hpp` — complete sweep                                                                   |
 | P3       | `[[nodiscard]]` on all GCode output methods | ✅ **DONE**     | `GCodeWriter.hpp` (25+ methods), `GCode.hpp` (10 methods), `Print.hpp` (4 methods)                                      |
 | P3       | `std::expected` Result type                 | ✅ **DONE**     | `src/libslic3r/Result.hpp` (NEW)                                                                                        |
 | P3       | Google Highway SIMD                         | ⏳ Future       | —                                                                                                                       |
@@ -40,9 +40,9 @@ _Maintained by: GitHub Copilot | Research date: 2026-02-28 | **Updated: 2026-02-
 | Concurrency & Parallelism            | 6/10       | **7/10**   | B-    | jthread in GCodeSender                     |
 | Build System & Tooling               | 3/10       | **7/10**   | B     | CMakePresets + clang-tidy                  |
 | Performance Architecture             | 4/10       | 4/10       | D     | —                                          |
-| Code Quality & Modern Idioms         | 5/10       | **7/10**   | B-    | #pragma once on 13 key headers             |
+| Code Quality & Modern Idioms         | 5/10       | **8/10**   | B+    | #pragma once complete — ALL libslic3r/*.hpp |
 | Testing & Verification               | 4/10       | 4/10       | D     | —                                          |
-| **TOTAL (revised)**                  | **43/100** | **56/100** | **C** | **+13 points**                             |
+| **TOTAL (revised)**                  | **43/100** | **57/100** | **C+** | **+14 points**                            |
 
 **Next session target:** Priority 3 — Google Highway SIMD integration for BVH + adopt `Result<T>` in new parse/load APIs + activate SLIC3R_BUILD_TESTS in CI.
 

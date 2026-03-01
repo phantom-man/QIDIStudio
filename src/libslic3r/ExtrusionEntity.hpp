@@ -1,5 +1,4 @@
-#ifndef slic3r_ExtrusionEntity_hpp_
-#define slic3r_ExtrusionEntity_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "BoundingBox.hpp"
@@ -756,4 +755,3 @@ inline void extrusion_entities_append_loops_and_paths(ExtrusionEntitiesPtr &dst,
 
 }
 
-#endif

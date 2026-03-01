@@ -1,5 +1,4 @@
-#ifndef slic3r_Brim_hpp_
-#define slic3r_Brim_hpp_
+#pragma once
 
 #include "Point.hpp"
 
@@ -27,4 +26,3 @@ ExtrusionEntityCollection make_brim_auto(const Print &print, PrintTryCancel try_
 
 } // Slic3r
 
-#endif // slic3r_Brim_hpp_

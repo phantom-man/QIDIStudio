@@ -1,5 +1,4 @@
-#ifndef slic3r_format_hpp_
-#define slic3r_format_hpp_
+#pragma once
 
 // Functional wrapper around boost::format.
 // One day we may replace this wrapper with C++20 format
@@ -54,4 +53,3 @@ inline std::string format(const std::string& fmt, TArgs&&... args) {
 
 } // namespace Slic3r
 
-#endif // slic3r_format_hpp_

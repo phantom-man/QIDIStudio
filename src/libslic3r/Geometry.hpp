@@ -1,5 +1,4 @@
-#ifndef slic3r_Geometry_hpp_
-#define slic3r_Geometry_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "BoundingBox.hpp"
@@ -508,4 +507,3 @@ Transformation mat_around_a_point_rotate(const Transformation& innMat, const Vec
 Transformation generate_transform(const Vec3d &x_dir, const Vec3d &y_dir, const Vec3d &z_dir, const Vec3d &origin);
 } } // namespace Slicer::Geometry
 
-#endif

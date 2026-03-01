@@ -1,5 +1,4 @@
-#ifndef slic3r_BridgeDetector_hpp_
-#define slic3r_BridgeDetector_hpp_
+#pragma once
 
 #include "ClipperUtils.hpp"
 #include "Line.hpp"
@@ -172,4 +171,3 @@ inline std::tuple<Vec2d, double> detect_bridging_direction(const Polygons &to_co
 
 }
 
-#endif

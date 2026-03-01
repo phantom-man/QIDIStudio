@@ -1,5 +1,4 @@
-#ifndef slic3r_ExPolygonCollection_hpp_
-#define slic3r_ExPolygonCollection_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
@@ -38,4 +37,3 @@ extern BoundingBox get_extents(const ExPolygonCollection &expolygon);
 
 }
 
-#endif

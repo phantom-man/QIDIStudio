@@ -1,5 +1,4 @@
-#ifndef slic3r_BuildVolume_hpp_
-#define slic3r_BuildVolume_hpp_
+#pragma once
 
 #include "Point.hpp"
 #include "Geometry/Circle.hpp"
@@ -163,4 +162,3 @@ private:
 
 } // namespace Slic3r
 
-#endif // slic3r_BuildVolume_hpp_

@@ -13,8 +13,7 @@
 //        GCodeConfig
 //
 
-#ifndef slic3r_PrintConfig_hpp_
-#define slic3r_PrintConfig_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "CommonDefs.hpp"
@@ -1854,4 +1853,3 @@ namespace cereal {
     }
 }
 
-#endif

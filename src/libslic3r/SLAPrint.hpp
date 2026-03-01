@@ -1,5 +1,4 @@
-#ifndef slic3r_SLAPrint_hpp_
-#define slic3r_SLAPrint_hpp_
+#pragma once
 
 #include <cstdint>
 #include <mutex>
@@ -593,4 +592,3 @@ bool validate_pad(const indexed_triangle_set &pad, const sla::PadConfig &pcfg);
 
 } // namespace Slic3r
 
-#endif /* slic3r_SLAPrint_hpp_ */

@@ -1,5 +1,4 @@
-#ifndef slic3r_Utils_hpp_
-#define slic3r_Utils_hpp_
+#pragma once
 
 #include <iomanip>
 #include <locale>
@@ -885,4 +884,3 @@ void load_string_file(const boost::filesystem::path& p, std::string& str);
     #define SLIC3R_STDUNORDEREDSET_MEMSIZE(NAME, TYPE) NAME.size() * ((sizeof(TYPE) + alignof(TYPE) - 1) / alignof(TYPE)) * alignof(TYPE)
 #endif
 
-#endif // slic3r_Utils_hpp_

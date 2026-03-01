@@ -1,5 +1,4 @@
-#ifndef slic3r_Clipper2ZUtils_hpp_
-#define slic3r_Clipper2ZUtils_hpp_
+#pragma once
 #include <numeric>
 #include <vector>
 #include <algorithm>
@@ -164,4 +163,3 @@ private:
 };
 
 }} // namespace Slic3r::Clipper2ZUtils
-#endif // slic3r_Clipper2ZUtils_hpp_

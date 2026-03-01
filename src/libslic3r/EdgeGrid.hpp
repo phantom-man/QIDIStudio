@@ -1,5 +1,4 @@
-#ifndef slic3r_EdgeGrid_hpp_
-#define slic3r_EdgeGrid_hpp_
+#pragma once
 
 #include <stdint.h>
 #include <math.h>
@@ -466,4 +465,3 @@ extern void export_intersections_to_svg(const std::string &filename, const Polyg
 
 } // namespace Slic3r
 
-#endif /* slic3r_EdgeGrid_hpp_ */

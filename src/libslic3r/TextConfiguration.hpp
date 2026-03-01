@@ -1,5 +1,4 @@
-#ifndef slic3r_TextConfiguration_hpp_
-#define slic3r_TextConfiguration_hpp_
+#pragma once
 
 #include <vector>
 #include <string>
@@ -178,4 +177,3 @@ struct TextConfiguration
 
 } // namespace Slic3r
 
-#endif // slic3r_TextConfiguration_hpp_

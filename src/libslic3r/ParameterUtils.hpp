@@ -1,5 +1,4 @@
-#ifndef slic3r_Parameter_Utils_hpp_
-#define slic3r_Parameter_Utils_hpp_
+#pragma once
 
 #include <vector>
 #include <map>
@@ -13,4 +12,3 @@ void get_other_layers_print_sequence(const std::vector<LayerPrintSequence> &cust
 extern int get_index_for_extruder_parameter(const DynamicPrintConfig &config, const std::string &opt_key, int cur_extruder_id, ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type);
 } // namespace Slic3r
 
-#endif // slic3r_Parameter_Utils_hpp_

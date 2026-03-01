@@ -1,5 +1,4 @@
-#ifndef slic3r_ClipperUtils_hpp_
-#define slic3r_ClipperUtils_hpp_
+#pragma once
 
 //#define SLIC3R_USE_CLIPPER2
 
@@ -672,4 +671,3 @@ ExPolygons variable_offset_inner_ex(const ExPolygon &expoly, const std::vector<s
 
 }
 
-#endif

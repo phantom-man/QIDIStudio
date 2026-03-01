@@ -1,5 +1,4 @@
-#ifndef slic3r_Tesselate_hpp_
-#define slic3r_Tesselate_hpp_
+#pragma once
 
 #include <vector>
 
@@ -22,4 +21,3 @@ extern std::vector<Vec2f> triangulate_expolygons_2f(const ExPolygons &polys, boo
 
 } // namespace Slic3r
 
-#endif /* slic3r_Tesselate_hpp_ */

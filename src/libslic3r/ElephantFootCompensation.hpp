@@ -1,5 +1,4 @@
-#ifndef slic3r_ElephantFootCompensation_hpp_
-#define slic3r_ElephantFootCompensation_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
@@ -16,4 +15,3 @@ ExPolygons elephant_foot_compensation(const ExPolygons &input, const Flow &exter
 
 } // Slic3r
 
-#endif /* slic3r_ElephantFootCompensation_hpp_ */

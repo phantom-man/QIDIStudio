@@ -1,5 +1,4 @@
-#ifndef slic3r_NormalUtils_hpp_
-#define slic3r_NormalUtils_hpp_
+#pragma once
 
 #include "Point.hpp"
 #include "Model.hpp"
@@ -66,4 +65,3 @@ public:
 };
 
 } // namespace Slic3r
-#endif // slic3r_NormalUtils_hpp_

@@ -1,5 +1,4 @@
-#ifndef slic3r_ProjectTask_hpp_
-#define slic3r_ProjectTask_hpp_
+#pragma once
 
 #include <map>
 #include <vector>
@@ -341,4 +340,3 @@ public:
 
 } // namespace Slic3r
 
-#endif //  slic3r_ProjectTask_hpp_

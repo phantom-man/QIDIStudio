@@ -1,5 +1,4 @@
-#ifndef slic3r_TriangleMesh_hpp_
-#define slic3r_TriangleMesh_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include <admesh/stl.h>
@@ -423,4 +422,3 @@ namespace cereal
     }
 }
 
-#endif

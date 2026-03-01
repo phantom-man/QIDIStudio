@@ -1,5 +1,4 @@
-#ifndef slic3r_Emboss_hpp_
-#define slic3r_Emboss_hpp_
+#pragma once
 
 #include <vector>
 #include <set>
@@ -409,4 +408,3 @@ void center(ExPolygonsWithIds &e);
 // NOTE: remove unprintable spaces between neighbor curves (made by linearization of curve)
 ExPolygons union_with_delta(EmbossShape &shape, float delta, unsigned max_heal_iteration);
 } // namespace Slic3r
-#endif // slic3r_Emboss_hpp_

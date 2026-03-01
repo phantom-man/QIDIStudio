@@ -1,5 +1,4 @@
-#ifndef slic3r_SVG_hpp_
-#define slic3r_SVG_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "clipper.hpp"
@@ -187,4 +186,3 @@ void dumpExPolygonsToTxt(const std::vector<ExPolygon> &exPolygons, const std::st
 std::vector<ExPolygon> loadExPolygonsFromTxt(const std::string &filePath);
 }
 
-#endif

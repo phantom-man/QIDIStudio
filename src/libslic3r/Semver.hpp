@@ -1,5 +1,4 @@
-#ifndef slic3r_Semver_hpp_
-#define slic3r_Semver_hpp_
+#pragma once
 
 #include <string>
 #include <cstring>
@@ -172,4 +171,3 @@ private:
 
 
 }
-#endif

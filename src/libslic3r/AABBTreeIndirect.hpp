@@ -3,8 +3,7 @@
 // were adapted from libigl AABB.{cpp,hpp} Copyright (C) 2015 Alec Jacobson <alecjacobson@gmail.com>
 // while the implicit balanced tree representation and memory optimizations are Vojtech's.
 
-#ifndef slic3r_AABBTreeIndirect_hpp_
-#define slic3r_AABBTreeIndirect_hpp_
+#pragma once
 
 #include <algorithm>
 #include <limits>
@@ -989,4 +988,3 @@ void traverse(const Tree<Dims, T> &tree, Predicate &&pred, Fn &&callback)
 } // namespace AABBTreeIndirect
 } // namespace Slic3r
 
-#endif /* slic3r_AABBTreeIndirect_hpp_ */

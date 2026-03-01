@@ -2,8 +2,7 @@
 ///|/
 ///|/ PrusaSlicer is released under the terms of the AGPLv3 or higher
 ///|/
-#ifndef Slic3r_MeasureUtils_hpp_
-#define Slic3r_MeasureUtils_hpp_
+#pragma once
 
 #include <initializer_list>
 
@@ -387,4 +386,3 @@ inline Vec3d get_orthogonal(const Vec3d& v, bool unitLength)
 } // namespace Slic3r
 } // namespace Measure
 
-#endif // Slic3r_MeasureUtils_hpp_

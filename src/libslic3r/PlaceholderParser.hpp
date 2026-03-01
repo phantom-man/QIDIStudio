@@ -1,5 +1,4 @@
-#ifndef slic3r_PlaceholderParser_hpp_
-#define slic3r_PlaceholderParser_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include <map>
@@ -71,4 +70,3 @@ private:
 
 }
 
-#endif

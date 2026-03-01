@@ -1,5 +1,4 @@
-#ifndef slic3r_InternalBridgeDetector_hpp_
-#define slic3r_InternalBridgeDetector_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
@@ -51,4 +50,3 @@ private:
 
 }
 
-#endif

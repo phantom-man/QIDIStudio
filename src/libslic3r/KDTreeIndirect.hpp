@@ -1,7 +1,6 @@
 // KD tree built upon external data set, referencing the external data by integer indices.
 
-#ifndef slic3r_KDTreeIndirect_hpp_
-#define slic3r_KDTreeIndirect_hpp_
+#pragma once
 
 #include <algorithm>
 #include <limits>
@@ -371,4 +370,3 @@ std::vector<size_t> find_nearby_points(const KDTreeIndirectType &kdtree,
 
 } // namespace Slic3r
 
-#endif /* slic3r_KDTreeIndirect_hpp_ */

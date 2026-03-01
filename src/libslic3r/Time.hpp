@@ -1,5 +1,4 @@
-#ifndef slic3r_Utils_Time_hpp_
-#define slic3r_Utils_Time_hpp_
+#pragma once
 
 #include <string>
 #include <ctime>
@@ -66,4 +65,3 @@ inline time_t parse_iso_utc_timestamp(const std::string &str)
 } // namespace Utils
 } // namespace Slic3r
 
-#endif /* slic3r_Utils_Time_hpp_ */

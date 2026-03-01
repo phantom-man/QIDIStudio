@@ -1,5 +1,4 @@
-#ifndef slic3r_Color_hpp_
-#define slic3r_Color_hpp_
+#pragma once
 
 #include <array>
 #include <algorithm>
@@ -186,4 +185,3 @@ unsigned char picking_checksum_alpha_channel(unsigned char red, unsigned char gr
 
 } // namespace Slic3r
 
-#endif /* slic3r_Color_hpp_ */

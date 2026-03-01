@@ -1,5 +1,4 @@
-#ifndef slic3r_CutUtils_hpp_
-#define slic3r_CutUtils_hpp_
+#pragma once
 
 #include "enum_bitmask.hpp"
 #include "Point.hpp"
@@ -55,4 +54,3 @@ public:
 
 } // namespace Slic3r
 
-#endif /* slic3r_CutUtils_hpp_ */
