@@ -1,5 +1,4 @@
-#ifndef slic3r_GCodeWriter_hpp_
-#define slic3r_GCodeWriter_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include <string>
@@ -49,48 +48,48 @@ public:
             out.push_back(e.id());
         return out;
     }
-    std::string preamble();
-    std::string postamble() const;
-    std::string set_temperature(unsigned int temperature, bool wait = false, int tool = -1) const;
-    std::string set_bed_temperature(int temperature, bool wait = false);
-    std::string set_chamber_temperature(int temperature, bool wait = false);
+    [[nodiscard]] std::string preamble();
+    [[nodiscard]] std::string postamble() const;
+    [[nodiscard]] std::string set_temperature(unsigned int temperature, bool wait = false, int tool = -1) const;
+    [[nodiscard]] std::string set_bed_temperature(int temperature, bool wait = false);
+    [[nodiscard]] std::string set_chamber_temperature(int temperature, bool wait = false);
     void set_acceleration(unsigned int acceleration);
     void set_travel_acceleration(const std::vector<unsigned int>& travel_accelerations);
     void reset_last_acceleration();
     std::vector<unsigned int> &get_travel_acceleration() { return m_travel_accelerations; }
     void set_first_layer_travel_acceleration(const std::vector<unsigned int>& travel_accelerations);
     void set_first_layer(bool is_first_layer);
-    std::string set_pressure_advance(double pa) const;
-    std::string set_jerk_xy(double jerk);
-    std::string reset_e(bool force = false);
-    std::string update_progress(unsigned int num, unsigned int tot, bool allow_100 = false) const;
+    [[nodiscard]] std::string set_pressure_advance(double pa) const;
+    [[nodiscard]] std::string set_jerk_xy(double jerk);
+    [[nodiscard]] std::string reset_e(bool force = false);
+    [[nodiscard]] std::string update_progress(unsigned int num, unsigned int tot, bool allow_100 = false) const;
     // return false if this extruder was already selected
     bool        need_toolchange(unsigned int filament_id) const;
-    std::string set_extruder(unsigned int filament_id);
+    [[nodiscard]] std::string set_extruder(unsigned int filament_id);
     void init_extruder(unsigned int filament_id);
     // Prefix of the toolchange G-code line, to be used by the CoolingBuffer to separate sections of the G-code
     // printed with the same extruder.
-    std::string toolchange_prefix() const;
-    std::string toolchange(unsigned int filament_id);
-    std::string set_speed(double F, const std::string &comment = std::string(), const std::string &cooling_marker = std::string());
+    [[nodiscard]] std::string toolchange_prefix() const;
+    [[nodiscard]] std::string toolchange(unsigned int filament_id);
+    [[nodiscard]] std::string set_speed(double F, const std::string &comment = std::string(), const std::string &cooling_marker = std::string());
     double      get_current_speed() { return m_current_speed; };
-    std::string travel_to_xy(const Vec2d &point, const std::string &comment = std::string());
-    std::string travel_to_xyz(const Vec3d &point, const std::string &comment = std::string());
-    std::string travel_to_z(double z, const std::string &comment = std::string());
+    [[nodiscard]] std::string travel_to_xy(const Vec2d &point, const std::string &comment = std::string());
+    [[nodiscard]] std::string travel_to_xyz(const Vec3d &point, const std::string &comment = std::string());
+    [[nodiscard]] std::string travel_to_z(double z, const std::string &comment = std::string());
     bool        will_move_z(double z) const;
-    std::string extrude_to_xy(const Vec2d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
+    [[nodiscard]] std::string extrude_to_xy(const Vec2d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
     //QDS: generate G2 or G3 extrude which moves by arc
-    std::string extrude_arc_to_xy(const Vec2d &point, const Vec2d &center_offset, double dE, const bool is_ccw, const std::string &comment = std::string(), bool force_no_extrusion = false);
-    std::string extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
-    std::string retract(bool before_wipe = false);
-    std::string retract_for_toolchange(bool before_wipe = false);
-    std::string unretract();
+    [[nodiscard]] std::string extrude_arc_to_xy(const Vec2d &point, const Vec2d &center_offset, double dE, const bool is_ccw, const std::string &comment = std::string(), bool force_no_extrusion = false);
+    [[nodiscard]] std::string extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
+    [[nodiscard]] std::string retract(bool before_wipe = false);
+    [[nodiscard]] std::string retract_for_toolchange(bool before_wipe = false);
+    [[nodiscard]] std::string unretract();
     double get_extruder_retracted_length(const int filament_id);
     // do lift instantly
-    std::string eager_lift(const LiftType type,bool tool_change = false);
+    [[nodiscard]] std::string eager_lift(const LiftType type,bool tool_change = false);
     // record a lift request, do realy lift in next travel
-    std::string lazy_lift(LiftType lift_type = LiftType::NormalLift, bool spiral_vase = false, bool tool_change=false);
-    std::string unlift();
+    [[nodiscard]] std::string lazy_lift(LiftType lift_type = LiftType::NormalLift, bool spiral_vase = false, bool tool_change=false);
+    [[nodiscard]] std::string unlift();
     Vec3d       get_position() const { return m_pos; }
     void       set_position(Vec3d& in) { m_pos = in; }
 
@@ -98,13 +97,13 @@ public:
     void set_xy_offset(double x, double y) { m_x_offset = x; m_y_offset = y; }
     Vec2f get_xy_offset() { return Vec2f{m_x_offset, m_y_offset}; };
     // To be called by the CoolingBuffer from another thread.
-    static std::string set_fan(const GCodeFlavor gcode_flavor, unsigned int speed);
+    [[nodiscard]] static std::string set_fan(const GCodeFlavor gcode_flavor, unsigned int speed);
     // To be called by the main thread. It always emits the G-code, it does not remember the previous state.
     // Keeping the state is left to the CoolingBuffer, which runs asynchronously on another thread.
-    std::string set_fan(unsigned int speed) const;
+    [[nodiscard]] std::string set_fan(unsigned int speed) const;
     //QDS: set additional fan speed for QDS machine only
-    static std::string set_additional_fan(unsigned int speed);
-    static std::string set_exhaust_fan(int speed,bool add_eol);
+    [[nodiscard]] static std::string set_additional_fan(unsigned int speed);
+    [[nodiscard]] static std::string set_exhaust_fan(int speed,bool add_eol);
     //QDS
     void set_object_start_str(std::string start_string) { m_gcode_label_objects_start = start_string; }
     bool empty_object_start_str() { return m_gcode_label_objects_start.empty(); }
@@ -281,5 +280,3 @@ public:
 };
 
 } /* namespace Slic3r */
-
-#endif /* slic3r_GCodeWriter_hpp_ */

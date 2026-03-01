@@ -1,5 +1,4 @@
-#ifndef slic3r_Line_hpp_
-#define slic3r_Line_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "Point.hpp"
@@ -331,5 +330,3 @@ namespace boost { namespace polygon {
     };
 } }
 // end Boost
-
-#endif // slic3r_Line_hpp_

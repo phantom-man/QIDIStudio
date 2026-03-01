@@ -1,5 +1,4 @@
-#ifndef slic3r_Point_hpp_
-#define slic3r_Point_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include <cstddef>
@@ -711,5 +710,3 @@ const T* begin(const Slic3r::Mat<N, M, T> &mat) { return mat.data(); }
 template<class T, int N, int M>
 const T* end(const Slic3r::Mat<N, M, T> &mat) { return mat.data() + N * M; }
 } // namespace Eigen
-
-#endif

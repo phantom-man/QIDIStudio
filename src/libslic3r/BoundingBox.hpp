@@ -1,5 +1,4 @@
-#ifndef slic3r_BoundingBox_hpp_
-#define slic3r_BoundingBox_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "Exception.hpp"
@@ -284,5 +283,3 @@ namespace cereal {
 	template<class Archive> void serialize(Archive& archive, Slic3r::BoundingBoxf  &bb) { archive(bb.min, bb.max, bb.defined); }
 	template<class Archive> void serialize(Archive& archive, Slic3r::BoundingBoxf3 &bb) { archive(bb.min, bb.max, bb.defined); }
 }
-
-#endif

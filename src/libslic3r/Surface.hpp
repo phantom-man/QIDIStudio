@@ -1,5 +1,4 @@
-#ifndef slic3r_Surface_hpp_
-#define slic3r_Surface_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
@@ -305,5 +304,3 @@ extern Point export_surface_type_legend_to_svg_box_size();
 extern bool export_to_svg(const char *path, const Surfaces &surfaces, const float transparency = 1.f);
 
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef slic3r_Polygon_hpp_
-#define slic3r_Polygon_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include <vector>
@@ -390,5 +389,3 @@ namespace boost { namespace polygon {
     };
 } }
 // end Boost
-
-#endif

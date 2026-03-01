@@ -1,5 +1,4 @@
-#ifndef slic3r_Polyline_hpp_
-#define slic3r_Polyline_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "Line.hpp"
@@ -295,5 +294,3 @@ public:
 typedef std::vector<Polyline3> Polylines3;
 
 }
-
-#endif

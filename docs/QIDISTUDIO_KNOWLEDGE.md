@@ -2932,6 +2932,14 @@ _Absorbed: 2026-02-28. **Updated: 2026-02-28 (P1+P2 implemented, score 43→54/1
 3. ✅ `Format/STL.hpp` + `Format/AMF.hpp` converted to `#pragma once`; `scripts/migrate_pragma_once.py` created for bulk migration
 4. ⚠️ `Config.hpp` `std::unordered_map` deferred — sorted iteration order dependency (cbegin/cend API exposed)
 
+### §21.3c Priority 3 Actions (PARTIAL — 2026-02-28)
+
+1. ✅ `#pragma once` expanded to 11 more key headers: `Point.hpp`, `BoundingBox.hpp`, `ExPolygon.hpp`, `Polygon.hpp`, `Polyline.hpp`, `Line.hpp`, `Layer.hpp`, `GCode.hpp`, `Surface.hpp`, `GCodeWriter.hpp`, `Print.hpp` — Code Quality 6→7/10
+2. ✅ `[[nodiscard]]` on all `std::string`-returning methods in `GCodeWriter.hpp` (25 methods), `GCode.hpp` (10 methods), `Print.hpp` (4 methods) — Type Safety 5→6/10
+3. ✅ `src/libslic3r/Result.hpp` created — `std::expected<T, std::string>` + `VoidResult` + `Err()/Ok()` factory helpers
+4. ⏳ Google Highway SIMD for BVH geometry — future session
+5. ⏳ Adopt `Result<T>` in `load_stl_safe()`/`load_amf_safe()` wrapper functions — future session
+
 ### §21.4 OpenGL RAII Canonical Pattern
 
 Single 50-line header `src/slic3r/GUI/GLResource.hpp` using `template <auto Creator, auto Deleter>` wraps the Rule-of-Five for any GL object. Provides `GlBuffer`, `GlVao`, `GlTexture` types that auto-delete on destruction and are move-only with `std::exchange(o.id, 0)` idiom.

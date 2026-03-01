@@ -1,5 +1,4 @@
-#ifndef slic3r_GCode_hpp_
-#define slic3r_GCode_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
@@ -46,8 +45,8 @@ public:
     Points standby_points;
 
     OozePrevention() : enable(false) {}
-    std::string pre_toolchange(GCode &gcodegen);
-    std::string post_toolchange(GCode &gcodegen);
+    [[nodiscard]] std::string pre_toolchange(GCode &gcodegen);
+    [[nodiscard]] std::string post_toolchange(GCode &gcodegen);
 
 private:
     int _get_temp(GCode &gcodegen);
@@ -61,7 +60,7 @@ public:
     Wipe() : enable(false) {}
     bool has_path() const { return !this->path.points.empty(); }
     void reset_path() { this->path = Polyline(); }
-    std::string wipe(GCode &gcodegen, bool toolchange = false, bool is_last = false);
+    [[nodiscard]] std::string wipe(GCode &gcodegen, bool toolchange = false, bool is_last = false);
 };
 
 class WipeTowerIntegration {
@@ -98,11 +97,11 @@ public:
             m_extruder_offsets[idx] = print_config.extruder_offset.get_at(filament_map[idx] - 1);
     }
 
-    std::string prime(GCode &gcodegen);
+    [[nodiscard]] std::string prime(GCode &gcodegen);
     void next_layer() { ++ m_layer_idx; m_tool_change_idx = 0; }
-    std::string tool_change(GCode &gcodegen, int extruder_id, bool finish_layer);
+    [[nodiscard]] std::string tool_change(GCode &gcodegen, int extruder_id, bool finish_layer);
     bool is_empty_wipe_tower_gcode(GCode &gcodegen, int extruder_id, bool finish_layer);
-    std::string finalize(GCode &gcodegen);
+    [[nodiscard]] std::string finalize(GCode &gcodegen);
     std::vector<float> used_filament_length() const;
 
     bool is_first_print() const { return m_is_first_print;}
@@ -115,11 +114,11 @@ public:
 
 private:
     WipeTowerIntegration& operator=(const WipeTowerIntegration&);
-    std::string append_tcr(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
+    [[nodiscard]] std::string append_tcr(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
     Polyline generate_path_to_wipe_tower(const Point &start_pos, const Point &end_pos, const BoundingBox &avoid_polygon, const BoundingBox &printer_bbx) const;
 
     // Postprocesses gcode: rotates and moves G1 extrusions and returns result
-    std::string post_process_wipe_tower_moves(const WipeTower::ToolChangeResult& tcr, const Vec2f& translation, float angle) const;
+    [[nodiscard]] std::string post_process_wipe_tower_moves(const WipeTower::ToolChangeResult& tcr, const Vec2f& translation, float angle) const;
 
     // Left / right edges of the wipe tower, for the planning of wipe moves.
     const float                                                  m_left;
@@ -212,7 +211,7 @@ public:
     const PlaceholderParser& placeholder_parser() const { return m_placeholder_parser; }
     // Process a template through the placeholder parser, collect error messages to be reported
     // inside the generated string and after the G-code export finishes.
-    std::string     placeholder_parser_process(const std::string &name, const std::string &templ, unsigned int current_extruder_id, const DynamicConfig *config_override = nullptr);
+    [[nodiscard]] std::string     placeholder_parser_process(const std::string &name, const std::string &templ, unsigned int current_extruder_id, const DynamicConfig *config_override = nullptr);
     bool            enable_cooling_markers() const { return m_enable_cooling_markers; }
 
     // For Perl bindings, to be used exclusively by unit tests.
@@ -221,15 +220,15 @@ public:
     void            apply_print_config(const PrintConfig &print_config);
 
     // OrcaSlicer
-    std::string set_object_info(Print* print);
+    [[nodiscard]] std::string set_object_info(Print* print);
 
     // append full config to the given string
     static void append_full_config(const DynamicPrintConfig &cfg, std::string &str);
 
     // QDS: detect lift type in needs_retraction
     bool        needs_retraction(const Polyline &travel, ExtrusionRole role, LiftType &lift_type);
-    std::string retract(bool toolchange = false, bool is_last_retraction = false, LiftType lift_type = LiftType::SpiralLift, bool apply_instantly = false);
-    std::string unretract() { return m_writer.unlift() + m_writer.unretract(); }
+    [[nodiscard]] std::string retract(bool toolchange = false, bool is_last_retraction = false, LiftType lift_type = LiftType::SpiralLift, bool apply_instantly = false);
+    [[nodiscard]] std::string unretract() { return m_writer.unlift() + m_writer.unretract(); }
     //QDS
     bool is_QDT_Printer();
 
@@ -640,5 +639,3 @@ private:
 std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Print& print, bool init_order = false);
 
 }
-
-#endif

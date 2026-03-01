@@ -1,5 +1,4 @@
-#ifndef slic3r_Layer_hpp_
-#define slic3r_Layer_hpp_
+#pragma once
 
 #include "libslic3r.h"
 #include "BoundingBox.hpp"
@@ -378,5 +377,3 @@ Surfaces expand_merge_surfaces(
 );
 
 }
-
-#endif

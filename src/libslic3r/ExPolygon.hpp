@@ -1,5 +1,4 @@
-#ifndef slic3r_ExPolygon_hpp_
-#define slic3r_ExPolygon_hpp_
+#pragma once
 
 #include "Point.hpp"
 #include "libslic3r.h"
@@ -595,5 +594,3 @@ namespace boost { namespace polygon {
     };
 } }
 // end Boost
-
-#endif
