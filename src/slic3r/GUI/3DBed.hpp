@@ -1,5 +1,5 @@
-#ifndef slic3r_3DBed_hpp_
-#define slic3r_3DBed_hpp_
+#pragma once
+
 
 #include "GLTexture.hpp"
 #include "3DScene.hpp"
@@ -175,4 +175,3 @@ private:
 } // GUI
 } // Slic3r
 
-#endif // slic3r_3DBed_hpp_

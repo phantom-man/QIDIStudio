@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoSlaSupports_hpp_
-#define slic3r_GLGizmoSlaSupports_hpp_
+#pragma once
+
 
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
@@ -156,4 +156,3 @@ public:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoSlaSupports_hpp_

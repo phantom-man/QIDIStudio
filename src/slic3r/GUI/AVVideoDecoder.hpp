@@ -1,5 +1,5 @@
-#ifndef AVVIDEODECODER_HPP
-#define AVVIDEODECODER_HPP
+#pragma once
+
 
 #include "Printer/QIDITunnel.h"
 
@@ -43,4 +43,3 @@ private:
     std::vector<uint8_t> bits_;
 };
 
-#endif // AVVIDEODECODER_HPP

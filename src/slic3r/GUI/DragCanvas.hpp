@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_DragCanvas_hpp_
-#define slic3r_GUI_DragCanvas_hpp_
+#pragma once
+
 
 #include "wx/bitmap.h"
 #include "wx/dragimag.h"
@@ -62,4 +62,3 @@ private:
 
 
 }}
-#endif

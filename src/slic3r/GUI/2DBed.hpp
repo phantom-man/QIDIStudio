@@ -1,5 +1,5 @@
-#ifndef slic3r_2DBed_hpp_
-#define slic3r_2DBed_hpp_
+#pragma once
+
 
 #include <wx/wx.h>
 #include "libslic3r/Config.hpp"

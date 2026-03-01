@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_RecenterDialog_hpp_
-#define slic3r_GUI_RecenterDialog_hpp_
+#pragma once
+
 
 #include "GUI_Utils.hpp"
 #include <wx/statbmp.h>
@@ -37,4 +37,3 @@ public:
 };
 }} // namespace Slic3r::GUI
 
-#endif

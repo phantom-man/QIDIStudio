@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoBrimEars_hpp_
-#define slic3r_GLGizmoBrimEars_hpp_
+#pragma once
+
 
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
@@ -178,4 +178,3 @@ wxDECLARE_EVENT(wxEVT_THREAD_DONE, wxCommandEvent);
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoBrimEars_hpp_

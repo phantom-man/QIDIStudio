@@ -1,6 +1,6 @@
 #ifdef __linux__
-#ifndef slic3r_DesktopIntegrationDialog_hpp_
-#define slic3r_DesktopIntegrationDialog_hpp_
+#pragma once
+
 
 #include <wx/dialog.h>
 
@@ -36,4 +36,3 @@ private:
 } // namespace Slic3r
 
 #endif // slic3r_DesktopIntegrationDialog_hpp_
-#endif // __linux__

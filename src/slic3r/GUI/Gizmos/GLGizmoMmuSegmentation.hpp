@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoMmuSegmentation_hpp_
-#define slic3r_GLGizmoMmuSegmentation_hpp_
+#pragma once
+
 
 #include "GLGizmoPainterBase.hpp"
 
@@ -145,4 +145,3 @@ private:
 } // namespace Slic3r
 
 
-#endif // slic3r_GLGizmoMmuSegmentation_hpp_

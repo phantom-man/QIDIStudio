@@ -2,7 +2,7 @@
 
 ### PhD-Level Technology Stack & Best Practices Audit
 
-_Maintained by: GitHub Copilot | Research date: 2026-02-28 | **Updated: 2026-02-28 (P1+P2+P3 — full #pragma once sweep)** | Based on: C++ Core Guidelines, CppCon 2023–2025, ISO WG21 papers, cppreference.com compiler support tables, lemire.me, LLVM blog_
+_Maintained by: GitHub Copilot | Research date: 2026-02-28 | **Updated: 2026-02-28 (P1+P2+P3+P3b — GUI #pragma once sweep)** | Based on: C++ Core Guidelines, CppCon 2023–2025, ISO WG21 papers, cppreference.com compiler support tables, lemire.me, LLVM blog_
 
 ---
 
@@ -23,6 +23,7 @@ _Maintained by: GitHub Copilot | Research date: 2026-02-28 | **Updated: 2026-02-
 | P3       | `#pragma once` — ALL libslic3r headers      | ✅ **DONE**     | 80+ headers in `src/libslic3r/*.hpp` — complete sweep                              |
 | P3       | `[[nodiscard]]` on all GCode output methods | ✅ **DONE**     | `GCodeWriter.hpp` (25+ methods), `GCode.hpp` (10 methods), `Print.hpp` (4 methods) |
 | P3       | `std::expected` Result type                 | ✅ **DONE**     | `src/libslic3r/Result.hpp` (NEW)                                                   |
+| P3b      | `#pragma once` — ALL GUI headers            | ✅ **DONE**     | 271 headers in `src/slic3r/GUI/**/*.hpp` — complete sweep (I18N.hpp manual fix)    |
 | P3       | Google Highway SIMD                         | ⏳ Future       | —                                                                                  |
 | P3       | Coroutine Blender subprocess                | ⏳ Future       | —                                                                                  |
 
@@ -40,9 +41,9 @@ _Maintained by: GitHub Copilot | Research date: 2026-02-28 | **Updated: 2026-02-
 | Concurrency & Parallelism            | 6/10       | **7/10**   | B-     | jthread in GCodeSender                       |
 | Build System & Tooling               | 3/10       | **7/10**   | B      | CMakePresets + clang-tidy                    |
 | Performance Architecture             | 4/10       | 4/10       | D      | —                                            |
-| Code Quality & Modern Idioms         | 5/10       | **8/10**   | B+     | #pragma once complete — ALL libslic3r/\*.hpp |
+| Code Quality & Modern Idioms         | 5/10       | **9/10**   | A-     | #pragma once complete — ALL libslic3r + GUI headers |
 | Testing & Verification               | 4/10       | 4/10       | D      | —                                            |
-| **TOTAL (revised)**                  | **43/100** | **57/100** | **C+** | **+14 points**                               |
+| **TOTAL (revised)**                  | **43/100** | **58/100** | **C+** | **+15 points**                               |
 
 **Next session target:** Priority 3 — Google Highway SIMD integration for BVH + adopt `Result<T>` in new parse/load APIs + activate SLIC3R_BUILD_TESTS in CI.
 

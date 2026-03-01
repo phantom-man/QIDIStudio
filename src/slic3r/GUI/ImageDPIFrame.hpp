@@ -1,5 +1,5 @@
-#ifndef _ImageDPIFrame_H_
-#define _ImageDPIFrame_H_
+#pragma once
+
 
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
@@ -31,4 +31,3 @@ private:
     float           m_timer_count = 0;
 };
 }}     // namespace Slic3r::GUI
-#endif  // _STEP_MESH_DIALOG_H_

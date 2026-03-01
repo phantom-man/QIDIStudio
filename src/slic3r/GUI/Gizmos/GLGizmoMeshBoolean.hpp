@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoMeshBoolean_hpp_
-#define slic3r_GLGizmoMeshBoolean_hpp_
+#pragma once
+
 
 #include "GLGizmoBase.hpp"
 #include "GLGizmosCommon.hpp"
@@ -475,4 +475,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoMeshBoolean_hpp_

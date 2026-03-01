@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_wxExtensions_hpp_
-#define slic3r_GUI_wxExtensions_hpp_
+#pragma once
+
 
 #include <wx/checklst.h>
 #include <wx/combo.h>
@@ -452,4 +452,3 @@ private:
 };
 
 
-#endif // slic3r_GUI_wxExtensions_hpp_

@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoHollow_hpp_
-#define slic3r_GLGizmoHollow_hpp_
+#pragma once
+
 
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
@@ -111,4 +111,3 @@ protected:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoHollow_hpp_

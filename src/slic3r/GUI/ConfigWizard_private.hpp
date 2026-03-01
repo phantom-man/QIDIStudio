@@ -1,5 +1,5 @@
-#ifndef slic3r_ConfigWizard_private_hpp_
-#define slic3r_ConfigWizard_private_hpp_
+#pragma once
+
 
 #include "ConfigWizard.hpp"
 
@@ -617,4 +617,3 @@ struct ConfigWizard::priv
 }
 }
 
-#endif

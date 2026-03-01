@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_DailyTips_hpp_
-#define slic3r_GUI_DailyTips_hpp_
+#pragma once
+
 
 #include "HintNotification.hpp"
 
@@ -73,4 +73,3 @@ private:
 
 }}
 
-#endif

@@ -1,6 +1,5 @@
+#pragma once
 
-#ifndef FILAMENT_MAP_PANEL_HPP
-#define FILAMENT_MAP_PANEL_HPP
 
 #include "GUI.hpp"
 #include "DragDropPanel.hpp"
@@ -118,4 +117,3 @@ private:
 };
 }} // namespace Slic3r::GUI
 
-#endif

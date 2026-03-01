@@ -1,5 +1,5 @@
-#ifndef slic3r_calib_dlg_hpp_
-#define slic3r_calib_dlg_hpp_
+#pragma once
+
 
 #include "wxExtensions.hpp"
 #include "GUI_Utils.hpp"
@@ -125,4 +125,3 @@ protected:
 
 }} // namespace Slic3r::GUI
 
-#endif

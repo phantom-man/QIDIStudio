@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_PopupWindow_hpp_
-#define slic3r_GUI_PopupWindow_hpp_
+#pragma once
+
 
 #include <wx/popupwin.h>
 #include <wx/event.h>
@@ -34,4 +34,3 @@ private:
 #endif
 };
 
-#endif // !slic3r_GUI_PopupWindow_hpp_

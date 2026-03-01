@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_BackgroundSlicingProcess_hpp_
-#define slic3r_GUI_BackgroundSlicingProcess_hpp_
+#pragma once
+
 
 #include <string>
 #include <condition_variable>

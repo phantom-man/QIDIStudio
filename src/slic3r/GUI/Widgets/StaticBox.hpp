@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_StaticBox_hpp_
-#define slic3r_GUI_StaticBox_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
@@ -65,4 +65,3 @@ protected:
     DECLARE_EVENT_TABLE()
 };
 
-#endif // !slic3r_GUI_StaticBox_hpp_

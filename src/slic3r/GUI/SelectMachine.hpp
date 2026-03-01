@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_SelectMachine_hpp_
-#define slic3r_GUI_SelectMachine_hpp_
+#pragma once
+
 
 #include <wx/wx.h>
 #include <wx/intl.h>
@@ -681,4 +681,3 @@ wxDECLARE_EVENT(EVT_SWITCH_PRINT_OPTION, wxCommandEvent);
 
 }} // namespace Slic3r::GUI
 
-#endif

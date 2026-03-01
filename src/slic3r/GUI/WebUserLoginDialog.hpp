@@ -1,6 +1,6 @@
 #pragma once
-#ifndef slic3r_ZWebUserLogin_HEAD_
-#define slic3r_ZWebUserLogin_HEAD_
+#pragma once
+
 
 #include "wx/artprov.h"
 #include "wx/cmdline.h"
@@ -91,4 +91,3 @@ private:
 }
 } // namespace Slic3r::GUI
 
-#endif 

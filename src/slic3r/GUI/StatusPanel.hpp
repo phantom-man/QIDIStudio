@@ -1,5 +1,5 @@
-#ifndef slic3r_StatusPanel_hpp_
-#define slic3r_StatusPanel_hpp_
+#pragma once
+
 
 #include "libslic3r/ProjectTask.hpp"
 #include "DeviceManager.hpp"
@@ -959,4 +959,3 @@ private:
 };
 }
 }
-#endif

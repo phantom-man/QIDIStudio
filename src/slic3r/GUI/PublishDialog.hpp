@@ -1,5 +1,5 @@
-#ifndef slic3r_PublishDialog_hpp_
-#define slic3r_PublishDialog_hpp_
+#pragma once
+
 
 
 #include "I18N.hpp"

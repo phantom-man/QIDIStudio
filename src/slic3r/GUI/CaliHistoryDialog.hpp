@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_CaliHistory_hpp_
-#define slic3r_GUI_CaliHistory_hpp_
+#pragma once
+
 
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
@@ -107,4 +107,3 @@ protected:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

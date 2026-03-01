@@ -1,5 +1,5 @@
-#ifndef QDTSTATUSBAR_HPP
-#define QDTSTATUSBAR_HPP
+#pragma once
+
 
 #include <wx/panel.h>
 #include <wx/sizer.h>
@@ -79,4 +79,3 @@ namespace GUI {
 
 }
 
-#endif // QDTSTATUSBAR_HPP

@@ -1,5 +1,5 @@
-#ifndef ROTOPTIMIZEJOB_HPP
-#define ROTOPTIMIZEJOB_HPP
+#pragma once
+
 
 #include "PlaterJob.hpp"
 
@@ -73,4 +73,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif // ROTOPTIMIZEJOB_HPP

@@ -1,5 +1,5 @@
-#ifndef slic3r_MultiMachinePage_hpp_
-#define slic3r_MultiMachinePage_hpp_
+#pragma once
+
 
 #include "libslic3r/libslic3r.h"
 #include "GUI_App.hpp"
@@ -101,4 +101,3 @@ public:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

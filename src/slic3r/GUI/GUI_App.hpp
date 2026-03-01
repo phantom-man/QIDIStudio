@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_App_hpp_
-#define slic3r_GUI_App_hpp_
+#pragma once
+
 
 #include <memory>
 #include <string>
@@ -840,4 +840,3 @@ static std::vector<wxLanguage> s_supported_languages = {
 } // namespace GUI
 } // Slic3r
 
-#endif // slic3r_GUI_App_hpp_

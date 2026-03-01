@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_RADIOBOX_hpp_
-#define slic3r_GUI_RADIOBOX_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 
@@ -37,4 +37,3 @@ private:
 
 
 
-#endif // !slic3r_GUI_CheckBox_hpp_

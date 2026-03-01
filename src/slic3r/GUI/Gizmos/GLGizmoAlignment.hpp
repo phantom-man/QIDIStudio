@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoAlignment_hpp_
-#define slic3r_GLGizmoAlignment_hpp_
+#pragma once
+
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/BoundingBox.hpp"
@@ -88,4 +88,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoAlignment_hpp_

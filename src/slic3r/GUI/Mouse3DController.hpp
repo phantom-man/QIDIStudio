@@ -1,5 +1,5 @@
-#ifndef slic3r_Mouse3DController_hpp_
-#define slic3r_Mouse3DController_hpp_
+#pragma once
+
 
 // Enabled debug output to console and extended imgui dialog
 #define ENABLE_3DCONNEXION_DEVICES_DEBUG_OUTPUT 0
@@ -237,4 +237,3 @@ private:
 } // namespace Slic3r
 
 
-#endif // slic3r_Mouse3DController_hpp_

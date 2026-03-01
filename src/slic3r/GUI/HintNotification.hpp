@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_HintNotification_hpp_
-#define slic3r_GUI_HintNotification_hpp_
+#pragma once
+
 
 #include "NotificationManager.hpp"
 
@@ -75,4 +75,3 @@ private:
 } //namespace Slic3r 
 } //namespace GUI 
 
-#endif //slic3r_GUI_HintNotification_hpp_

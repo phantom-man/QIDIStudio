@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_ObjectLayers_hpp_
-#define slic3r_GUI_ObjectLayers_hpp_
+#pragma once
+
 
 #include "GUI_ObjectSettings.hpp"
 #include "wxExtensions.hpp"
@@ -103,4 +103,3 @@ public:
 
 }}
 
-#endif // slic3r_GUI_ObjectLayers_hpp_

@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_ObjectTableSettings_hpp_
-#define slic3r_GUI_ObjectTableSettings_hpp_
+#pragma once
+
 
 #include <memory>
 #include <vector>
@@ -80,4 +80,3 @@ wxDECLARE_EVENT(EVT_LOCK_DISABLE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_LOCK_ENABLE, wxCommandEvent);
 }}
 
-#endif // slic3r_GUI_ObjectTableSettings_hpp_

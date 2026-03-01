@@ -1,5 +1,5 @@
-#ifndef slic3r_Camera_hpp_
-#define slic3r_Camera_hpp_
+#pragma once
+
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Frustum.hpp"
@@ -184,6 +184,4 @@ private:
 
 } // GUI
 } // Slic3r
-
-#endif // slic3r_Camera_hpp_
 

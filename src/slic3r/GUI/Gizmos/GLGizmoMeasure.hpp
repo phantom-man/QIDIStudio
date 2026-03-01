@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoMeasure_hpp_
-#define slic3r_GLGizmoMeasure_hpp_
+#pragma once
+
 
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/GLModel.hpp"
@@ -309,4 +309,3 @@ protected:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoMeasure_hpp_

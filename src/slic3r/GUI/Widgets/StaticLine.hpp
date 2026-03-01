@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_StaticLine_hpp_
-#define slic3r_GUI_StaticLine_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 #include "wx/window.h"
@@ -33,4 +33,3 @@ private:
     DECLARE_EVENT_TABLE()
 };
 
-#endif // !slic3r_GUI_StaticLine_hpp_

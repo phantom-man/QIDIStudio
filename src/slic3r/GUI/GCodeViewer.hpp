@@ -1,5 +1,5 @@
-#ifndef slic3r_GCodeViewer_hpp_
-#define slic3r_GCodeViewer_hpp_
+#pragma once
+
 #include "slic3r/GUI/GCodeRenderer/BaseRenderer.hpp"
 #include "3DScene.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -95,4 +95,3 @@ namespace Slic3r {
         } // namespace gcode
     } // namespace GUI
 } // namespace Slic3r
-#endif // slic3r_GCodeViewer_hpp_

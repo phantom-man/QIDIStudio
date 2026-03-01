@@ -1,5 +1,5 @@
-#ifndef slic3r_HMSPanel_hpp_
-#define slic3r_HMSPanel_hpp_
+#pragma once
+
 
 #include <wx/panel.h>
 #include <wx/textctrl.h>
@@ -80,4 +80,3 @@ wxDECLARE_EVENT(EVT_ALREADY_READ_HMS, wxCommandEvent);
 }
 }
 
-#endif

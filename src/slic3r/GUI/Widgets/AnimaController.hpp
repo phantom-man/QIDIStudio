@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_AnimaController_hpp_
-#define slic3r_GUI_AnimaController_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 #include "Label.hpp"
@@ -27,4 +27,3 @@ private:
     int                   m_size;
 };
 
-#endif // !slic3r_GUI_AnimaController_hpp_

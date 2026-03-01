@@ -1,5 +1,5 @@
-#ifndef slic3r_Monitor_hpp_
-#define slic3r_Monitor_hpp_
+#pragma once
+
 
 #include "Tabbook.hpp"
 #include <wx/notebook.h>

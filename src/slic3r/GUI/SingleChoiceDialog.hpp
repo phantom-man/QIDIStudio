@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_SingleChoice_hpp_
-#define slic3r_GUI_SingleChoice_hpp_
+#pragma once
+
 
 #include "GUI_Utils.hpp"
 #include "Widgets/Button.hpp"
@@ -26,4 +26,3 @@ protected:
 
 }} // namespace Slic3r::GUI
 
-#endif

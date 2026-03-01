@@ -3,9 +3,8 @@
 #ifndef WX_PRECOMP
 #include <wx/wx.h>
 #endif
-
-#ifndef MAX
-#define MAX(a,b)	((a)>(b)?(a):(b))
+#pragma once
+(a,b)	((a)>(b)?(a):(b))
 #endif
 
 enum {BEFORE_SCROLLBAR, ON_SCROLLBAR, AFTER_SCROLLBAR, NOWHERE};

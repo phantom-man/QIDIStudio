@@ -1,5 +1,5 @@
-#ifndef slic3r_PhysicalPrinterDialog_hpp_
-#define slic3r_PhysicalPrinterDialog_hpp_
+#pragma once
+
 
 #include <vector>
 
@@ -94,4 +94,3 @@ protected:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_GLGizmosCommon_hpp_
-#define slic3r_GUI_GLGizmosCommon_hpp_
+#pragma once
+
 
 #include <memory>
 #include <map>
@@ -445,4 +445,3 @@ private:
 } // namespace Slic3r
 
 
-#endif // slic3r_GUI_GLGizmosCommon_hpp_

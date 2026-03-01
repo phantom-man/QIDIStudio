@@ -1,5 +1,5 @@
-#ifndef slic3r_AMSMaterialsSetting_hpp_
-#define slic3r_AMSMaterialsSetting_hpp_
+#pragma once
+
 
 #include "libslic3r/Preset.hpp"
 #include "wxExtensions.hpp"
@@ -221,4 +221,3 @@ wxDECLARE_EVENT(EVT_SET_TYPE, wxCommandEvent);
 
 }} // namespace Slic3r::GUI
 
-#endif

@@ -1,5 +1,5 @@
-#ifndef slic3r_ENCODED_FILAMENT_hpp_
-#define slic3r_ENCODED_FILAMENT_hpp_
+#pragma once
+
 
 #include <vector>
 #include <map>
@@ -226,4 +226,3 @@ private:
 };
 
 }
-#endif

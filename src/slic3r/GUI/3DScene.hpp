@@ -1,5 +1,5 @@
-#ifndef slic3r_3DScene_hpp_
-#define slic3r_3DScene_hpp_
+#pragma once
+
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
@@ -882,4 +882,3 @@ struct _3DScene
 
 }
 
-#endif

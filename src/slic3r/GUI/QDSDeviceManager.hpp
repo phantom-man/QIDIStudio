@@ -1,5 +1,5 @@
-#ifndef QDSDEVICEMANAGER_H
-#define QDSDEVICEMANAGER_H
+#pragma once
+
 
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
@@ -355,4 +355,3 @@ private:
 }
 }
 
-#endif //QDSDEVICEMANAGER_H

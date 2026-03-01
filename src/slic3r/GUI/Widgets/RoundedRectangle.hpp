@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_ROUNDEDRECTANGLE_hpp_
-#define slic3r_GUI_ROUNDEDRECTANGLE_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 
@@ -18,4 +18,3 @@ public:
     void OnPaint(wxPaintEvent &evt);
     DECLARE_EVENT_TABLE()
 };
-#endif // !slic3r_GUI_RoundedRectangle_hpp_

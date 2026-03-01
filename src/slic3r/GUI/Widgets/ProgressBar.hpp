@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_ProgressBar_hpp_
-#define slic3r_GUI_ProgressBar_hpp_
+#pragma once
+
 
 #include <wx/window.h>
 #include "../wxExtensions.hpp"
@@ -63,4 +63,3 @@ protected:
     DECLARE_EVENT_TABLE()
 };
 
-#endif // !slic3r_GUI_ProgressBar_hpp_

@@ -1,5 +1,5 @@
-#ifndef slic3r_GLToolbar_hpp_
-#define slic3r_GLToolbar_hpp_
+#pragma once
+
 
 #include <functional>
 #include <string>
@@ -583,4 +583,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLToolbar_hpp_

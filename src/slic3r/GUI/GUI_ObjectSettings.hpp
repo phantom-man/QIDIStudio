@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_ObjectSettings_hpp_
-#define slic3r_GUI_ObjectSettings_hpp_
+#pragma once
+
 
 #include <memory>
 #include <vector>
@@ -74,4 +74,3 @@ public:
 
 }}
 
-#endif // slic3r_GUI_ObjectSettings_hpp_

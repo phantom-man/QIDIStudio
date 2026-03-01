@@ -1,5 +1,5 @@
-#ifndef PLATERWORKER_HPP
-#define PLATERWORKER_HPP
+#pragma once
+
 
 #include <map>
 #include <chrono>
@@ -154,4 +154,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif // PLATERJOB_HPP

@@ -1,5 +1,5 @@
-#ifndef slic3r_UserNotification_hpp_
-#define slic3r_UserNotification_hpp_
+#pragma once
+
 
 
 namespace Slic3r {
@@ -17,4 +17,3 @@ public:
 
 } // namespace Slic3r
 
-#endif

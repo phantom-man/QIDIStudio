@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_CalibrationWizardStartPage_hpp_
-#define slic3r_GUI_CalibrationWizardStartPage_hpp_
+#pragma once
+
 
 #include "CalibrationWizardPage.hpp"
 
@@ -97,4 +97,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif

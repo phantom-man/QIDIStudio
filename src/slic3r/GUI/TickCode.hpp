@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_TickCode_hpp_
-#define slic3r_GUI_TickCode_hpp_
+#pragma once
+
 
 #include "libslic3r/CustomGCode.hpp"
 #include "IMSlider_Utils.hpp"
@@ -60,4 +60,3 @@ public:
 
 }} // Slic3r
 
-#endif // slic3r_GUI_TickCode_hpp_

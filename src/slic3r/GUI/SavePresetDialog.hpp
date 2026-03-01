@@ -1,5 +1,5 @@
-#ifndef slic3r_SavePresetDialog_hpp_
-#define slic3r_SavePresetDialog_hpp_
+#pragma once
+
 
 //#include <wx/gdicmn.h>
 
@@ -121,4 +121,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

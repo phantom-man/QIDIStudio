@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoFuzzySkin_hpp_
-#define slic3r_GLGizmoFuzzySkin_hpp_
+#pragma once
+
 
 #include "GLGizmoPainterBase.hpp"
 //QDS
@@ -79,4 +79,3 @@ private:
     std::map<std::string, wxString> m_desc;
 };
 } // namespace Slic3r::GUI
-#endif // slic3r_GLGizmoFuzzySkin_hpp_

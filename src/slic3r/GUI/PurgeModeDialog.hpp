@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_PurgeModeDialog_hpp_
-#define slic3r_GUI_PurgeModeDialog_hpp_
+#pragma once
+
 
 #include <wx/dialog.h>
 #include <wx/panel.h>
@@ -65,4 +65,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GUI_PurgeModeDialog_hpp_

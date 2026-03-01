@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_format_hpp_
-#define slic3r_GUI_format_hpp_
+#pragma once
+
 
 // Functional wrapper around boost::format.
 // One day we may replace this wrapper with C++20 format

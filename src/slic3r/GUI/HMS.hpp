@@ -1,5 +1,5 @@
-#ifndef slic3r_HMS_hpp_
-#define slic3r_HMS_hpp_
+#pragma once
+
 
 #include "GUI_App.hpp"
 #include "GUI.hpp"
@@ -85,4 +85,3 @@ std::string get_error_message(int error_code);
 }
 
 
-#endif

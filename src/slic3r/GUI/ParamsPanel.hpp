@@ -1,5 +1,5 @@
-#ifndef slic3r_params_panel_hpp_
-#define slic3r_params_panel_hpp_
+#pragma once
+
 
 
 #include <map>
@@ -173,4 +173,3 @@ class ParamsPanel : public wxPanel
 } // GUI
 } // Slic3r
 
-#endif //slic3r_params_panel_hpp_

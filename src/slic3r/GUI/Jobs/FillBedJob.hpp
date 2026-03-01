@@ -1,5 +1,5 @@
-#ifndef FILLBEDJOB_HPP
-#define FILLBEDJOB_HPP
+#pragma once
+
 
 #include "ArrangeJob.hpp"
 
@@ -45,4 +45,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif // FILLBEDJOB_HPP

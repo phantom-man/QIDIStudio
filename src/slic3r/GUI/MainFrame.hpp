@@ -1,5 +1,5 @@
-#ifndef slic3r_MainFrame_hpp_
-#define slic3r_MainFrame_hpp_
+#pragma once
+
 
 #include "libslic3r/PrintConfig.hpp"
 
@@ -478,4 +478,3 @@ wxDECLARE_EVENT(EVT_UPDATE_PRESET_CB, SimpleEvent);
 } // GUI
 } //Slic3r
 
-#endif // slic3r_MainFrame_hpp_

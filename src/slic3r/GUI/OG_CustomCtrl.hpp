@@ -1,5 +1,5 @@
-#ifndef slic3r_OG_CustomCtrl_hpp_
-#define slic3r_OG_CustomCtrl_hpp_
+#pragma once
+
 
 #include <wx/stattext.h>
 #include <wx/settings.h>

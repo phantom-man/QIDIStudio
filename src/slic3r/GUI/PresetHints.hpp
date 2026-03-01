@@ -1,5 +1,5 @@
-#ifndef slic3r_PresetHints_hpp_
-#define slic3r_PresetHints_hpp_
+#pragma once
+
 
 #include <string>
 

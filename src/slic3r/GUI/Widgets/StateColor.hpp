@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_StateColor_hpp_
-#define slic3r_GUI_StateColor_hpp_
+#pragma once
+
 
 #include <wx/colour.h>
 
@@ -111,4 +111,3 @@ private:
     bool takeFocusedAsHovered_ = true;
 };
 
-#endif // !slic3r_GUI_StateColor_hpp_

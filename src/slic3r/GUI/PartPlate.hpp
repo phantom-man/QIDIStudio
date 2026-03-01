@@ -1,5 +1,5 @@
-#ifndef __part_plate_hpp_
-#define __part_plate_hpp_
+#pragma once
+
 
 #include <vector>
 #include <set>
@@ -1010,4 +1010,3 @@ namespace cereal
 {
     template <class Archive> struct specialize<Archive, Slic3r::GUI::PartPlate, cereal::specialization::member_load_save> {};
 }
-#endif //__part_plate_hpp_

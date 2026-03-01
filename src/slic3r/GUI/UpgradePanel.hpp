@@ -1,5 +1,5 @@
-#ifndef slic3r_UpgradePanel_hpp_
-#define slic3r_UpgradePanel_hpp_
+#pragma once
+
 
 #include <wx/panel.h>
 #include <slic3r/GUI/Widgets/Button.hpp>
@@ -282,4 +282,3 @@ public:
 }
 }
 
-#endif

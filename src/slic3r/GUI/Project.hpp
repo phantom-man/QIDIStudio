@@ -1,5 +1,5 @@
-#ifndef slic3r_Project_hpp_
-#define slic3r_Project_hpp_
+#pragma once
+
 
 #include "Tabbook.hpp"
 #include "wx/artprov.h"
@@ -99,4 +99,3 @@ public:
 wxDECLARE_EVENT(EVT_PROJECT_RELOAD, wxCommandEvent);
 }} // namespace Slic3r::GUI
 
-#endif

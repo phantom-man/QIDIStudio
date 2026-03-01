@@ -1,5 +1,5 @@
-#ifndef slic3r_AMSSettingDialog_hpp_
-#define slic3r_AMSSettingDialog_hpp_
+#pragma once
+
 
 #include "libslic3r/Preset.hpp"
 #include "wxExtensions.hpp"
@@ -154,4 +154,3 @@ private:
 
 }} // namespace Slic3r::GUI
 
-#endif

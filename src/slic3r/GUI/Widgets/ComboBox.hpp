@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_ComboBox_hpp_
-#define slic3r_GUI_ComboBox_hpp_
+#pragma once
+
 
 #include "TextInput.hpp"
 #include "DropDown.hpp"
@@ -115,4 +115,3 @@ private:
     bool is_able = true;
 };
 
-#endif // !slic3r_GUI_ComboBox_hpp_

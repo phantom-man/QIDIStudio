@@ -1,5 +1,5 @@
-#ifndef slic3r_ImGuiWrapper_hpp_
-#define slic3r_ImGuiWrapper_hpp_
+#pragma once
+
 
 #include <string>
 #include <map>
@@ -410,6 +410,4 @@ public:
 
 } // namespace GUI
 } // namespace Slic3r
-
-#endif // slic3r_ImGuiWrapper_hpp_
 

@@ -1,5 +1,5 @@
-#ifndef slic3r_Text_Shape_hpp_
-#define slic3r_Text_Shape_hpp_
+#pragma once
+
 
 #include "libslic3r/TriangleMesh.hpp"
 #include <libslic3r/Emboss.hpp>
@@ -20,4 +20,3 @@ namespace Slic3r {
 
 }; // namespace Slic3r
 
-#endif // slic3r_Text_Shape_hpp_

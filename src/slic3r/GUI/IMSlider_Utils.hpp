@@ -1,5 +1,5 @@
-#ifndef slic3r_IMSlider_Utils_hpp_
-#define slic3r_IMSlider_Utils_hpp_
+#pragma once
+
 
 #include <stdio.h>
 #include <random>
@@ -195,4 +195,3 @@ public:
     }
 };
 
-#endif

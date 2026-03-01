@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_ObjectDataViewModel_hpp_
-#define slic3r_GUI_ObjectDataViewModel_hpp_
+#pragma once
+
 
 #include <boost/log/trivial.hpp>
 
@@ -569,4 +569,3 @@ private:
 }
 
 
-#endif // slic3r_GUI_ObjectDataViewModel_hpp_

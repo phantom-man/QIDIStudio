@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoScale_hpp_
-#define slic3r_GLGizmoScale_hpp_
+#pragma once
+
 
 #include "GLGizmoBase.hpp"
 //QDS: add size adjust related
@@ -109,4 +109,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoScale_hpp_

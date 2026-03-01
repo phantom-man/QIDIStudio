@@ -1,5 +1,5 @@
-#ifndef slic3r_FilamentMapDialog_hpp_
-#define slic3r_FilamentMapDialog_hpp_
+#pragma once
+
 
 #include "FilamentMapPanel.hpp"
 #include <vector>

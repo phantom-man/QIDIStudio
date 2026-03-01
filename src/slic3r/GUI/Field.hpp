@@ -1,5 +1,5 @@
-#ifndef SLIC3R_GUI_FIELD_HPP
-#define SLIC3R_GUI_FIELD_HPP
+#pragma once
+
 
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP

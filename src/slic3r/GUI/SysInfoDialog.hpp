@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_SysInfoDialog_hpp_
-#define slic3r_GUI_SysInfoDialog_hpp_
+#pragma once
+
 
 #include <wx/wx.h>
 #include <wx/html/htmlwin.h>
@@ -32,4 +32,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

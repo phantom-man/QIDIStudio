@@ -1,5 +1,5 @@
-#ifndef _OBJ_COLOR_DIALOG_H_
-#define _OBJ_COLOR_DIALOG_H_
+#pragma once
+
 
 #include "GUI_Utils.hpp"
 #include "Camera.hpp"
@@ -127,4 +127,3 @@ private:
     unsigned char &                  m_first_extruder_id;
 };
 
-#endif  // _WIPE_TOWER_DIALOG_H_

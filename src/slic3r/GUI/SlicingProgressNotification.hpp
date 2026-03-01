@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_SlicingProgressNotification_hpp_
-#define slic3r_GUI_SlicingProgressNotification_hpp_
+#pragma once
+
 
 #include "DailyTips.hpp"
 #include "NotificationManager.hpp"
@@ -84,4 +84,3 @@ protected:
 
 }}
 
-#endif

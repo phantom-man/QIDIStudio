@@ -1,5 +1,5 @@
-#ifndef slic3r_ConfigWizard_hpp_
-#define slic3r_ConfigWizard_hpp_
+#pragma once
+
 
 #include <memory>
 
@@ -62,4 +62,3 @@ private:
 }
 }
 
-#endif

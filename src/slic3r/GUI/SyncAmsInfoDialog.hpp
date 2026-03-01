@@ -1,5 +1,5 @@
-#ifndef _SyncAmsInfo_DIALOG_H_
-#define _SyncAmsInfo_DIALOG_H_
+#pragma once
+
 
 #include <future>
 #include <thread>
@@ -375,4 +375,3 @@ private:
     InputInfo m_input_info;
 };
 }}     // namespace Slic3r::GUI
-#endif  // _STEP_MESH_DIALOG_H_

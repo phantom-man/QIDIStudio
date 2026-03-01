@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_Calibration_hpp_
-#define slic3r_GUI_Calibration_hpp_
+#pragma once
+
 
 #include <wx/wx.h>
 #include <wx/intl.h>
@@ -68,4 +68,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif

@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_AMXCONTROL_hpp_
-#define slic3r_GUI_AMXCONTROL_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 #include "StaticBox.hpp"
@@ -219,4 +219,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif // !slic3r_GUI_amscontrol_hpp_

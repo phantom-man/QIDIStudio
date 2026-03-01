@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoSimplify_hpp_
-#define slic3r_GLGizmoSimplify_hpp_
+#pragma once
+
 
 // Include GLGizmoBase.hpp before I18N.hpp as it includes some libigl code,
 // which overrides our localization "L" macro.
@@ -150,4 +150,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoSimplify_hpp_

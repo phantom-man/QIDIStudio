@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_WebView_hpp_
-#define slic3r_GUI_WebView_hpp_
+#pragma once
+
 
 #include <wx/webview.h>
 
@@ -18,4 +18,3 @@ public:
     static wxString BuildEdgeUserDataPath();
 };
 
-#endif // !slic3r_GUI_WebView_hpp_

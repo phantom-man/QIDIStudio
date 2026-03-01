@@ -1,5 +1,5 @@
-#ifndef SLIC3R_GUI_BITMAP_CACHE_HPP
-#define SLIC3R_GUI_BITMAP_CACHE_HPP
+#pragma once
+
 
 #include <map>
 #include <vector>
@@ -67,4 +67,3 @@ private:
 } // GUI
 } // Slic3r
 
-#endif // SLIC3R_GUI_BITMAP_CACHE_HPP

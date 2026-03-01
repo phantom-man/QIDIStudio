@@ -1,5 +1,5 @@
-#ifndef slic3r_UnsavedChangesDialog_hpp_
-#define slic3r_UnsavedChangesDialog_hpp_
+#pragma once
+
 
 #include <wx/dataview.h>
 #include <map>
@@ -459,4 +459,3 @@ protected:
 }
 }
 
-#endif //slic3r_UnsavedChangesDialog_hpp_

@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_Label_hpp_
-#define slic3r_GUI_Label_hpp_
+#pragma once
+
 
 #include <wx/stattext.h>
 
@@ -61,4 +61,3 @@ public:
     static wxSize split_lines(wxDC &dc, int width, const wxString &text, wxString &multiline_text, int max_count = 0);
 };
 
-#endif // !slic3r_GUI_Label_hpp_

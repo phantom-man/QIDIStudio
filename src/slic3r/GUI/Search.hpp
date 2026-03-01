@@ -1,5 +1,5 @@
-#ifndef slic3r_SearchComboBox_hpp_
-#define slic3r_SearchComboBox_hpp_
+#pragma once
+
 
 #include <vector>
 #include <map>
@@ -316,4 +316,3 @@ public:
 } // namespace Search
 } // namespace Slic3r
 
-#endif // slic3r_SearchComboBox_hpp_

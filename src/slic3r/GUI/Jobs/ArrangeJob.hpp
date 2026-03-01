@@ -1,5 +1,5 @@
-#ifndef ARRANGEJOB_HPP
-#define ARRANGEJOB_HPP
+#pragma once
+
 
 #include "PlaterJob.hpp"
 #include "slic3r/GUI/Plater.hpp"
@@ -83,4 +83,3 @@ arrangement::ArrangeParams init_arrange_params(Plater *p);
 
 }} // namespace Slic3r::GUI
 
-#endif // ARRANGEJOB_HPP

@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_LinkLabel_hpp_
-#define slic3r_GUI_LinkLabel_hpp_
+#pragma once
+
 
 #include <wx/panel.h>
 
@@ -26,4 +26,3 @@ public:
     bool SeLinkLabelBColour(const wxColour &colour);
 };
 
-#endif // !slic3r_GUI_LinkLabel_hpp_

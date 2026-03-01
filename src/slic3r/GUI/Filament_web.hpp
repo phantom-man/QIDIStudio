@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_Filament_web_hpp_
-#define slic3r_GUI_Filament_web_hpp_
+#pragma once
+
 
 #include "Tabbook.hpp"
 #include "wx/artprov.h"
@@ -66,4 +66,3 @@ namespace Slic3r {
     }
 } // namespace Slic3r::GUI
 
-#endif

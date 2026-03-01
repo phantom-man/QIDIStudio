@@ -1,5 +1,5 @@
-#ifndef PROGRESSSTATUSBAR_HPP
-#define PROGRESSSTATUSBAR_HPP
+#pragma once
+
 
 #include <memory>
 #include <string>
@@ -75,4 +75,3 @@ namespace GUI {
 
 }
 
-#endif // PROGRESSSTATUSBAR_HPP

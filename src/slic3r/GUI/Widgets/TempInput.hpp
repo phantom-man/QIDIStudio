@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_TempInput_hpp_
-#define slic3r_GUI_TempInput_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 #include <wx/stattext.h>
@@ -153,4 +153,3 @@ private:
     DECLARE_EVENT_TABLE()
 };
 
-#endif // !slic3r_GUI_TempInput_hpp_

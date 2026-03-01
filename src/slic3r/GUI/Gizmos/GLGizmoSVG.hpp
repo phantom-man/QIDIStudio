@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoSVG_hpp_
-#define slic3r_GLGizmoSVG_hpp_
+#pragma once
+
 
 #include "GLGizmoRotate.hpp"
 #include "slic3r/GUI/SurfaceDrag.hpp"
@@ -175,4 +175,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoMove_hpp_

@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoSeam_hpp_
-#define slic3r_GLGizmoSeam_hpp_
+#pragma once
+
 
 #include "GLGizmoPainterBase.hpp"
 
@@ -60,4 +60,3 @@ private:
 } // namespace Slic3r::GUI
 
 
-#endif // slic3r_GLGizmoSeam_hpp_

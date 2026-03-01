@@ -1,5 +1,5 @@
-#ifndef slic3r_ConfigManipulation_hpp_
-#define slic3r_ConfigManipulation_hpp_
+#pragma once
+
 
 /*	 Class for validation config options
  *	 and update (enable/disable) IU components

@@ -1,5 +1,5 @@
-#ifndef slic3r_ProjectDirtyStateManager_hpp_
-#define slic3r_ProjectDirtyStateManager_hpp_
+#pragma once
+
 
 #include "libslic3r/Preset.hpp"
 
@@ -41,4 +41,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_ProjectDirtyStateManager_hpp_

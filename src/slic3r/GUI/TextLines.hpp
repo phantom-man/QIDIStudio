@@ -1,5 +1,5 @@
-#ifndef slic3r_TextLines_hpp_
-#define slic3r_TextLines_hpp_
+#pragma once
+
 
 #include <vector>
 #include <libslic3r/Polygon.hpp>
@@ -59,4 +59,3 @@ TextLines create_text_lines(
     double *line_height_mm_ptr = nullptr
 );
 }
-#endif // slic3r_TextLines_hpp_

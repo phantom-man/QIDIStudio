@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_hpp_
-#define slic3r_GUI_hpp_
+#pragma once
+
 
 namespace boost { class any; }
 namespace boost::filesystem { class path; }
@@ -87,4 +87,3 @@ extern void desktop_open_any_folder(const std::string path);
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

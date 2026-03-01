@@ -1,5 +1,5 @@
-#ifndef slic3r_CreateFontNameImageJob_hpp_
-#define slic3r_CreateFontNameImageJob_hpp_
+#pragma once
+
 
 #include <vector>
 #include <string>
@@ -86,4 +86,3 @@ public:
 
 } // namespace Slic3r::GUI
 
-#endif // slic3r_CreateFontNameImageJob_hpp_

@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_IMSlider_hpp_
-#define slic3r_GUI_IMSlider_hpp_
+#pragma once
+
 
 #include "TickCode.hpp"
 #include <imgui/imgui.h>
@@ -240,4 +240,3 @@ private:
 } // Slic3r
 
 
-#endif // slic3r_GUI_IMSlider_hpp_

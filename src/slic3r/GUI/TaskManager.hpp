@@ -1,5 +1,5 @@
-#ifndef slic3r_TaskManager_hpp_
-#define slic3r_TaskManager_hpp_
+#pragma once
+
 
 #include "DeviceManager.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
@@ -181,4 +181,3 @@ private:
 wxDECLARE_EVENT(EVT_MULTI_SEND_LIMIT, wxCommandEvent);
 } // namespace Slic3r
 
-#endif

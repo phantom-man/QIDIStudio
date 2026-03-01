@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_Colors_hpp_
-#define slic3r_GUI_Colors_hpp_
+#pragma once
+
 
 #include "imgui/imgui.h"
 #include <array>
@@ -49,4 +49,3 @@ inline ImVec4 IMColor(std::array<float, 4> color) {
 
 }
 
-#endif

@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoRotate_hpp_
-#define slic3r_GLGizmoRotate_hpp_
+#pragma once
+
 
 #include "GLGizmoBase.hpp"
 #include "../Jobs/RotoptimizeJob.hpp"
@@ -216,4 +216,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoRotate_hpp_

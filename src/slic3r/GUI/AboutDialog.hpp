@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_AboutDialog_hpp_
-#define slic3r_GUI_AboutDialog_hpp_
+#pragma once
+
 
 #include <wx/wx.h>
 #include <wx/intl.h>
@@ -77,4 +77,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

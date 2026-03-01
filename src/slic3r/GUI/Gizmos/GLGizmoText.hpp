@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoText_hpp_
-#define slic3r_GLGizmoText_hpp_
+#pragma once
+
 
 #include "GLGizmoRotate.hpp"
 #include "slic3r/GUI/3DScene.hpp"
@@ -296,4 +296,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoText_hpp_

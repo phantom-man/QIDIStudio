@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoBase_hpp_
-#define slic3r_GLGizmoBase_hpp_
+#pragma once
+
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Color.hpp"
@@ -333,4 +333,3 @@ extern unsigned char picking_checksum_alpha_channel(unsigned char red, unsigned 
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoBase_hpp_

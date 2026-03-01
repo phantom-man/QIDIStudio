@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_SafetyOptionsDialog_hpp_
-#define slic3r_GUI_SafetyOptionsDialog_hpp_
+#pragma once
+
 
 #include <wx/wx.h>
 #include <wx/font.h>
@@ -63,4 +63,3 @@ private:
 
 }} // namespace Slic3r::GUI
 
-#endif

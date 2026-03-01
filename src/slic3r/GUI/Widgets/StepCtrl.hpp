@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_StepCtrlBase_hpp_
-#define slic3r_GUI_StepCtrlBase_hpp_
+#pragma once
+
 
 #include "StaticBox.hpp"
 
@@ -127,4 +127,3 @@ private:
 };
 
 
-#endif // !slic3r_GUI_StepCtrlBase_hpp_

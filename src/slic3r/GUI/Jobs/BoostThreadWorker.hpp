@@ -1,5 +1,5 @@
-#ifndef BOOSTTHREADWORKER_HPP
-#define BOOSTTHREADWORKER_HPP
+#pragma once
+
 
 #include <boost/variant.hpp>
 
@@ -152,4 +152,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif // BOOSTTHREADWORKER_HPP

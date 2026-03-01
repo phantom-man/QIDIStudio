@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_FilamentBitmapUtils_hpp_
-#define slic3r_GUI_FilamentBitmapUtils_hpp_
+#pragma once
+
 
 #include <wx/bitmap.h>
 #include <wx/colour.h>
@@ -23,4 +23,3 @@ wxBitmap create_filament_bitmap(const std::vector<wxColour>& colors,
 
 }} // namespace Slic3r::GUI
 
-#endif // slic3r_GUI_FilamentBitmapUtils_hpp_

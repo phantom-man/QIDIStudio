@@ -1,5 +1,5 @@
-#ifndef slic3r_MsgDialog_hpp_
-#define slic3r_MsgDialog_hpp_
+#pragma once
+
 
 #include <string>
 #include <unordered_map>
@@ -453,4 +453,3 @@ public:
 }
 }
 
-#endif

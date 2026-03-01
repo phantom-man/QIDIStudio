@@ -1,5 +1,5 @@
-#ifndef slic3r_IconManager_hpp_
-#define slic3r_IconManager_hpp_
+#pragma once
+
 
 #include <vector>
 #include <memory>
@@ -131,4 +131,3 @@ bool clickable(const IconManager::Icon &icon, const IconManager::Icon &icon_hove
 bool button(const IconManager::Icon &activ, const IconManager::Icon &hover, const IconManager::Icon &disable, bool disabled = false);
 
 } // namespace Slic3r::GUI
-#endif // slic3r_IconManager_hpp_

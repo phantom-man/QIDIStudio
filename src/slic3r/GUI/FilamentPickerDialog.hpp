@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_FilamentPickerDialog_hpp_
-#define slic3r_GUI_FilamentPickerDialog_hpp_
+#pragma once
+
 
 #include "GUI_App.hpp"
 #include "GUI.hpp"
@@ -114,4 +114,3 @@ private:
 
 }} // namespace Slic3r::GUI
 
-#endif

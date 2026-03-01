@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_ObjectList_hpp_
-#define slic3r_GUI_ObjectList_hpp_
+#pragma once
+
 
 #include <map>
 #include <vector>
@@ -496,7 +496,7 @@ private:
     std::vector<int> m_columns_width;
     wxSize           m_last_size;
 
-    // QDS: Ö§³Ö¶àÎ»Êý¿ì½Ý¼üÉèÖÃ¼·³ö»ú£¨Óë3D³¡¾°±£³ÖÒ»ÖÂ£©
+    // QDS: Ö§ï¿½Ö¶ï¿½Î»ï¿½ï¿½ï¿½ï¿½Ý¼ï¿½ï¿½ï¿½ï¿½Ã¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½3Dï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½Â£ï¿½
     wxTimer m_timer_set_extruder;
     int m_extruder_input_value = -1;
     void on_set_extruder_timer(wxTimerEvent& evt);
@@ -505,4 +505,3 @@ private:
 
 }}
 
-#endif //slic3r_GUI_ObjectList_hpp_

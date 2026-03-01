@@ -1,5 +1,5 @@
-#ifndef slic3r_MonitorPage_hpp_
-#define slic3r_MonitorPage_hpp_
+#pragma once
+
 
 #include <wx/panel.h>
 #include <wx/sizer.h>
@@ -21,4 +21,3 @@ public:
 
 }
 }
-#endif

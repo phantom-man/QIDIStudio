@@ -1,5 +1,5 @@
-#ifndef slic3r_BedShapeDialog_hpp_
-#define slic3r_BedShapeDialog_hpp_
+#pragma once
+
 // The bed shape dialog.
 // The dialog opens from Print Settins tab->Bed Shape : Set...
 

@@ -1,5 +1,5 @@
-#ifndef __BindJob_HPP__
-#define __BindJob_HPP__
+#pragma once
+
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -49,4 +49,3 @@ wxDECLARE_EVENT(EVT_BIND_MACHINE_SUCCESS, wxCommandEvent);
 wxDECLARE_EVENT(EVT_BIND_MACHINE_FAIL, wxCommandEvent);
 }} // namespace Slic3r::GUI
 
-#endif // ARRANGEJOB_HPP

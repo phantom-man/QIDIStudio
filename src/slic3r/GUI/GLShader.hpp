@@ -1,5 +1,5 @@
-#ifndef slic3r_GLShader_hpp_
-#define slic3r_GLShader_hpp_
+#pragma once
+
 
 #include <array>
 #include <string>

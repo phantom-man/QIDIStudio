@@ -1,5 +1,5 @@
-#ifndef slic3r_GLTexture_hpp_
-#define slic3r_GLTexture_hpp_
+#pragma once
+
 
 #include <atomic>
 #include <string>
@@ -217,6 +217,4 @@ namespace GUI {
 
 } // namespace GUI
 } // namespace Slic3r
-
-#endif // slic3r_GLTexture_hpp_
 

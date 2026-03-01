@@ -1,5 +1,5 @@
-#ifndef MULTI_NOZZLE_SYNC_HPP
-#define MULTI_NOZZLE_SYNC_HPP
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 #include "../MsgDialog.hpp"
@@ -192,4 +192,3 @@ void manuallySetNozzleCount(int extruder_id);
 
 } // namespace Slic3r
 
-#endif

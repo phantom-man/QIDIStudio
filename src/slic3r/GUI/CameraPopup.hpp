@@ -1,5 +1,5 @@
-#ifndef slic3r_CameraPopup_hpp_
-#define slic3r_CameraPopup_hpp_
+#pragma once
+
 
 #include "slic3r/GUI/MonitorBasePanel.h"
 #include "DeviceManager.hpp"
@@ -116,4 +116,3 @@ public:
 
 }
 }
-#endif

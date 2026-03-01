@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_PrivacyUpdateDialog_hpp_
-#define slic3r_GUI_PrivacyUpdateDialog_hpp_
+#pragma once
+
 
 #include "GUI_Utils.hpp"
 #include "Widgets/Button.hpp"
@@ -54,4 +54,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif

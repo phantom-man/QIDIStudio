@@ -1,5 +1,5 @@
-#ifndef __UpgradeNetworkJob_HPP__
-#define __UpgradeNetworkJob_HPP__
+#pragma once
+
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
@@ -59,4 +59,3 @@ wxDECLARE_EVENT(EVT_INSTALL_NETWORK_FAILED, wxCommandEvent);
 
 }} // namespace Slic3r::GUI
 
-#endif // ARRANGEJOB_HPP

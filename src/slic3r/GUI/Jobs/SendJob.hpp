@@ -1,5 +1,5 @@
-#ifndef SendJOB_HPP
-#define SendJOB_HPP
+#pragma once
+
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -68,4 +68,3 @@ public:
 
 }}
 
-#endif

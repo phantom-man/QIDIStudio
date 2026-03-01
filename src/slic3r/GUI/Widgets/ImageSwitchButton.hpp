@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_ImageSwitchButton_hpp_
-#define slic3r_GUI_ImageSwitchButton_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 #include "StateColor.hpp"
@@ -99,4 +99,3 @@ private:
     StateColor   text_color;
 };
 
-#endif // !slic3r_GUI_SwitchButton_hpp_

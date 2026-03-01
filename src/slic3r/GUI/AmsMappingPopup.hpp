@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_AmsMappingPopup_hpp_
-#define slic3r_GUI_AmsMappingPopup_hpp_
+#pragma once
+
 
 #include <wx/wx.h>
 #include <wx/intl.h>
@@ -546,4 +546,3 @@ wxDECLARE_EVENT(EVT_SET_FINISH_MAPPING, wxCommandEvent);
 
 }} // namespace Slic3r::GUI
 
-#endif

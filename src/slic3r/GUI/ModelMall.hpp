@@ -1,5 +1,5 @@
-#ifndef slic3r_ModelMall_hpp_
-#define slic3r_ModelMall_hpp_
+#pragma once
+
 
 #include "I18N.hpp"
 
@@ -65,4 +65,3 @@ namespace Slic3r { namespace GUI {
 
 }} // namespace Slic3r::GUI
 
-#endif

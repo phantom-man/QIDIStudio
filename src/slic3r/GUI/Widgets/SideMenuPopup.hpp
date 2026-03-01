@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_SideMenuPopup_hpp_
-#define slic3r_GUI_SideMenuPopup_hpp_
+#pragma once
+
 
 #include <wx/stattext.h>
 #include <wx/vlbox.h>
@@ -33,4 +33,3 @@ public:
 	DECLARE_EVENT_TABLE()
 };
 
-#endif // !slic3r_GUI_Button_hpp_

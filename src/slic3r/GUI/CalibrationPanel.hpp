@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_CalibrationPanel_hpp_
-#define slic3r_GUI_CalibrationPanel_hpp_
+#pragma once
+
 
 #include "CalibrationWizard.hpp"
 #include "Tabbook.hpp"
@@ -52,4 +52,3 @@ protected:
 };
 }} // namespace Slic3r::GUI
 
-#endif

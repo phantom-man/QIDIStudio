@@ -1,5 +1,5 @@
-#ifndef slic3r_BooleanOperationJob_hpp_
-#define slic3r_BooleanOperationJob_hpp_
+#pragma once
+
 
 #include <atomic>
 #include <memory>
@@ -115,4 +115,3 @@ namespace Slic3r {
     } // namespace Slic3r::GUI
 } // namespace Slic3r
 
-#endif // slic3r_BooleanOperationJob_hpp_

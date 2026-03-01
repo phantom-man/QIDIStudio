@@ -1,5 +1,5 @@
-#ifndef slic3r_CreateFontStyleImagesJob_hpp_
-#define slic3r_CreateFontStyleImagesJob_hpp_
+#pragma once
+
 
 #include <vector>
 #include <string>
@@ -33,4 +33,3 @@ public:
 
 } // namespace Slic3r::GUI
 
-#endif // slic3r_CreateFontStyleImagesJob_hpp_

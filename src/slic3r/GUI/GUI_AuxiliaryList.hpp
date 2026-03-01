@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_AuxiliaryList_hpp_
-#define slic3r_GUI_AuxiliaryList_hpp_
+#pragma once
+
 
 #include <map>
 #include <vector>
@@ -47,6 +47,4 @@ private:
 	wxButton* m_of_btn;
 	wxButton* m_del_btn;
 };
-
-#endif //slic3r_GUI_AuxiliaryList_hpp_
 

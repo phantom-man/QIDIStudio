@@ -1,5 +1,5 @@
-#ifndef slic3r_AmsWidgets_hpp_
-#define slic3r_AmsWidgets_hpp_
+#pragma once
+
 
 
 #include <wx/notebook.h>

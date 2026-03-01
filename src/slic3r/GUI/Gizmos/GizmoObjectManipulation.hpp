@@ -1,5 +1,5 @@
-#ifndef slic3r_GizmoObjectManipulation_hpp_
-#define slic3r_GizmoObjectManipulation_hpp_
+#pragma once
+
 
 #include <memory>
 
@@ -192,4 +192,3 @@ private:
 
 }}
 
-#endif // slic3r_GizmoObjectManipulation_hpp_

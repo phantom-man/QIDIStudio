@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_CalibrationWizard_hpp_
-#define slic3r_GUI_CalibrationWizard_hpp_
+#pragma once
+
 
 #include "../slic3r/Utils/CalibUtils.hpp"
 
@@ -139,4 +139,3 @@ wxDECLARE_EVENT(EVT_CALIBRATION_JOB_FINISHED, wxCommandEvent);
 
 }} // namespace Slic3r::GUI
 
-#endif

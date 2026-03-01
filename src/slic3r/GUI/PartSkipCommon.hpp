@@ -1,5 +1,5 @@
-#ifndef PARTSKIPCOMMON_H
-#define PARTSKIPCOMMON_H
+#pragma once
+
 
 
 namespace Slic3r { namespace GUI {
@@ -15,4 +15,3 @@ typedef std::vector<std::pair<int, PartState>> PartsInfo;
 
 }}
 
-#endif // PARTSKIPCOMMON_H

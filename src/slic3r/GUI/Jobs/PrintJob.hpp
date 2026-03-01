@@ -1,5 +1,5 @@
-#ifndef PrintJOB_HPP
-#define PrintJOB_HPP
+#pragma once
+
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -152,4 +152,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif

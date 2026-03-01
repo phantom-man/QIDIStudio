@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_AuxiliaryDataViewModel_hpp_
-#define slic3r_GUI_AuxiliaryDataViewModel_hpp_
+#pragma once
+
 
 #include "wx/wxprec.h"
 #include "wx/dataview.h"
@@ -150,6 +150,4 @@ private:
     AuxiliaryModelNode* m_root;
     wxString m_root_dir;
 };
-
-#endif // slic3r_GUI_AuxiliaryDataViewModel_hpp_
 

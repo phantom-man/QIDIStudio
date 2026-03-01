@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_Preview_hpp_
-#define slic3r_GUI_Preview_hpp_
+#pragma once
+
 
 #include <wx/panel.h>
 
@@ -210,4 +210,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GUI_Preview_hpp_

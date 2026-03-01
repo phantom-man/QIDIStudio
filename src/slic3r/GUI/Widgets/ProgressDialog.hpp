@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_PROGRESSDIALOG_hpp_
-#define slic3r_GUI_PROGRESSDIALOG_hpp_
+#pragma once
+
 
 #include "wx/dialog.h"
 #include "wx/progdlg.h"
@@ -274,4 +274,3 @@ private:
 };
 }} // namespace Slic3r::GUI
 
-#endif // slic3r_GUI_PROGRESSDIALOG_hpp_

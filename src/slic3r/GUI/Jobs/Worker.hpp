@@ -1,5 +1,5 @@
-#ifndef PRUSALSICER_WORKER_HPP
-#define PRUSALSICER_WORKER_HPP
+#pragma once
+
 
 #include <memory>
 
@@ -137,4 +137,3 @@ inline bool stop_queue(Worker &w, unsigned timeout_ms = 0)
 
 }} // namespace Slic3r::GUI
 
-#endif // WORKER_HPP

@@ -1,5 +1,5 @@
-#ifndef slic3r_Notebook_hpp_
-#define slic3r_Notebook_hpp_
+#pragma once
+
 
 //#ifdef _WIN32
 
@@ -400,4 +400,3 @@ private:
              m_hideTimeout;
 };
 //#endif // _WIN32
-#endif // slic3r_Notebook_hpp_

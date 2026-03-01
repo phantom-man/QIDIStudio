@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoFdmSupports_hpp_
-#define slic3r_GLGizmoFdmSupports_hpp_
+#pragma once
+
 
 #include "GLGizmoPainterBase.hpp"
 //QDS
@@ -101,4 +101,3 @@ private:
 } // namespace Slic3r::GUI
 
 
-#endif // slic3r_GLGizmoFdmSupports_hpp_

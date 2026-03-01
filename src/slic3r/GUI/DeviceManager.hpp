@@ -1,5 +1,5 @@
-#ifndef slic3r_DeviceManager_hpp_
-#define slic3r_DeviceManager_hpp_
+#pragma once
+
 
 #include <map>
 #include <mutex>
@@ -908,4 +908,3 @@ wxString get_stage_string(int stage);
 
 }; // namespace Slic3r
 
-#endif //  slic3r_DeviceManager_hpp_

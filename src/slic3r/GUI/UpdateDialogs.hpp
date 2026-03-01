@@ -1,5 +1,5 @@
-#ifndef slic3r_UpdateDialogs_hpp_
-#define slic3r_UpdateDialogs_hpp_
+#pragma once
+
 
 #include <string>
 #include <unordered_map>
@@ -137,4 +137,3 @@ public:
 }
 }
 
-#endif

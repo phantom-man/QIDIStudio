@@ -1,5 +1,5 @@
-#ifndef SKIPPARTCANVAS_H
-#define SKIPPARTCANVAS_H
+#pragma once
+
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
 #include <opencv2/opencv.hpp>
@@ -166,4 +166,3 @@ private:
 
 }
 }
-#endif //SKIPPARTCANVAS_H

@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_SIDETOOLS_hpp_
-#define slic3r_GUI_SIDETOOLS_hpp_
+#pragma once
+
 
 #include <wx/dcgraph.h>
 #include <wx/gdicmn.h>
@@ -128,4 +128,3 @@ public:
 };
 }} // namespace Slic3r::GUI
 
-#endif // !slic3r_GUI_SIDETOOLS_hpp_

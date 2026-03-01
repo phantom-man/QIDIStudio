@@ -1,5 +1,5 @@
-#ifndef slic3r_PrintHostSendDialog_hpp_
-#define slic3r_PrintHostSendDialog_hpp_
+#pragma once
+
 
 #include <set>
 #include <string>
@@ -196,4 +196,3 @@ private:
 }
 }
 
-#endif

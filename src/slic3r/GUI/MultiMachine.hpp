@@ -1,5 +1,5 @@
-#ifndef slic3r_MultiMachine_hpp_
-#define slic3r_MultiMachine_hpp_
+#pragma once
+
 
 #include "GUI_Utils.hpp"
 #include "DeviceManager.hpp"
@@ -118,4 +118,3 @@ wxDECLARE_EVENT(EVT_MULTI_REFRESH, wxCommandEvent);
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoAdvancedCut_hpp_
-#define slic3r_GLGizmoAdvancedCut_hpp_
+#pragma once
+
 
 #include "GLGizmoBase.hpp"
 #include "GLGizmoRotate.hpp"
@@ -356,4 +356,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoAdvancedCut_hpp_

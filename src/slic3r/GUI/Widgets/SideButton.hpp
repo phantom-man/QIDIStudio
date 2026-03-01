@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_SideButton_hpp_
-#define slic3r_GUI_SideButton_hpp_
+#pragma once
+
 
 #include <wx/stattext.h>
 #include <wx/vlbox.h>
@@ -90,4 +90,3 @@ private:
 
 	DECLARE_EVENT_TABLE()
 };
-#endif // !slic3r_GUI_Button_hpp_

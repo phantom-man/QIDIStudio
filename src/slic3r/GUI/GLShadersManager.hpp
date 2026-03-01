@@ -1,5 +1,5 @@
-#ifndef slic3r_GLShadersManager_hpp_
-#define slic3r_GLShadersManager_hpp_
+#pragma once
+
 
 #include <vector>
 #include <string>
@@ -34,4 +34,3 @@ private:
 
 } // namespace Slic3r
 
-#endif //  slic3r_GLShadersManager_hpp_

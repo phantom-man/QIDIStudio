@@ -1,5 +1,5 @@
-#ifndef slic3r_PresetComboBoxes_hpp_
-#define slic3r_PresetComboBoxes_hpp_
+#pragma once
+
 
 //#include <wx/bmpcbox.h>
 #include <wx/colourdata.h>
@@ -287,4 +287,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

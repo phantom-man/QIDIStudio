@@ -1,5 +1,5 @@
-#ifndef slic3r_OpenGLManager_hpp_
-#define slic3r_OpenGLManager_hpp_
+#pragma once
+
 
 #include "GLShadersManager.hpp"
 #include "RenderEnums.hpp"
@@ -316,4 +316,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_OpenGLManager_hpp_

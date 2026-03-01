@@ -1,5 +1,5 @@
-#ifndef slic3r_ExtrusionCalibration_hpp_
-#define slic3r_ExtrusionCalibration_hpp_
+#pragma once
+
 
 #include "libslic3r/Preset.hpp"
 #include "wxExtensions.hpp"
@@ -146,4 +146,3 @@ protected:
 
 }} // namespace Slic3r::GUI
 
-#endif

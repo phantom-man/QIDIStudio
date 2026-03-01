@@ -1,5 +1,5 @@
-#ifndef slic3r_WebViewDialog_hpp_
-#define slic3r_WebViewDialog_hpp_
+#pragma once
+
 
 
 #include "wx/artprov.h"

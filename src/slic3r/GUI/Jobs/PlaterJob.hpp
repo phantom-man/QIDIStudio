@@ -1,5 +1,5 @@
-#ifndef PLATERJOB_HPP
-#define PLATERJOB_HPP
+#pragma once
+
 
 #include "Job.hpp"
 
@@ -23,4 +23,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif // PLATERJOB_HPP

@@ -1,5 +1,5 @@
-#ifndef SLAIMPORTJOB_HPP
-#define SLAIMPORTJOB_HPP
+#pragma once
+
 
 #include "PlaterJob.hpp"
 
@@ -24,4 +24,3 @@ public:
 
 }}     // namespace Slic3r::GUI
 
-#endif // SLAIMPORTJOB_HPP

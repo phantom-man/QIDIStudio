@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_PlateMoveDialog_hpp_
-#define slic3r_GUI_PlateMoveDialog_hpp_
+#pragma once
+
 
 #include "Plater.hpp"
 #include "PartPlate.hpp"
@@ -73,4 +73,3 @@ private:
 };
 }} // namespace Slic3r::GUI
 
-#endif

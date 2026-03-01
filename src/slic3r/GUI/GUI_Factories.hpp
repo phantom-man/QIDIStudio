@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_Factories_hpp_
-#define slic3r_GUI_Factories_hpp_
+#pragma once
+
 
 #include <map>
 #include <vector>
@@ -188,4 +188,3 @@ private:
 
 }}
 
-#endif //slic3r_GUI_Factories_hpp_

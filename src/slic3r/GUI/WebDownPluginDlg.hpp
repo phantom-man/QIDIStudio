@@ -1,5 +1,5 @@
-#ifndef slic3r_WebDialytipDialog_hpp_
-#define slic3r_WebDialytipDialog_hpp_
+#pragma once
+
 
 #include "wx/artprov.h"
 #include "wx/cmdline.h"

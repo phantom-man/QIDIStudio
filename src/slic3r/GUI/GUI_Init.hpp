@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_Init_hpp_
-#define slic3r_GUI_Init_hpp_
+#pragma once
+
 
 #include <libslic3r/Preset.hpp>
 #include <libslic3r/PrintConfig.hpp>
@@ -30,4 +30,3 @@ int GUI_Run(GUI_InitParams &params);
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GUI_Init_hpp_

@@ -1,5 +1,5 @@
-#ifndef slic3r_MeshBooleanUI_hpp_
-#define slic3r_MeshBooleanUI_hpp_
+#pragma once
+
 
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoMeshBoolean.hpp"
@@ -224,4 +224,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_MeshBooleanUI_hpp_

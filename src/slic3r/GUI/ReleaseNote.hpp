@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_ReleaseNote_hpp_
-#define slic3r_GUI_ReleaseNote_hpp_
+#pragma once
+
 
 #include <limits>
 
@@ -386,4 +386,3 @@ wxDECLARE_EVENT(EVT_CHECK_IP_ADDRESS_LAYOUT, wxCommandEvent);
 
 }} // namespace Slic3r::GUI
 
-#endif

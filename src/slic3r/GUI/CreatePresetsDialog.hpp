@@ -1,5 +1,5 @@
-#ifndef slic3r_CreatePresetsDialog_hpp_
-#define slic3r_CreatePresetsDialog_hpp_
+#pragma once
+
 
 #include "libslic3r/Preset.hpp"
 #include "wxExtensions.hpp"
@@ -408,4 +408,3 @@ private:
 
 }
 }
-#endif

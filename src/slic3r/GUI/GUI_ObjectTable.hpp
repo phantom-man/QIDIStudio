@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_ObjectTable_hpp_
-#define slic3r_GUI_ObjectTable_hpp_
+#pragma once
+
 
 #include <wx/wx.h>
 #include <wx/intl.h>
@@ -648,4 +648,3 @@ protected:
 
 }
 }
-#endif //slic3r_GUI_ObjectTable_hpp_

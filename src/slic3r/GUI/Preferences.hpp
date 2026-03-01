@@ -1,5 +1,5 @@
-#ifndef slic3r_Preferences_hpp_
-#define slic3r_Preferences_hpp_
+#pragma once
+
 
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"

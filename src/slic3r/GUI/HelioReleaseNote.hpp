@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_HelioReleaseNote_hpp_
-#define slic3r_GUI_HelioReleaseNote_hpp_
+#pragma once
+
 
 #include <limits>
 #include <wx/wx.h>
@@ -207,4 +207,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif

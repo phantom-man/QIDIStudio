@@ -1,5 +1,5 @@
-#ifndef slic3r_Plater_hpp_
-#define slic3r_Plater_hpp_
+#pragma once
+
 
 #include <memory>
 #include <vector>
@@ -1109,4 +1109,3 @@ wxArrayString get_all_camera_view_type();
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

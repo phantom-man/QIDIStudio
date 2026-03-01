@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_CheckBox_hpp_
-#define slic3r_GUI_CheckBox_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 
@@ -52,4 +52,3 @@ private:
     bool m_half_checked = false;
 };
 
-#endif // !slic3r_GUI_CheckBox_hpp_

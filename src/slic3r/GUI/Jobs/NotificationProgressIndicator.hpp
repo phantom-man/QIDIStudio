@@ -1,5 +1,5 @@
-#ifndef NOTIFICATIONPROGRESSINDICATOR_HPP
-#define NOTIFICATIONPROGRESSINDICATOR_HPP
+#pragma once
+
 
 #include "ProgressIndicator.hpp"
 
@@ -26,4 +26,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif // NOTIFICATIONPROGRESSINDICATOR_HPP

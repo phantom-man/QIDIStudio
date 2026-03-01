@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_NotificationManager_hpp_
-#define slic3r_GUI_NotificationManager_hpp_
+#pragma once
+
 
 #include "GUI_App.hpp"
 #include "Plater.hpp"
@@ -980,4 +980,3 @@ public:
 }//namespace GUI
 }//namespace Slic3r
 
-#endif //slic3r_GUI_NotificationManager_hpp_

@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_NetworkTestDialog_hpp_
-#define slic3r_GUI_NetworkTestDialog_hpp_
+#pragma once
+
 
 #include <wx/wx.h>
 #include <boost/thread.hpp>
@@ -142,4 +142,3 @@ public:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

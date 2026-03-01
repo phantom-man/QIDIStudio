@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_DropDown_hpp_
-#define slic3r_GUI_DropDown_hpp_
+#pragma once
+
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <wx/stattext.h>
@@ -136,4 +136,3 @@ private:
     DECLARE_EVENT_TABLE()
 };
 
-#endif // !slic3r_GUI_DropDown_hpp_

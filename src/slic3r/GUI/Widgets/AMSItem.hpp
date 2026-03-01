@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_AMSITEM_hpp_
-#define slic3r_GUI_AMSITEM_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 #include "StaticBox.hpp"
@@ -851,4 +851,3 @@ wxDECLARE_EVENT(EVT_AMS_SWITCH, SimpleEvent);
 
 }} // namespace Slic3r::GUI
 
-#endif // !slic3r_GUI_amscontrol_hpp_

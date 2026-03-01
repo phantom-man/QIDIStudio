@@ -1,5 +1,5 @@
-#ifndef slic3r_MultiSendMachineModel_hpp_
-#define slic3r_MultiSendMachineModel_hpp_
+#pragma once
+
 
 #include "DeviceManager.hpp"
 
@@ -22,4 +22,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

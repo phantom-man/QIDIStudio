@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_PlateSettingsDialog_hpp_
-#define slic3r_GUI_PlateSettingsDialog_hpp_
+#pragma once
+
 
 #include "Plater.hpp"
 #include "PartPlate.hpp"
@@ -193,4 +193,3 @@ protected:
 };
 }} // namespace Slic3r::GUI
 
-#endif

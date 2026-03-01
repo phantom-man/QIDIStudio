@@ -1,5 +1,5 @@
-#ifndef FILAMENT_GROUP_HOVER_HPP
-#define FILAMENT_GROUP_HOVER_HPP
+#pragma once
+
 
 #include <wx/bitmap.h>
 #include <wx/bmpbuttn.h>
@@ -79,4 +79,3 @@ private:
     Plater* plater_ref{ nullptr };
 };
 }} // namespace Slic3r::GUI
-#endif

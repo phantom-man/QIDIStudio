@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoPainterBase_hpp_
-#define slic3r_GLGizmoPainterBase_hpp_
+#pragma once
+
 
 #include "GLGizmoBase.hpp"
 
@@ -426,4 +426,3 @@ protected:
 
 } // namespace Slic3r::GUI
 
-#endif // slic3r_GLGizmoPainterBase_hpp_

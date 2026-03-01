@@ -1,5 +1,5 @@
-#ifndef slic3r_IMToolbar_hpp_
-#define slic3r_IMToolbar_hpp_
+#pragma once
+
 
 #include <functional>
 #include <string>
@@ -90,4 +90,3 @@ public:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_IMToolbar_hpp_

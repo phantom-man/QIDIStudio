@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_Utils_hpp_
-#define slic3r_GUI_Utils_hpp_
+#pragma once
+
 
 #include <memory>
 #include <string>
@@ -568,4 +568,3 @@ bool generate_image(const std::string &filename, wxImage &image, wxSize img_size
 
 }}
 
-#endif

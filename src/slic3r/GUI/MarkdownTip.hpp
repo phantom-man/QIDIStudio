@@ -1,5 +1,5 @@
-#ifndef slic3r_MarkdownTip_hpp_
-#define slic3r_MarkdownTip_hpp_
+#pragma once
+
 
 #include <wx/popupwin.h>
 #include <wx/timer.h>
@@ -64,4 +64,3 @@ private:
 }
 }
 
-#endif

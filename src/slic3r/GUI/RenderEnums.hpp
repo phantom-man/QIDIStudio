@@ -1,5 +1,5 @@
-#ifndef slic3r_RenderEnums_hpp_
-#define slic3r_RenderEnums_hpp_
+#pragma once
+
 
 namespace Slic3r {
     namespace GUI {
@@ -72,4 +72,3 @@ namespace Slic3r {
     } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_RenderEnums_hpp_

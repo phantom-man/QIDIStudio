@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_RemovableDriveManager_hpp_
-#define slic3r_GUI_RemovableDriveManager_hpp_
+#pragma once
+
 
 #include <vector>
 #include <string>
@@ -139,4 +139,3 @@ private:
 
 }}
 
-#endif // slic3r_GUI_RemovableDriveManager_hpp_

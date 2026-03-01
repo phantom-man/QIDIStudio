@@ -1,5 +1,5 @@
-#ifndef slic3r_Http_App_hpp_
-#define slic3r_Http_App_hpp_
+#pragma once
+
 
 #include <iostream>
 #include <mutex>
@@ -103,4 +103,3 @@ private:
 }
 };
 
-#endif

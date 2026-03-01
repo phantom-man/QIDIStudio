@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoFlatten_hpp_
-#define slic3r_GLGizmoFlatten_hpp_
+#pragma once
+
 
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/3DScene.hpp"
@@ -78,4 +78,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoFlatten_hpp_

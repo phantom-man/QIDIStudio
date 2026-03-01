@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_FANCONTROL_hpp_
-#define slic3r_GUI_FANCONTROL_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 #include "StaticBox.hpp"
@@ -285,4 +285,3 @@ wxDECLARE_EVENT(EVTSET_AUXILIARYFAN_SPEED, wxCommandEvent);
 
 }} // namespace Slic3r::GUI
 
-#endif

@@ -1,5 +1,5 @@
-#ifndef slic3r_Tab_hpp_
-#define slic3r_Tab_hpp_
+#pragma once
+
 
 //	 The "Expert" tab at the right of the main tabbed window.
 //

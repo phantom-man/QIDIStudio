@@ -1,5 +1,5 @@
-#ifndef slic3r_SurfaceDrag_hpp_
-#define slic3r_SurfaceDrag_hpp_
+#pragma once
+
 
 #include <optional>
 #include "libslic3r/Point.hpp" // Vec2d, Transform3d
@@ -177,4 +177,3 @@ Transform3d get_drag_volume_transformation(Transform3d                       wor
                                            const std::optional<double> &up_limit = UP_LIMIT);
 
 } // namespace Slic3r::GUI
-#endif // slic3r_SurfaceDrag_hpp_

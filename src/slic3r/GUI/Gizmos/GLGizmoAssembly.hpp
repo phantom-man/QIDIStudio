@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmoAssembly_hpp_
-#define slic3r_GLGizmoAssembly_hpp_
+#pragma once
+
 
 #include "GLGizmoMeasure.hpp"
 
@@ -43,4 +43,3 @@ protected:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLGizmoAssembly_hpp_

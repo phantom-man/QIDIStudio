@@ -1,5 +1,5 @@
-#ifndef _SyncBoxInfo_DIALOG_H_
-#define _SyncBoxInfo_DIALOG_H_
+#pragma once
+
 
 #include <future>
 #include <thread>
@@ -408,4 +408,3 @@ private:
 };
 
 }}     // namespace Slic3r::GUI
-#endif  // _STEP_MESH_DIALOG_H_

@@ -1,5 +1,5 @@
-#ifndef slic3r_BitmapComboBox_hpp_
-#define slic3r_BitmapComboBox_hpp_
+#pragma once
+
 
 #include <wx/bmpcbox.h>
 #include <wx/gdicmn.h>
@@ -61,4 +61,3 @@ void Rescale();
 };
 
     }}
-#endif

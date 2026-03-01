@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_StateHandler_hpp_
-#define slic3r_GUI_StateHandler_hpp_
+#pragma once
+
 
 #include <memory>
 #include <wx/event.h>
@@ -61,4 +61,3 @@ private:
     StateHandler * parent_ = nullptr;
 };
 
-#endif // !slic3r_GUI_StateHandler_hpp_

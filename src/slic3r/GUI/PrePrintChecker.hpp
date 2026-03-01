@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_PRE_PRINT_CHECK_hpp_
-#define slic3r_GUI_PRE_PRINT_CHECK_hpp_
+#pragma once
+
 
 #include <wx/wx.h>
 #include "Widgets/Label.hpp"
@@ -247,4 +247,3 @@ private:
 
 }} // namespace Slic3r::GUI
 
-#endif

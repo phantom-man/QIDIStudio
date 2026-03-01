@@ -1,5 +1,5 @@
-#ifndef THREADSAFEQUEUE_HPP
-#define THREADSAFEQUEUE_HPP
+#pragma once
+
 
 #include <type_traits>
 #include <queue>
@@ -121,4 +121,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif // THREADSAFEQUEUE_HPP

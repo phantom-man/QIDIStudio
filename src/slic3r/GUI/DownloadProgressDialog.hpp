@@ -1,5 +1,5 @@
-#ifndef slic3r_DownloadProgressDialog_hpp_
-#define slic3r_DownloadProgressDialog_hpp_
+#pragma once
+
 
 #include <string>
 #include <unordered_map>
@@ -61,4 +61,3 @@ protected:
 }
 }
 
-#endif

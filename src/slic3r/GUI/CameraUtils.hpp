@@ -1,5 +1,5 @@
-#ifndef slic3r_CameraUtils_hpp_
-#define slic3r_CameraUtils_hpp_
+#pragma once
+
 
 #include "Camera.hpp"
 #include "libslic3r/Point.hpp"

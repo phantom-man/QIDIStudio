@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_CalibrationWizardPage_hpp_
-#define slic3r_GUI_CalibrationWizardPage_hpp_
+#pragma once
+
 
 #include "wx/event.h"
 #include "Widgets/Button.hpp"
@@ -255,4 +255,3 @@ wxDECLARE_EVENT(EVT_CALI_TRAY_CHANGED, wxCommandEvent);
 
 }} // namespace Slic3r::GUI
 
-#endif

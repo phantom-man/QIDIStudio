@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_Selection_hpp_
-#define slic3r_GUI_Selection_hpp_
+#pragma once
+
 
 #include "libslic3r/Geometry.hpp"
 #include "GLModel.hpp"
@@ -540,4 +540,3 @@ ModelVolume *get_volume(const ObjectID &volume_id, const Selection &selection);
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GUI_Selection_hpp_

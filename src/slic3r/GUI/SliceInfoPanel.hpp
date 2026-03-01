@@ -1,5 +1,5 @@
-#ifndef slic3r_SliceInfoPanel_hpp_
-#define slic3r_SliceInfoPanel_hpp_
+#pragma once
+
 
 #include "slic3r/GUI/MonitorBasePanel.h"
 #include "libslic3r/ProjectTask.hpp"
@@ -89,4 +89,3 @@ public:
 
 }
 }
-#endif

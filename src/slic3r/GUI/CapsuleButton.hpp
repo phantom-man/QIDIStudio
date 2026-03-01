@@ -1,5 +1,5 @@
-#ifndef CAPSULE_BUTTON_HPP
-#define CAPSULE_BUTTON_HPP
+#pragma once
+
 
 #include "wxExtensions.hpp"
 #include "Widgets/Label.hpp"
@@ -29,4 +29,3 @@ private:
 };
 }} // namespace Slic3r::GUI
 
-#endif

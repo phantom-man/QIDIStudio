@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_SwitchButton_hpp_
-#define slic3r_GUI_SwitchButton_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 #include "StateColor.hpp"
@@ -264,4 +264,3 @@ private:
 	StateColor   thumb_color;
 };
 
-#endif // !slic3r_GUI_SwitchButton_hpp_

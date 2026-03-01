@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_FILAMENTLOAD_hpp_
-#define slic3r_GUI_FILAMENTLOAD_hpp_
+#pragma once
+
 
 #include "../wxExtensions.hpp"
 #include "StaticBox.hpp"
@@ -59,4 +59,3 @@ public:
 
 
 
-#endif // !slic3r_GUI_filamentload_hpp_

@@ -1,5 +1,5 @@
-#ifndef BUSYCURSORJOB_HPP
-#define BUSYCURSORJOB_HPP
+#pragma once
+
 
 #include "JobNew.hpp"
 
@@ -51,4 +51,3 @@ public:
 }
 }
 
-#endif // BUSYCURSORJOB_HPP

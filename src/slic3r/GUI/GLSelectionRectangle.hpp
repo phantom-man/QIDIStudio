@@ -1,5 +1,5 @@
-#ifndef slic3r_GLSelectionRectangle_hpp_
-#define slic3r_GLSelectionRectangle_hpp_
+#pragma once
+
 
 #include "libslic3r/Point.hpp"
 #include "GLModel.hpp"
@@ -54,4 +54,3 @@ private:
 } // namespace Slic3r
 
 
-#endif // slic3r_GLGizmoSlaSupports_hpp_

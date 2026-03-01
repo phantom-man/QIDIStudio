@@ -1,6 +1,5 @@
+#pragma once
 
-#ifndef _WX_ERRORMSGSTATTEXT_H_
-#define _WX_ERRORMSGSTATTEXT_H_
 
 #include <wx/panel.h>
 #include "wx/stattext.h"
@@ -20,4 +19,3 @@ public:
     void SetLabel(wxString msg){m_msg = msg;};
 
 };
-#endif

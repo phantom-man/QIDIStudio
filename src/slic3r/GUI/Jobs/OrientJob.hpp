@@ -1,5 +1,5 @@
-#ifndef ORIENTJOB_HPP
-#define ORIENTJOB_HPP
+#pragma once
+
 
 #include "PlaterJob.hpp"
 #include "libslic3r/Orient.hpp"
@@ -63,4 +63,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif // ORIENTJOB_HPP

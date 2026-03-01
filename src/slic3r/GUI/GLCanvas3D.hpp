@@ -1,5 +1,5 @@
-#ifndef slic3r_GLCanvas3D_hpp_
-#define slic3r_GLCanvas3D_hpp_
+#pragma once
+
 
 #include <stddef.h>
 #include <memory>
@@ -1363,4 +1363,3 @@ ModelInstance *get_model_instance(const GLVolume &gl_volume, const ModelObject &
 } // namespace GUI
 } // namespace Slic3r
 
-#endif // slic3r_GLCanvas3D_hpp_

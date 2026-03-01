@@ -1,5 +1,5 @@
-#ifndef slic3r_MeshUtils_hpp_
-#define slic3r_MeshUtils_hpp_
+#pragma once
+
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Color.hpp"
@@ -253,4 +253,3 @@ private:
 } // namespace Slic3r
 
 
-#endif // slic3r_MeshUtils_hpp_

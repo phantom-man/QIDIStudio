@@ -1,5 +1,5 @@
-#ifndef slic3r_GLModel_hpp_
-#define slic3r_GLModel_hpp_
+#pragma once
+
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Color.hpp"
@@ -255,6 +255,4 @@ namespace GUI {
                                              const Transform3f &world_trafo);
     } // namespace GUI
 } // namespace Slic3r
-
-#endif // slic3r_GLModel_hpp_
 

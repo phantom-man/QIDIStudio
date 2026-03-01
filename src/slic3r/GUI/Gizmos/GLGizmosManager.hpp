@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_GLGizmosManager_hpp_
-#define slic3r_GUI_GLGizmosManager_hpp_
+#pragma once
+
 
 #include "slic3r/GUI/GLTexture.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
@@ -335,4 +335,3 @@ namespace cereal
     template <class Archive> struct specialize<Archive, Slic3r::GUI::GLGizmosManager, cereal::specialization::member_load_save> {};
 }
 
-#endif // slic3r_GUI_GLGizmosManager_hpp_

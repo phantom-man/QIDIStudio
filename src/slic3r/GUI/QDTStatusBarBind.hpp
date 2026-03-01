@@ -1,5 +1,5 @@
-#ifndef QDTStatusBarBind_HPP
-#define QDTStatusBarBind_HPP
+#pragma once
+
 
 #include <wx/panel.h>
 #include <wx/stattext.h>
@@ -88,4 +88,3 @@ using Slic3r::QDTStatusBarBind;
 
 } // namespace Slic3r
 
-#endif // QDTSTATUSBAR_HPP

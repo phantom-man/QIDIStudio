@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef _
 #define _(s)    	Slic3r::GUI::I18N::translate((s))
 #define _L(s)    	Slic3r::GUI::I18N::translate((s))
@@ -30,9 +32,6 @@
 //! With wxConvUTF8 explicitly specify that the source string is already in UTF-8 encoding
 #define _CHB(s) wxGetTranslation(wxString(s, wxConvUTF8)).utf8_str()
 #endif /* _CHB */
-
-#ifndef slic3r_GUI_I18N_hpp_
-#define slic3r_GUI_I18N_hpp_
 
 #include <wx/intl.h>
 #include <wx/version.h>
@@ -95,5 +94,3 @@ wxString	L_str(const std::string &str);
 #ifndef _L_PLURAL
 #define _L_PLURAL(s, plural, n) Slic3r::GUI::I18N::translate(s, plural, n)
 #endif /* L */
-
-#endif /* slic3r_GUI_I18N_hpp_ */

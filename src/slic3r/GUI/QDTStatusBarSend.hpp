@@ -1,5 +1,5 @@
-#ifndef QDTSTATUSBARSEND_HPP
-#define QDTSTATUSBARSEND_HPP
+#pragma once
+
 
 #include <wx/panel.h>
 #include <wx/stattext.h>
@@ -123,4 +123,3 @@ wxDECLARE_EVENT(EVT_SHOW_ERROR_INFO_SEND, wxCommandEvent);
 wxDECLARE_EVENT(EVT_SHOW_ERROR_FAIL_SEND, wxCommandEvent);
 } // namespace Slic3r
 
-#endif // QDTSTATUSBAR_HPP

@@ -1,5 +1,5 @@
-#ifndef slic3r_InstanceCheck_hpp_
-#define slic3r_InstanceCheck_hpp_
+#pragma once
+
 
 #include "Event.hpp"
 
@@ -104,4 +104,3 @@ public:
 };
 } // namespace GUI
 } // namespace Slic3r
-#endif // slic3r_InstanceCheck_hpp_

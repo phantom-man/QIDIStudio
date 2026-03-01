@@ -1,5 +1,5 @@
-#ifndef IPROGRESSINDICATOR_HPP
-#define IPROGRESSINDICATOR_HPP
+#pragma once
+
 
 #include <string>
 #include <functional>
@@ -29,4 +29,3 @@ public:
 
 }
 
-#endif // IPROGRESSINDICATOR_HPP

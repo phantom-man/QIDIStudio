@@ -1,5 +1,5 @@
-#ifndef slic3r_GUI_TextInput_hpp_
-#define slic3r_GUI_TextInput_hpp_
+#pragma once
+
 
 #include <wx/textctrl.h>
 #include "StaticBox.hpp"
@@ -156,4 +156,3 @@ protected:
     double m_max_value{ 0.0 };
 };
 
-#endif // !slic3r_GUI_TextInput_hpp_

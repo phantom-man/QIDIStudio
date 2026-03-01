@@ -1,5 +1,5 @@
-#ifndef _BaseTransparentDPIFrame_H_
-#define _BaseTransparentDPIFrame_H_
+#pragma once
+
 
 #include <future>
 #include <thread>
@@ -76,4 +76,3 @@ private:
     void begin_move_to_target_and_gradual_disappearance();
 };
 }}     // namespace Slic3r::GUI
-#endif  // _STEP_MESH_DIALOG_H_

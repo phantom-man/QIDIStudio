@@ -1,5 +1,5 @@
-#ifndef JOBNEW_HPP
-#define JOBNEW_HPP
+#pragma once
+
 
 #include <atomic>
 #include <exception>
@@ -67,4 +67,3 @@ public:
 
 }} // namespace Slic3r::GUI
 
-#endif // JOB_HPP

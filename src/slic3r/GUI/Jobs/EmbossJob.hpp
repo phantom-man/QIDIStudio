@@ -1,5 +1,5 @@
-#ifndef slic3r_EmbossJob_hpp_
-#define slic3r_EmbossJob_hpp_
+#pragma once
+
 
 #include <atomic>
 #include <memory>
@@ -454,4 +454,3 @@ SurfaceVolumeData::ModelSources create_sources(const ModelVolumePtrs &volumes, s
 } // namespace Slic3r::GUI
 } // namespace Slic3r
 
-#endif // slic3r_EmbossJob_hpp_

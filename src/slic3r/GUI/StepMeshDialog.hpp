@@ -1,5 +1,5 @@
-#ifndef _STEP_MESH_DIALOG_H_
-#define _STEP_MESH_DIALOG_H_
+#pragma once
+
 
 #include <future>
 #include <thread>
@@ -53,4 +53,3 @@ private:
     void stop_task();
 };
 
-#endif  // _STEP_MESH_DIALOG_H_

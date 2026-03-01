@@ -1,5 +1,5 @@
-#ifndef slic3r_SendMultiMachinePage_hpp_
-#define slic3r_SendMultiMachinePage_hpp_
+#pragma once
+
 
 #include "GUI_Utils.hpp"
 #include "MultiMachine.hpp"
@@ -229,4 +229,3 @@ private:
 } // namespace GUI
 } // namespace Slic3r
 
-#endif

@@ -1,5 +1,5 @@
-#ifndef slic3r_Tabbook_hpp_
-#define slic3r_Tabbook_hpp_
+#pragma once
+
 
 //#ifdef _WIN32
 
@@ -415,4 +415,3 @@ private:
 
 };
 //#endif // _WIN32
-#endif // slic3r_Tabbook_hpp_

@@ -1,5 +1,5 @@
-#ifndef slic3r_Auxiliary_hpp_
-#define slic3r_Auxiliary_hpp_
+#pragma once
+
 
 #include "Tabbook.hpp"
 #include <wx/notebook.h>
@@ -245,4 +245,3 @@ wxDECLARE_EVENT(EVT_AUXILIARY_UPDATE_DELETE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_AUXILIARY_UPDATE_RENAME, wxCommandEvent);
 }} // namespace Slic3r::GUI
 
-#endif

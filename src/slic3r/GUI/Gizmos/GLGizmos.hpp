@@ -1,5 +1,5 @@
-#ifndef slic3r_GLGizmos_hpp_
-#define slic3r_GLGizmos_hpp_
+#pragma once
+
 
 // this describes events being passed from GLCanvas3D to SlaSupport gizmo
 namespace Slic3r {
@@ -37,4 +37,3 @@ enum class SLAGizmoEventType : unsigned char {
 #include "slic3r/GUI/Gizmos/GLGizmoAdvancedCut.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoHollow.hpp"
 
-#endif //slic3r_GLGizmos_hpp_

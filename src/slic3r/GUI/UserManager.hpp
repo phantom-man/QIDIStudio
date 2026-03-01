@@ -1,5 +1,5 @@
-#ifndef slic3r_UserManager_hpp_
-#define slic3r_UserManager_hpp_
+#pragma once
+
 
 #include <map>
 #include <mutex>
@@ -33,4 +33,3 @@ public:
 };
 } // namespace Slic3r
 
-#endif //  slic3r_UserManager_hpp_
