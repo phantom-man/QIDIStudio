@@ -1,0 +1,2 @@
+LanceDB Corruption Detected: 'LanceTable' object has no attribute 'version_history'
+ERROR:root:LanceDB Corruption Detected: 'LanceTable' object has no attribute 'version_history'
