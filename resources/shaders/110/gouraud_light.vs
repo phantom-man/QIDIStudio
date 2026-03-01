@@ -2,14 +2,13 @@
 
 #define INTENSITY_CORRECTION 0.6
 
-// normalized values for (-0.6/1.31, 0.6/1.31, 1./1.31)
-const vec3 LIGHT_TOP_DIR = vec3(-0.4574957, 0.4574957, 0.7624929);
+// World-space light directions — transformed to eye-space on GPU
+const vec3 LIGHT_TOP_DIR_WS   = vec3(-0.4574957, 0.4574957, 0.7624929);
 #define LIGHT_TOP_DIFFUSE    (0.8 * INTENSITY_CORRECTION)
 #define LIGHT_TOP_SPECULAR   (0.125 * INTENSITY_CORRECTION)
-#define LIGHT_TOP_SHININESS  20.0
+#define LIGHT_TOP_SHININESS  80.0
 
-// normalized values for (1./1.43, 0.2/1.43, 1./1.43)
-const vec3 LIGHT_FRONT_DIR = vec3(0.6985074, 0.1397015, 0.6985074);
+const vec3 LIGHT_FRONT_DIR_WS = vec3(0.6985074, 0.1397015, 0.6985074);
 #define LIGHT_FRONT_DIFFUSE  (0.3 * INTENSITY_CORRECTION)
 
 #define INTENSITY_AMBIENT    0.3
@@ -19,25 +18,49 @@ attribute vec3 v_normal;
 
 uniform mat4 view_model_matrix;
 uniform mat4 projection_matrix;
-uniform mat3 normal_matrix;
+// view_matrix for world-space light transform; normal_matrix computed on GPU.
+uniform mat4 view_matrix;
 
 // x = diffuse, y = specular (kept for FS compatibility; lighting now computed per-pixel in FS)
 varying vec2 intensity;
 // Eye-space normal and position for per-pixel Phong in the fragment shader
 varying vec3 eye_normal;
 varying vec3 v_pos_eye;
+// Eye-space light directions
+varying vec3 v_light_top;
+varying vec3 v_light_front;
+
+// GLSL 1.10 lacks built-in inverse/transpose — manual implementations
+mat3 mat3_inverse(mat3 m) {
+    float a = m[0][0], b = m[0][1], c = m[0][2];
+    float d = m[1][0], e = m[1][1], f = m[1][2];
+    float g = m[2][0], h = m[2][1], k = m[2][2];
+    float det = a*(e*k-f*h) - b*(d*k-f*g) + c*(d*h-e*g);
+    float inv = 1.0 / det;
+    return mat3((e*k-f*h)*inv, (c*h-b*k)*inv, (b*f-c*e)*inv,
+                (f*g-d*k)*inv, (a*k-c*g)*inv, (c*d-a*f)*inv,
+                (d*h-e*g)*inv, (b*g-a*h)*inv, (a*e-b*d)*inv);
+}
+mat3 mat3_transpose(mat3 m) {
+    return mat3(m[0][0], m[1][0], m[2][0],
+                m[0][1], m[1][1], m[2][1],
+                m[0][2], m[1][2], m[2][2]);
+}
 
 void main()
 {
-    // Transform normal into eye space for per-pixel lighting in the fragment shader.
-    eye_normal = normalize(normal_matrix * v_normal);
+    // GPU-computed normal matrix (GLSL 1.10 manual implementation).
+    mat3 gpu_nm = mat3_transpose(mat3_inverse(mat3(view_model_matrix)));
+    eye_normal = normalize(gpu_nm * v_normal);
 
     vec4 position = view_model_matrix * vec4(v_position, 1.0);
-    // Pass eye-space position to fragment shader for view-vector computation.
     v_pos_eye = position.xyz;
 
-    // Lighting is computed per-pixel in the fragment shader.
-    intensity = vec2(1.0, 0.0);
+    // Transform world-space light dirs to eye-space on GPU.
+    mat3 view_rot = mat3(view_matrix);
+    v_light_top   = normalize(view_rot * LIGHT_TOP_DIR_WS);
+    v_light_front = normalize(view_rot * LIGHT_FRONT_DIR_WS);
 
+    intensity = vec2(1.0, 0.0);
     gl_Position = projection_matrix * position;
 }
