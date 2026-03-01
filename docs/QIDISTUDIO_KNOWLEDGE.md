@@ -2888,34 +2888,34 @@ _Absorbed: 2026-02-28. **Updated: 2026-02-28 (P1+P2 implemented, score 43→54/1
 
 ### §21.1 Current Score — 54/100 (C) — previously 43/100 (D+)
 
-| Dimension | Score | Status |
-|---|---|---|
-| Language Standard | ~~4~~/10 → **6/10** | ✅ C++20 set globally |
-| Memory & Ownership | 5/10 | unchanged |
-| Type Safety | ~~4~~/10 → **5/10** | ✅ `[[nodiscard]]` added |
-| Error Handling | ~~4~~/10 → **5/10** | ✅ noexcept move ctors |
-| OpenGL/Rendering | ~~4~~/10 → **5/10** | ✅ GLResource.hpp RAII |
-| Concurrency | ~~6~~/10 → **7/10** | ✅ std::jthread in GCodeSender |
-| Build System | ~~3~~/10 → **7/10** | ✅ CMakePresets.json + .clang-tidy |
-| Performance | 4/10 | P3 (Google Highway) |
-| Code Quality | ~~5~~/10 → **6/10** | ✅ #pragma once pilot |
-| Testing | 4/10 | P3 (fuzzing) |
-| **TOTAL** | **54/100** | **+11 points from P1+P2** |
+| Dimension          | Score               | Status                             |
+| ------------------ | ------------------- | ---------------------------------- |
+| Language Standard  | ~~4~~/10 → **6/10** | ✅ C++20 set globally              |
+| Memory & Ownership | 5/10                | unchanged                          |
+| Type Safety        | ~~4~~/10 → **5/10** | ✅ `[[nodiscard]]` added           |
+| Error Handling     | ~~4~~/10 → **5/10** | ✅ noexcept move ctors             |
+| OpenGL/Rendering   | ~~4~~/10 → **5/10** | ✅ GLResource.hpp RAII             |
+| Concurrency        | ~~6~~/10 → **7/10** | ✅ std::jthread in GCodeSender     |
+| Build System       | ~~3~~/10 → **7/10** | ✅ CMakePresets.json + .clang-tidy |
+| Performance        | 4/10                | P3 (Google Highway)                |
+| Code Quality       | ~~5~~/10 → **6/10** | ✅ #pragma once pilot              |
+| Testing            | 4/10                | P3 (fuzzing)                       |
+| **TOTAL**          | **54/100**          | **+11 points from P1+P2**          |
 
 ### §21.2 Technology Stack Recommendation (2026)
 
-| Concern | Current | Target | Effort |
-|---|---|---|---|
-| C++ standard | C++17 patchwork | **C++20 globally** | trivial |
-| Managed threads | `boost::thread` | `std::jthread` + `stop_token` | moderate |
-| SIMD geometry | None | **Google Highway** | significant |
-| GL object safety | Raw `GLuint` | **RAII wrappers** (50-line header) | low |
-| GL API style | Bind-to-modify | **DSA (glNamed*)** | moderate |
-| Error handling (new code) | bool/exception mix | `std::expected<T,E>` (C++23) | low |
-| Async subprocess | Blocking `wxExecute` | C++20 coroutines | moderate |
-| Build config | Ad-hoc cache | `CMakePresets.json` | trivial |
-| Static analysis | None | clang-tidy in CI | low |
-| Parser safety | No fuzzing | libFuzzer on STL/3MF/GCode | low |
+| Concern                   | Current              | Target                             | Effort      |
+| ------------------------- | -------------------- | ---------------------------------- | ----------- |
+| C++ standard              | C++17 patchwork      | **C++20 globally**                 | trivial     |
+| Managed threads           | `boost::thread`      | `std::jthread` + `stop_token`      | moderate    |
+| SIMD geometry             | None                 | **Google Highway**                 | significant |
+| GL object safety          | Raw `GLuint`         | **RAII wrappers** (50-line header) | low         |
+| GL API style              | Bind-to-modify       | **DSA (glNamed\*)**                | moderate    |
+| Error handling (new code) | bool/exception mix   | `std::expected<T,E>` (C++23)       | low         |
+| Async subprocess          | Blocking `wxExecute` | C++20 coroutines                   | moderate    |
+| Build config              | Ad-hoc cache         | `CMakePresets.json`                | trivial     |
+| Static analysis           | None                 | clang-tidy in CI                   | low         |
+| Parser safety             | No fuzzing           | libFuzzer on STL/3MF/GCode         | low         |
 
 ### §21.3 Priority 1 Actions (ALL IMPLEMENTED ✅)
 

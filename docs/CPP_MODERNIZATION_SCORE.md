@@ -8,39 +8,39 @@ _Maintained by: GitHub Copilot | Research date: 2026-02-28 | **Updated: 2026-02-
 
 ## Implementation Status (2026-02-28)
 
-| Priority | Action | Status | Files Changed |
-|----------|--------|--------|---------------|
-| P1 | Set `CMAKE_CXX_STANDARD 20` globally | ✅ **DONE** | `CMakeLists.txt` |
-| P1 | Add `CMakePresets.json` | ✅ **DONE** | `CMakePresets.json` (NEW) |
-| P1 | Add `.clang-tidy` config | ✅ **DONE** | `.clang-tidy` (NEW) |
-| P1 | Replace `boost::thread` in GCodeSender | ✅ **DONE** | `GCodeSender.hpp`, `GCodeSender.cpp` |
-| P1 | Mark move ctors `noexcept` | ✅ **DONE** | `TriangleMesh.hpp` |
-| P2 | RAII GL object wrappers | ✅ **DONE** | `src/slic3r/GUI/GLResource.hpp` (NEW) |
-| P2 | `[[nodiscard]]` on parse/IO functions | ✅ **DONE** | `TriangleMesh.hpp`, `Format/STL.hpp`, `Format/AMF.hpp` |
-| P2 | `#pragma once` migration script | ✅ **DONE** | `scripts/migrate_pragma_once.py` (NEW) |
-| P2 | `#pragma once` on key headers | ✅ **DONE** (pilot) | `Format/STL.hpp`, `Format/AMF.hpp` |
-| P2 | `std::unordered_map` in Config | ⚠️ **DEFERRED** | `Config.hpp` — sorted-iter dependency |
-| P3 | Google Highway SIMD | ⏳ Future | — |
-| P3 | `std::expected` in new APIs | ⏳ Future | — |
-| P3 | Coroutine Blender subprocess | ⏳ Future | — |
+| Priority | Action                                 | Status              | Files Changed                                          |
+| -------- | -------------------------------------- | ------------------- | ------------------------------------------------------ |
+| P1       | Set `CMAKE_CXX_STANDARD 20` globally   | ✅ **DONE**         | `CMakeLists.txt`                                       |
+| P1       | Add `CMakePresets.json`                | ✅ **DONE**         | `CMakePresets.json` (NEW)                              |
+| P1       | Add `.clang-tidy` config               | ✅ **DONE**         | `.clang-tidy` (NEW)                                    |
+| P1       | Replace `boost::thread` in GCodeSender | ✅ **DONE**         | `GCodeSender.hpp`, `GCodeSender.cpp`                   |
+| P1       | Mark move ctors `noexcept`             | ✅ **DONE**         | `TriangleMesh.hpp`                                     |
+| P2       | RAII GL object wrappers                | ✅ **DONE**         | `src/slic3r/GUI/GLResource.hpp` (NEW)                  |
+| P2       | `[[nodiscard]]` on parse/IO functions  | ✅ **DONE**         | `TriangleMesh.hpp`, `Format/STL.hpp`, `Format/AMF.hpp` |
+| P2       | `#pragma once` migration script        | ✅ **DONE**         | `scripts/migrate_pragma_once.py` (NEW)                 |
+| P2       | `#pragma once` on key headers          | ✅ **DONE** (pilot) | `Format/STL.hpp`, `Format/AMF.hpp`                     |
+| P2       | `std::unordered_map` in Config         | ⚠️ **DEFERRED**     | `Config.hpp` — sorted-iter dependency                  |
+| P3       | Google Highway SIMD                    | ⏳ Future           | —                                                      |
+| P3       | `std::expected` in new APIs            | ⏳ Future           | —                                                      |
+| P3       | Coroutine Blender subprocess           | ⏳ Future           | —                                                      |
 
 ---
 
 ## Executive Summary (REVISED after P1+P2 implementation)
 
-| Dimension                            | Baseline | Now    | Grade  | Change |
-| ------------------------------------ | -------- | ------ | ------ | ------ |
-| Language Standard & Feature Adoption | 4/10     | **6/10** | C  | C++20 global + noexcept |
-| Memory & Ownership                   | 5/10     | 5/10   | C      | — |
-| Type Safety                          | 4/10     | **5/10** | C  | [[nodiscard]] added |
-| Error Handling                       | 4/10     | **5/10** | C  | noexcept move ctors |
-| OpenGL / Rendering C++               | 4/10     | **5/10** | C  | GLResource.hpp RAII |
-| Concurrency & Parallelism            | 6/10     | **7/10** | B- | jthread in GCodeSender |
-| Build System & Tooling               | 3/10     | **7/10** | B  | CMakePresets + clang-tidy |
-| Performance Architecture             | 4/10     | 4/10   | D      | — |
-| Code Quality & Modern Idioms         | 5/10     | **6/10** | C+ | #pragma once pilot |
-| Testing & Verification               | 4/10     | 4/10   | D      | — |
-| **TOTAL (revised)**                  | **43/100** | **54/100** | **C** | **+11 points** |
+| Dimension                            | Baseline   | Now        | Grade | Change                    |
+| ------------------------------------ | ---------- | ---------- | ----- | ------------------------- |
+| Language Standard & Feature Adoption | 4/10       | **6/10**   | C     | C++20 global + noexcept   |
+| Memory & Ownership                   | 5/10       | 5/10       | C     | —                         |
+| Type Safety                          | 4/10       | **5/10**   | C     | [[nodiscard]] added       |
+| Error Handling                       | 4/10       | **5/10**   | C     | noexcept move ctors       |
+| OpenGL / Rendering C++               | 4/10       | **5/10**   | C     | GLResource.hpp RAII       |
+| Concurrency & Parallelism            | 6/10       | **7/10**   | B-    | jthread in GCodeSender    |
+| Build System & Tooling               | 3/10       | **7/10**   | B     | CMakePresets + clang-tidy |
+| Performance Architecture             | 4/10       | 4/10       | D     | —                         |
+| Code Quality & Modern Idioms         | 5/10       | **6/10**   | C+    | #pragma once pilot        |
+| Testing & Verification               | 4/10       | 4/10       | D     | —                         |
+| **TOTAL (revised)**                  | **43/100** | **54/100** | **C** | **+11 points**            |
 
 **Next session target:** Priority 3 — Google Highway SIMD integration for BVH + activate SLIC3R_BUILD_TESTS in CI.
 
