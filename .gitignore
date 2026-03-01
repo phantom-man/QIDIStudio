@@ -51,6 +51,14 @@ agents/__pycache__/
 DesktopCommanderMCP/
 data/lancedb
 
+# Private strategy/legal/business documents — local only, never publish
+# Even if this repo goes public these files stay off git history entirely
+docs/private/
+
+# VS Code extension — lives in its OWN separate private repo
+# Tracked locally here during planning; must never enter this AGPL repo
+vscode-extension/
+
 # Local debug artifacts / scratch outputs
 /.github/hooks/hook_test_out.txt
 /all_logs.txt
