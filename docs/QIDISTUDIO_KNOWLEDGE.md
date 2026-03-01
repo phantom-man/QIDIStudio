@@ -796,7 +796,7 @@ Assets are AI-generated PNGs (Vertex AI Imagen 3 or Replicate Flux Schnell) via 
 
 ### LanceDB Persistent Memory
 
-Session knowledge is stored in a local LanceDB vector DB at `data/lancedb/`, table `qidistudio_learnings`.
+Session knowledge is stored in a GCS-backed LanceDB vector DB at `gs://qidistudio-lancedb/lancedb`, table `qidistudio_learnings`.
 
 | Property        | Value                                                                              |
 | --------------- | ---------------------------------------------------------------------------------- |

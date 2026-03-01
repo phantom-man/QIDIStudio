@@ -4,7 +4,7 @@ QIDIStudio Persistent Memory Module
 Provides semantic memory persistence for the GitHub Copilot engineering agent.
 
 Architecture:
-  - LanceDB  : local vector store at data/lancedb/ — session learnings as embeddings
+  - LanceDB  : GCS vector store at gs://qidistudio-lancedb/lancedb — session learnings as embeddings
   - Postgres  : LangGraph checkpoint state (shared with DeepAgents)
   - LangSmith : tracing + system prompt hub
 

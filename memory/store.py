@@ -29,10 +29,10 @@ import lancedb
 import pyarrow as pa
 from sentence_transformers import SentenceTransformer
 
-LANCEDB_PATH  = os.getenv("LANCEDB_PATH",  "data/lancedb")
+LANCEDB_PATH = os.getenv("LANCEDB_PATH", "data/lancedb")
 LANCEDB_TABLE = os.getenv("LANCEDB_TABLE", "qidistudio_learnings")
-EMBED_DIMS    = int(os.getenv("LANCEDB_EMBEDDING_DIMS", "384"))
-EMBED_MODEL   = "all-MiniLM-L6-v2"
+EMBED_DIMS = int(os.getenv("LANCEDB_EMBEDDING_DIMS", "384"))
+EMBED_MODEL = "all-MiniLM-L6-v2"
 
 CATEGORIES = [
     "bpy_pipeline",
@@ -48,8 +48,8 @@ CATEGORIES = [
 ]
 
 _embedder: Optional[SentenceTransformer] = None
-_db       = None
-_table    = None
+_db = None
+_table = None
 
 
 def _get_embedder() -> SentenceTransformer:
@@ -62,24 +62,31 @@ def _get_embedder() -> SentenceTransformer:
 def _get_db():
     global _db
     if _db is None:
-        repo_root = Path(__file__).parents[1]
-        db_path   = repo_root / LANCEDB_PATH
-        db_path.mkdir(parents=True, exist_ok=True)
-        _db = lancedb.connect(str(db_path))
+        # Support both local paths and remote URIs (gs://, s3://, az://)
+        if LANCEDB_PATH.startswith(("gs://", "s3://", "az://", "gcs://")):
+            uri = LANCEDB_PATH
+            _db = lancedb.connect(uri)
+        else:
+            repo_root = Path(__file__).parents[1]
+            db_path = repo_root / LANCEDB_PATH
+            db_path.mkdir(parents=True, exist_ok=True)
+            _db = lancedb.connect(str(db_path))
     return _db
 
 
-_SCHEMA = pa.schema([
-    pa.field("id",        pa.string()),
-    pa.field("date",      pa.string()),
-    pa.field("category",  pa.string()),
-    pa.field("topic",     pa.string()),
-    pa.field("decision",  pa.string()),
-    pa.field("rationale", pa.string()),
-    pa.field("content",   pa.string()),   # ← full verbatim text
-    pa.field("source",    pa.string()),
-    pa.field("vector",    pa.list_(pa.float32(), EMBED_DIMS)),
-])
+_SCHEMA = pa.schema(
+    [
+        pa.field("id", pa.string()),
+        pa.field("date", pa.string()),
+        pa.field("category", pa.string()),
+        pa.field("topic", pa.string()),
+        pa.field("decision", pa.string()),
+        pa.field("rationale", pa.string()),
+        pa.field("content", pa.string()),  # ← full verbatim text
+        pa.field("source", pa.string()),
+        pa.field("vector", pa.list_(pa.float32(), EMBED_DIMS)),
+    ]
+)
 
 
 def _get_table():
@@ -89,10 +96,10 @@ def _get_table():
 
     db = _get_db()
     try:
-        resp = db.list_tables()          # lancedb >= 0.5 — returns ListTablesResponse
+        resp = db.list_tables()  # lancedb >= 0.5 — returns ListTablesResponse
         existing = list(resp.tables) if hasattr(resp, "tables") else list(resp)
     except AttributeError:
-        existing = db.table_names()      # older API
+        existing = db.table_names()  # older API
 
     if LANCEDB_TABLE in existing:
         t = db.open_table(LANCEDB_TABLE)
@@ -127,23 +134,23 @@ def upsert_learning(
     `content` holds the full verbatim text of the chunk.
     Returns the row id.
     """
-    table    = _get_table()
-    row_id   = existing_id or str(uuid.uuid4())
+    table = _get_table()
+    row_id = existing_id or str(uuid.uuid4())
     row_date = learning_date or date.today().isoformat()
 
     embed_text = f"{topic}: {decision}. {rationale}"
     vector = embed(embed_text)
 
     row = {
-        "id":        row_id,
-        "date":      row_date,
-        "category":  category,
-        "topic":     topic,
-        "decision":  decision,
+        "id": row_id,
+        "date": row_date,
+        "category": category,
+        "topic": topic,
+        "decision": decision,
         "rationale": rationale,
-        "content":   content or decision,
-        "source":    source,
-        "vector":    vector,
+        "content": content or decision,
+        "source": source,
+        "vector": vector,
     }
 
     try:
@@ -155,9 +162,11 @@ def upsert_learning(
     return row_id
 
 
-def query_similar(query_text: str, n: int = 10, category: Optional[str] = None) -> list[dict]:
+def query_similar(
+    query_text: str, n: int = 10, category: Optional[str] = None
+) -> list[dict]:
     """Retrieve the n most semantically similar rows."""
-    table  = _get_table()
+    table = _get_table()
     vector = embed(query_text)
 
     try:
@@ -174,7 +183,9 @@ def get_all(source_filter: Optional[str] = None) -> list[dict]:
     try:
         rows = _get_table().to_arrow().to_pylist()
         if source_filter:
-            rows = [r for r in rows if str(r.get("source", "")).startswith(source_filter)]
+            rows = [
+                r for r in rows if str(r.get("source", "")).startswith(source_filter)
+            ]
         return sorted(rows, key=lambda r: (r.get("source", ""), r.get("topic", "")))
     except Exception:
         return []
@@ -185,6 +196,7 @@ def get_recent(n: int = 30, days: int = 90) -> list[dict]:
     try:
         rows = _get_table().to_arrow().to_pylist()
         from datetime import timedelta
+
         cutoff = (date.today() - timedelta(days=days)).isoformat()
         dated = [r for r in rows if (r.get("date") or "") >= cutoff]
         return sorted(dated, key=lambda r: r.get("date", ""), reverse=True)[:n]
@@ -203,7 +215,10 @@ def count() -> int:
 
 
 if __name__ == "__main__":
-    print(f"LanceDB at : {Path(__file__).parents[1] / LANCEDB_PATH}")
+    if LANCEDB_PATH.startswith(("gs://", "s3://", "az://", "gcs://")):
+        print(f"LanceDB at : {LANCEDB_PATH}")
+    else:
+        print(f"LanceDB at : {Path(__file__).parents[1] / LANCEDB_PATH}")
     print(f"Table      : {LANCEDB_TABLE}")
     print(f"Rows       : {count()}")
     results = query_similar("cmake build command", n=3)

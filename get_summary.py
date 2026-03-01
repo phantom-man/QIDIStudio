@@ -9,8 +9,8 @@ from agents.orchestrator import run
 try:
     prompt = """
     You are the agent with the largest context window.
-    Your task: Retrieve ALL data from our LanceDB persistent memory (table qidistudio_learnings in data/lancedb).
-    You can use python to read the table directly using pyarrow or lancedb.
+    Your task: Retrieve ALL data from our LanceDB persistent memory (table qidistudio_learnings).
+    LanceDB is on GCS: gs://qidistudio-lancedb/lancedb (LANCEDB_PATH env var). Use memory.store or lancedb.connect() directly.
     Analyze the entire contents.
     Write a detailed executive summary of the project's current state: 
     - What is the architecture? 
