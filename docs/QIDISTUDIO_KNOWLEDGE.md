@@ -1,6 +1,6 @@
 # QIDIStudio — Complete Engineering Knowledge Base
 
-_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, \_DebugSession, ai_debug_pipeline.py, §15.14) + 2026-02-28 (§18: PhD Cognitive Architecture — full absorption of PSV loop, System 1/2 thinking, HAVEN, Lean 4, cross-domain isomorphisms, applied to all pipelines)_
+_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, \_DebugSession, ai_debug_pipeline.py, §15.14) + 2026-02-28 (§18: PhD Cognitive Architecture — full absorption of PSV loop, System 1/2 thinking, HAVEN, Lean 4, cross-domain isomorphisms, applied to all pipelines) + 2026-02-28 (§19: Computational Aesthetics — Fourier symmetry score, spectral entropy, Leder B(s,σ) model, Golden Zone, skin FFT tile refinement, ai_beauty_scorer.py)_
 
 This document captures all reverse-engineered knowledge about QIDIStudio's source code,
 build system, configuration, and 3MF format. It serves as the single source of truth
@@ -2607,6 +2607,101 @@ This is why session memory extraction is **mandatory** after every significant s
 | docs/AI PhD-Level Problem Solving Framework.md                                                          | Doctoral Thinking Framework, Agentic Reasoning table, Optimization vs Invention               | §18.2               |
 | docs/AI PhD-Level Problem Solving Framework 2.md                                                        | PSV Pipeline, Dialectical Self-Correction, Cross-Domain Isomorphism, TDAG/DRDA benchmarks     | §18.2, §18.4, §18.5 |
 | docs/AI's PhD-Level Thermal Dissipation Design.md                                                       | 5-phase reasoning trace, Schoen Gyroid, Graded RBF lattice, Reynolds number verification      | §18.6               |
+
+---
+
+## §19 PhD-Level Computational Aesthetics — Beauty Scoring for Textures
+
+_Absorbed 2026-02-28. Sources: docs/Symmetry and Beauty_ A PhD Perspective.md, docs/Beauty Score.md, docs/Measuring Aethetics.md, plus live research at Wikipedia/Processing*fluency_theory, Nature doi:10.1038/s41467-022-29330-w.*
+
+### 19.1 Scientific Framework — Why Beauty Is Measurable
+
+Beauty in texture mapping is not subjective at the engineering level. Three converging research pillars each converge on the same mathematical framework:
+
+| Pillar                                                                 | Key Result                                                                                                                                                                                      | Codebase Application                                                             |
+| :--------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
+| **Kolmogorov Complexity** (Johnston et al. 2022, Nature Comms 13:1858) | $A \propto 1/K(S)$ — aesthetic value ∝ inverse complexity. Symmetry compresses information, reducing K.                                                                                         | Choose skins whose patterns have low Kolmogorov complexity (high symmetry score) |
+| **Perceptual Fluency** (Reber, Schwarz & Winkielman 2004)              | Brain rewards ease of visual processing via hedonic signal. Symmetric stimuli → faster processing → perceived as beautiful. Inverted-U (Wundt Curve): too simple = boring, too complex = chaos. | Beauty score B clips at high symmetry _only if_ entropy is also high             |
+| **Neuroaesthetics B(s,σ) model** (Leder et al. 2004)                   | $B(s, \sigma) = \omega_1 \cdot \text{Fluency}(s) + \omega_2 \cdot \text{Novelty}(\sigma)$ where $s$ = symmetry, $\sigma$ = spectral entropy                                                     | Implemented as `beauty_score_from_metrics()` in `scripts/ai_beauty_scorer.py`    |
+
+### 19.2 The Two Core Metrics
+
+**Fourier Symmetry Score** — measures bilateral phase coherence:
+
+$$S = \frac{\sum|Re(F)|^2}{\sum|F|^2} \in [0,1]$$
+
+A real-valued centrosymmetric image → $Im(F) \to 0$ everywhere → $S \to 1$. Perfect grid or bilateral pattern: $S \approx 0.9997$. Random noise: $S \approx 0.65$.
+
+**Spectral Entropy** — measures information richness:
+
+$$H_s = -\sum P(u,v) \cdot \log_2 P(u,v) \quad \text{where } P = \frac{|F|^2}{\sum|F|^2}$$
+
+| Pattern Type                | $H_s$ (bits) | Interpretation                          |
+| :-------------------------- | :----------- | :-------------------------------------- |
+| Simple grid (2 frequencies) | ~2.06        | "Boring symmetry"                       |
+| Random noise                | ~4.64        | Chaos — no structure                    |
+| Gyroid / complex symmetric  | ~4.62        | **Golden Zone** — ordered but intricate |
+
+### 19.3 The Golden Zone
+
+**Target: $S > 0.90$ AND $H_s > 4.0$ simultaneously.**
+
+This combination (Leder 2004, Measuring Aesthetics §III) gives:
+
+- **High Fluency** → brain processes it as a single cohesive "chunk"
+- **High Novelty** → unique visual information stimulates reward centres (PFC)
+
+The Wundt Penalty prevents boring simple patterns from scoring BEAUTIFUL even if $S=1$:
+$$B_{\text{final}} = \omega_1 S + \omega_2 \frac{H_s}{H_{\text{random}}} - 0.12 \cdot \max(0,\ 2.0 - H_s)$$
+
+### 19.4 Dominant Spatial Frequency → Optimal Tile Size
+
+The skin PNG's dominant radial FFT frequency $r_{\text{peak}}$ (cycles/image_dim) directly encodes the ideal tile_size:
+
+$$\text{tile\_hint} = r_{\text{peak}} \times \text{FEATURE\_TARGET\_MM} \quad (\text{FEATURE\_TARGET\_MM} = 3.0)$$
+
+This targets a 3mm feature pitch (clearly visible at 0.4mm nozzle; not large enough to reveal the repeat pattern at normal viewing distance).
+
+**Blending in `_compute_optimal_params()`** (after golden-ratio geometric estimate):
+$$\text{tile\_final} = \text{snap\_to\_integer\_repeat}(0.55 \cdot \text{tile\_geo} + 0.45 \cdot \text{tile\_hint},\ L_{\text{dominant}})$$
+
+55% geometric (structure-driven) vs 45% skin-driven preserves seam-invisibility while resonating with the pattern's natural scale.
+
+### 19.5 Implementation Files
+
+| File                                                                 | Role                                                                                                                                                                                                      |
+| :------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/ai_beauty_scorer.py`                                        | Standalone module: `fft_symmetry_score()`, `spectral_entropy()`, `dominant_radial_frequency()`, `beauty_score_from_metrics()`, `analyse_skin_file()`. Uses numpy + PIL (falls back to stdlib PNG reader). |
+| `scripts/ai_texture_critic.py`                                       | Calls `_analyse_beauty()` on the skin path from session_summary.json. Reports S, H_s, B, verdict. Issues WARNING if B < 0.5, INFO for GOLDEN ZONE.                                                        |
+| `resources/scripts/apply_texture_bpy.py` `_compute_optimal_params()` | Blender-native (numpy only, no PIL). Loads skin via `bpy.data.images.load()`, computes FFT, finds r_peak, blends with geometric tile. Logs symmetry + entropy as quality signals.                         |
+
+### 19.6 Beauty Score Thresholds
+
+| Score     | Verdict        | Action                                                          |
+| :-------- | :------------- | :-------------------------------------------------------------- |
+| ≥ 0.80    | **BEAUTIFUL**  | Accept — Golden Zone or near-Golden Zone                        |
+| 0.65–0.80 | **GOOD**       | Accept — minor room for skin upgrade                            |
+| 0.50–0.65 | **ACCEPTABLE** | INFO — consider richer skin                                     |
+| < 0.50    | **POOR**       | WARNING — skin lacks structure; will produce muddy displacement |
+
+### 19.7 Cross-Domain Isomorphism
+
+| Texture beauty                            | Analogous domain                                      | Insight                                                 |
+| :---------------------------------------- | :---------------------------------------------------- | :------------------------------------------------------ |
+| Symmetry Score $S$ = Real energy fraction | Signal-to-noise ratio in comms theory                 | Phase coherence = signal quality                        |
+| Spectral Entropy $H_s$                    | Shannon channel capacity                              | Complex symmetric texture = high-capacity channel       |
+| Wundt penalty for $H_s < 2.0$             | Regularisation in ML (penalise overfit to simplicity) | Prevents degenerate "always-symmetric" solutions        |
+| $r_{\text{peak}}$ → tile_size             | Nyquist sampling theorem                              | Sample at 2× the dominant frequency to resolve features |
+
+### 19.8 Sources Absorbed
+
+| Source                                          | Key Contribution                                                                                             | Applied Where                                           |
+| :---------------------------------------------- | :----------------------------------------------------------------------------------------------------------- | :------------------------------------------------------ |
+| docs/Symmetry and Beauty\_ A PhD Perspective.md | Group theory invariance, Kolmogorov complexity, Perceptual Fluency, evolutionary Good Genes, Wundt curve     | §19.1–§19.2                                             |
+| docs/Beauty Score.md                            | Fourier Hermitian symmetry proof, Python symmetry score implementation, Symmetric=0.9997 / Asymmetric=0.6528 | §19.2, `ai_beauty_scorer.py` `fft_symmetry_score()`     |
+| docs/Measuring Aethetics.md                     | Spectral Entropy implementation, Simple=2.06 / Random=4.64 / Gyroid=4.62, Golden Zone definition             | §19.2–§19.3, `ai_beauty_scorer.py` `spectral_entropy()` |
+| Wikipedia: Processing Fluency Theory            | Inverted-U Wundt curve, hedonic marking, fluency-as-information account                                      | §19.1 Wundt penalty derivation                          |
+| Nature Comms 13:1858 (Johnston 2022)            | Symmetry as simplicity bias in evolution — directly supports $A \propto 1/K(S)$                              | §19.1 theoretical basis                                 |
 
 ---
 

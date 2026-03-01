@@ -614,6 +614,7 @@ def _compute_optimal_params(
     obj,
     mesh_class: "MeshClass",
     log: "Logger",
+    skin_path: "str | None" = None,
 ) -> tuple[float, float]:
     """
     Compute the perceptually optimal (tile_size, relief) for a mesh using
@@ -694,7 +695,7 @@ def _compute_optimal_params(
     Lz = max(Lz, 1.0)
 
     PHI = 1.6180339887  # golden ratio φ
-    PHI2 = PHI * PHI   # φ² ≈ 2.618
+    PHI2 = PHI * PHI  # φ² ≈ 2.618
 
     # ─ Tile size computation ────────────────────────────────────────────────
     # Ideal starting size: φ²-divided fraction of the characteristic length.
@@ -791,7 +792,9 @@ def _compute_optimal_params(
             # Fallback: use overall bbox diagonal / φ² / 2
             diag = math.sqrt(Lx**2 + Ly**2 + Lz**2)
             tile_size = diag / PHI2 / 2.0
-            log.log(f"  Auto-params UNKNOWN: diag={diag:.1f}mm → tile={tile_size:.2f}mm")
+            log.log(
+                f"  Auto-params UNKNOWN: diag={diag:.1f}mm → tile={tile_size:.2f}mm"
+            )
 
     # ── Clamp tile_size to printable range ────────────────────────────────────
     # Minimum: 4mm — smaller than this and texture features are below 0.4mm nozzle.
@@ -827,6 +830,102 @@ def _compute_optimal_params(
     # Hard printability bounds: minimum 0.25mm (0.4mm nozzle = 0.62× min feature)
     # Maximum 1.5mm (beyond this, displacement is structural not decorative)
     relief = max(0.25, min(1.5, relief))
+
+    # ── Skin FFT refinement: blend geometric tile with skin-derived frequency ───
+    # The skin texture has its own characteristic spatial frequency.  Blending
+    # the geometric (golden-ratio snapped) estimate with the skin's dominant
+    # frequency produces a tile_size that "resonates" with the pattern itself.
+    #
+    # Theory: if the skin has dominant frequency r_peak (cycles/image_dim),
+    # then "feature pitch" = tile_size / r_peak (mm).  We target a feature
+    # pitch of FEATURE_TARGET_MM = 3.0mm (clearly visible at 0.4mm nozzle,
+    # but not so large that the eye sees the repeat too obviously).
+    #
+    # Implementation uses Blender's bundled numpy (always available) and
+    # bpy.data.images for PNG loading (no PIL needed).
+    if skin_path:
+        try:
+            import numpy as _np
+
+            skin_img = bpy.data.images.load(skin_path, check_existing=True)
+            W_px, H_px = skin_img.size  # (width, height) in pixels
+
+            if W_px > 8 and H_px > 8:
+                # Blender stores pixels as flat RGBA float [0,1] list
+                pixels = _np.array(skin_img.pixels[:]).reshape(H_px, W_px, 4)
+                # Convert to grayscale luminance (Rec. 709)
+                gray = (
+                    0.2126 * pixels[:, :, 0]
+                    + 0.7152 * pixels[:, :, 1]
+                    + 0.0722 * pixels[:, :, 2]
+                )
+
+                # 2D FFT—shift DC to centre
+                F = _np.fft.fft2(gray - gray.mean())
+                F_s = _np.fft.fftshift(F)
+                psd = _np.abs(F_s) ** 2
+
+                # Radial power profile: exclude DC (r=0)
+                cy, cx = H_px // 2, W_px // 2
+                y_idx = _np.arange(H_px).reshape(-1, 1) - cy
+                x_idx = _np.arange(W_px).reshape(1, -1) - cx
+                r_mat = _np.sqrt(x_idx**2 + y_idx**2).astype(int)
+                r_max = min(cx, cy)
+                radial = _np.bincount(
+                    r_mat.ravel(),
+                    weights=psd.ravel(),
+                    minlength=r_max + 1,
+                )[: r_max + 1]
+                radial[0] = 0.0
+
+                r_peak = float(_np.argmax(radial))
+
+                if r_peak > 0:
+                    FEATURE_TARGET_MM = 3.0
+                    tile_from_skin = float(
+                        _np.clip(r_peak * FEATURE_TARGET_MM, 4.0, 60.0)
+                    )
+
+                    # Blend: 55% geometric (structure-driven) + 45% skin-driven
+                    tile_blended = 0.55 * tile_size + 0.45 * tile_from_skin
+
+                    # Re-snap the blended estimate to integer repeat on the
+                    # dominant dimension so tiling remains seamless.
+                    L_dominant = max(Lx, Ly, Lz)
+                    n_raw = L_dominant / tile_blended
+                    n = max(3, min(30, round(n_raw)))
+                    tile_blended_snapped = L_dominant / n
+
+                    old_tile = tile_size
+                    tile_size = float(_np.clip(tile_blended_snapped, 4.0, 50.0))
+
+                    # Recompute relief from new tile_size
+                    relief = tile_size * 0.05
+                    if mesh_class == MeshClass.FLAT_SHELL and Lz < 5.0:
+                        relief = min(relief, Lz * 0.15)
+                    relief = max(0.25, min(1.5, relief))
+
+                    log.log(
+                        f"  Skin FFT refinement: r_peak={r_peak:.0f}px  "
+                        f"tile_from_skin={tile_from_skin:.2f}mm  "
+                        f"geo_tile={old_tile:.2f}mm  "
+                        f"→ blended={tile_size:.2f}mm  relief={relief:.3f}mm"
+                    )
+
+                    # Symmetry score and spectral entropy as quality signals
+                    real_e = float(_np.sum(_np.real(F_s) ** 2))
+                    total_e = float(_np.sum(psd)) + 1e-12
+                    sym = real_e / total_e
+                    p = psd / total_e
+                    p_s = _np.where(p > 1e-15, p, 1e-15)
+                    ent = float(-_np.sum(p_s * _np.log2(p_s)))
+                    log.log(
+                        f"  Skin beauty metrics: symmetry={sym:.3f}  "
+                        f"entropy={ent:.2f} bits  "
+                        f"({'GOLDEN ZONE' if sym > 0.90 and ent > 4.0 else 'standard'})"
+                    )
+        except Exception as _skin_exc:
+            log.log(f"  Skin FFT refinement skipped: {_skin_exc}")
 
     log.log(
         f"  Auto-params result: tile_size={tile_size:.2f}mm  relief={relief:.3f}mm  "
@@ -1678,7 +1777,9 @@ def _apply_displacement_blender(
         # (5% of tile_size, clamped by printability and shell thickness).
         # Override only when auto_params=True AND the caller passed sentinel defaults.
         if auto_params:
-            tile_size, relief = _compute_optimal_params(obj, sig.mesh_class, log)
+            tile_size, relief = _compute_optimal_params(
+                obj, sig.mesh_class, log, skin_path=skin_path
+            )
             log.log(
                 f"  Auto-params applied: tile_size={tile_size:.2f}mm  "
                 f"relief={relief:.3f}mm  (symmetry-optimised for {sig.mesh_class.name})"
@@ -2152,8 +2253,8 @@ def main():
             _apply_displacement(
                 original_obj,
                 args.skin_path,
-                args.tile_size,
-                args.relief,
+                tile_size,
+                relief,
                 args.invert,
                 args.gamma,
                 log,
@@ -2162,6 +2263,7 @@ def main():
                 full_surface=args.full_surface,
                 debug_session=_debug_session,
                 render_heatmap=getattr(args, "render_heatmap", False),
+                auto_params=auto_params,
             )
             _export_stl(original_obj, out_path, log)
 
@@ -2187,8 +2289,8 @@ def main():
             _apply_displacement(
                 displaced_obj,
                 args.skin_path,
-                args.tile_size,
-                args.relief,
+                tile_size,
+                relief,
                 invert_mode,
                 args.gamma,
                 log,
@@ -2197,6 +2299,7 @@ def main():
                 full_surface=args.full_surface,
                 debug_session=_debug_session,
                 render_heatmap=getattr(args, "render_heatmap", False),
+                auto_params=auto_params,
             )
             _export_stl(displaced_obj, out_path, log)
 

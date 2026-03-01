@@ -50,6 +50,23 @@ import math
 from dataclasses import dataclass, field
 from typing import Optional
 
+try:
+    import numpy as np
+
+    _HAS_NUMPY = True
+except ImportError:
+    _HAS_NUMPY = False
+
+# Beauty scorer — optional dependency (requires numpy)
+try:
+    _SCRIPT_DIR = pathlib.Path(__file__).parent
+    sys.path.insert(0, str(_SCRIPT_DIR))
+    from ai_beauty_scorer import analyse_skin_file as _beauty_analyse_skin  # type: ignore
+
+    _HAS_BEAUTY_SCORER = True
+except Exception:
+    _HAS_BEAUTY_SCORER = False
+
 
 # ── Diagnostic thresholds ─────────────────────────────────────────────────
 # From docs/AI Debugging 3D Texture Mapping.md §II ("Formal Geometric Heuristic")
@@ -91,6 +108,15 @@ class CriticReport:
     projection: str
     issues: list[DiagnosticIssue] = field(default_factory=list)
     overall: str = "PASS"  # "PASS" | "WARN" | "FAIL"
+
+    # ── Beauty metrics (Reber 2004 / Leder 2004 / Johnston 2022) ──────────
+    skin_path: str = ""
+    beauty_symmetry: float = -1.0  # FFT phase coherence [0-1]. -1 = not computed
+    beauty_entropy: float = -1.0  # Spectral entropy [bits].   -1 = not computed
+    beauty_score: float = -1.0  # Leder B(s,σ) formula [0-1]. -1 = not computed
+    beauty_verdict: str = ""  # BEAUTIFUL | GOOD | ACCEPTABLE | POOR | ""
+    beauty_tile_hint: float = -1.0  # Suggested tile_size [mm] from dominant freq
+    in_golden_zone: bool = False  # S > 0.90 AND H_s > 4.0
 
     def add(self, issue: DiagnosticIssue):
         self.issues.append(issue)
@@ -564,6 +590,129 @@ def _analyse_stage(stage_data: dict, report: CriticReport) -> None:
 # ── Main analysis entry point ─────────────────────────────────────────────
 
 
+def _analyse_beauty(skin_path: str, tile_size_mm: float, report: CriticReport) -> None:
+    """
+    Compute Fourier beauty metrics for the skin texture file.
+
+    Implements the PhD-level aesthetic quality framework from:
+      - Reber, Schwarz & Winkielman (2004) — Processing Fluency Theory
+      - Leder et al. (2004)               — B(s, σ) model of aesthetic
+      - Johnston et al. (2022)             — Symmetry as simplicity bias
+
+    Results are stored directly on the CriticReport (not as DiagnosticIssues)
+    because beauty is a quality metric rather than a bug.
+    A WARNING is issued only if the skin is clearly unsuitable (POOR score).
+    """
+    if not _HAS_BEAUTY_SCORER:
+        report.add(
+            DiagnosticIssue(
+                severity="INFO",
+                stage="beauty",
+                signal="metric",
+                description="Beauty scorer not available (numpy required).",
+                root_cause="numpy not installed in this Python environment.",
+                remediation="pip install numpy   (or run from memory_env)",
+            )
+        )
+        return
+
+    if not skin_path or not pathlib.Path(skin_path).exists():
+        return
+
+    try:
+        br = _beauty_analyse_skin(skin_path, tile_size_mm=tile_size_mm)
+    except Exception as exc:
+        report.add(
+            DiagnosticIssue(
+                severity="INFO",
+                stage="beauty",
+                signal="metric",
+                description=f"Beauty scorer error: {exc}",
+                root_cause="Unexpected error in ai_beauty_scorer.",
+                remediation="Check skin file is a valid 8-bit PNG.",
+            )
+        )
+        return
+
+    # ── Store metrics on report ───────────────────────────────────────────
+    report.skin_path = skin_path
+    report.beauty_symmetry = br.symmetry_score
+    report.beauty_entropy = br.spectral_entropy
+    report.beauty_score = br.beauty_score
+    report.beauty_verdict = br.verdict
+    report.beauty_tile_hint = br.tile_size_hint_mm
+    report.in_golden_zone = br.in_golden_zone
+
+    # ── Issue a WARNING for skins that will look poor when displaced ───────
+    if br.beauty_score < 0.50:  # POOR threshold
+        report.add(
+            DiagnosticIssue(
+                severity="WARNING",
+                stage="beauty",
+                signal="metric",
+                description=(
+                    f"Skin texture has POOR aesthetic score ({br.beauty_score:.3f}): "
+                    f"symmetry={br.symmetry_score:.3f}, entropy={br.spectral_entropy:.2f} bits."
+                ),
+                root_cause=(
+                    "Low symmetry (random-looking pattern) or low spectral entropy "
+                    "(featureless texture) will produce visually unsatisfying displacement."
+                ),
+                remediation=(
+                    "Choose a skin with higher symmetry (S > 0.90) and spectral entropy "
+                    "(H_s > 4.0) — the 'Golden Zone' for beautiful textures.  "
+                    f"Suggested tile_size for this skin: {br.tile_size_hint_mm:.1f} mm."
+                ),
+            )
+        )
+    elif br.beauty_score < 0.65:
+        report.add(
+            DiagnosticIssue(
+                severity="INFO",
+                stage="beauty",
+                signal="metric",
+                description=(
+                    f"Skin texture is ACCEPTABLE but not optimal "
+                    f"(score={br.beauty_score:.3f}).  "
+                    f"Tile size hint: {br.tile_size_hint_mm:.1f} mm."
+                ),
+                root_cause="Skin has moderate complexity or asymmetry.",
+                remediation="Consider a higher-complexity symmetric skin for best results.",
+            )
+        )
+    elif br.in_golden_zone:
+        report.add(
+            DiagnosticIssue(
+                severity="INFO",
+                stage="beauty",
+                signal="metric",
+                description=(
+                    f"*** Skin is in the GOLDEN ZONE *** "
+                    f"(S={br.symmetry_score:.3f} > 0.90, H_s={br.spectral_entropy:.2f} > 4.0). "
+                    f"Score={br.beauty_score:.3f} [{br.verdict}].  "
+                    f"Tile size hint: {br.tile_size_hint_mm:.1f} mm."
+                ),
+                root_cause="N/A",
+                remediation="N/A",
+            )
+        )
+    else:
+        report.add(
+            DiagnosticIssue(
+                severity="INFO",
+                stage="beauty",
+                signal="metric",
+                description=(
+                    f"Skin beauty: {br.verdict} (score={br.beauty_score:.3f}, "
+                    f"S={br.symmetry_score:.3f}, H_s={br.spectral_entropy:.2f}).  "
+                    f"Tile size hint: {br.tile_size_hint_mm:.1f} mm."
+                ),
+                root_cause="N/A",
+                remediation="N/A",
+            )
+        )
+
+
 def analyse_session(session_json_path: str) -> CriticReport:
     """
     Load a session_summary.json produced by apply_texture_bpy.py --debug-snapshots
@@ -582,7 +731,13 @@ def analyse_session(session_json_path: str) -> CriticReport:
     # Determine overall classification from post_classify or post_displace
     mesh_class = "UNKNOWN"
     projection = "unknown"
+    skin_path = ""
+    tile_size_mm = 15.0
     for s in stages:
+        if s.get("skin"):
+            skin_path = s["skin"]
+        if s.get("tile_size_mm"):
+            tile_size_mm = float(s["tile_size_mm"])
         if s.get("mesh_class") and s["mesh_class"] != "UNKNOWN":
             mesh_class = s["mesh_class"]
             projection = s.get("projection", "unknown")
@@ -597,6 +752,10 @@ def analyse_session(session_json_path: str) -> CriticReport:
 
     for stage_data in stages:
         _analyse_stage(stage_data, report)
+
+    # ── Beauty analysis (Reber 2004 / Leder 2004 / Johnston 2022) ─────────
+    if skin_path:
+        _analyse_beauty(skin_path, tile_size_mm, report)
 
     return report
 
@@ -658,6 +817,23 @@ def format_report(report: CriticReport) -> str:
                 lines.append(f"  [I] [{issue.stage}] {issue.description}")
             lines.append("")
 
+    # ── Beauty section ────────────────────────────────────────────────────
+    if report.beauty_score >= 0:
+        golden_tag = "  ★ GOLDEN ZONE" if report.in_golden_zone else ""
+        verdict_str = f"[{report.beauty_verdict}]" if report.beauty_verdict else ""
+        lines += [
+            "  " + "-" * 68,
+            "  AESTHETIC QUALITY (Reber 2004 / Leder 2004 / Johnston 2022)",
+            "  " + "-" * 68,
+            f"  Skin             : {report.skin_path}",
+            f"  Symmetry Score   : {report.beauty_symmetry:.4f}  (target > 0.90){golden_tag}",
+            f"  Spectral Entropy : {report.beauty_entropy:.4f} bits  (target > 4.0)",
+            f"  Beauty Score     : {report.beauty_score:.4f}  {verdict_str}",
+            f"  Tile size hint   : {report.beauty_tile_hint:.1f} mm  "
+            f"(from skin dominant freq — override auto_params if very different)",
+            "",
+        ]
+
     lines += [
         "=" * 72,
         "  BIBLIOGRAPHY (mathematical foundations of this analysis):",
@@ -667,6 +843,9 @@ def format_report(report: CriticReport) -> str:
         "  Crane 2024   — Discrete Differential Geometry (CMU 15-458)",
         "  Taubin 1995  — Non-shrinking Laplacian smoothing (seam blend)",
         "  Chazal 2009  — Euler characteristic & topological invariants",
+        "  Reber 2004   — Processing Fluency → aesthetic pleasure",
+        "  Leder 2004   — B(s,σ) model of aesthetic appreciation",
+        "  Johnston 2022 — Symmetry as simplicity bias (Nature Comms 13:1858)",
         "=" * 72,
     ]
     return "\n".join(lines)
