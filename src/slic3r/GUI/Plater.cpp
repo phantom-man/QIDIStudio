@@ -13488,7 +13488,7 @@ void Plater::update_partplate()
             // Fixing always.
             return !obj_idxs.empty() || !vol_idxs.empty();
 #else  // FIX_THROUGH_NETFABB_ALWAYS
-            // Fixing only if the model is not manifold.
+       // Fixing only if the model is not manifold.
             if (vol_idxs.empty())
             {
                 for (auto obj_idx : obj_idxs)
@@ -14329,6 +14329,14 @@ void Plater::update_partplate()
         } });
         }
 
+        Plater::~Plater()
+        {
+            if (m_studio_api_server)
+            {
+                m_studio_api_server->stop();
+            }
+        }
+
         bool Plater::Show(bool show)
         {
             if (wxGetApp().mainframe)
@@ -14944,8 +14952,7 @@ void Plater::update_partplate()
 
                                                                         // for break while
                                                                         // cont = false;
-                                                                    }
-                                                                });
+                                                                    } });
 
             while (cont && cont_dlg)
             {
@@ -21269,7 +21276,7 @@ void Plater::enable_view_toolbar(bool enable)
                         }
                         else
                         { // from multiple slice's next
-                            // do nothing
+                          // do nothing
                         }
                     }
                     else
