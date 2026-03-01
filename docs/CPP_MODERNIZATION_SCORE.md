@@ -31,19 +31,19 @@ _Maintained by: GitHub Copilot | Research date: 2026-02-28 | **Updated: 2026-02-
 
 ## Executive Summary (REVISED after P1+P2+P3 implementation)
 
-| Dimension                            | Baseline   | Now        | Grade  | Change                                       |
-| ------------------------------------ | ---------- | ---------- | ------ | -------------------------------------------- |
-| Language Standard & Feature Adoption | 4/10       | **6/10**   | C      | C++20 global + noexcept                      |
-| Memory & Ownership                   | 5/10       | 5/10       | C      | —                                            |
-| Type Safety                          | 4/10       | **6/10**   | C+     | [[nodiscard]] 35+ GCode/IO methods           |
-| Error Handling                       | 4/10       | **5/10**   | C      | noexcept move ctors + Result.hpp available   |
-| OpenGL / Rendering C++               | 4/10       | **5/10**   | C      | GLResource.hpp RAII                          |
-| Concurrency & Parallelism            | 6/10       | **7/10**   | B-     | jthread in GCodeSender                       |
-| Build System & Tooling               | 3/10       | **7/10**   | B      | CMakePresets + clang-tidy                    |
-| Performance Architecture             | 4/10       | 4/10       | D      | —                                            |
+| Dimension                            | Baseline   | Now        | Grade  | Change                                              |
+| ------------------------------------ | ---------- | ---------- | ------ | --------------------------------------------------- |
+| Language Standard & Feature Adoption | 4/10       | **6/10**   | C      | C++20 global + noexcept                             |
+| Memory & Ownership                   | 5/10       | 5/10       | C      | —                                                   |
+| Type Safety                          | 4/10       | **6/10**   | C+     | [[nodiscard]] 35+ GCode/IO methods                  |
+| Error Handling                       | 4/10       | **5/10**   | C      | noexcept move ctors + Result.hpp available          |
+| OpenGL / Rendering C++               | 4/10       | **5/10**   | C      | GLResource.hpp RAII                                 |
+| Concurrency & Parallelism            | 6/10       | **7/10**   | B-     | jthread in GCodeSender                              |
+| Build System & Tooling               | 3/10       | **7/10**   | B      | CMakePresets + clang-tidy                           |
+| Performance Architecture             | 4/10       | 4/10       | D      | —                                                   |
 | Code Quality & Modern Idioms         | 5/10       | **9/10**   | A-     | #pragma once complete — ALL libslic3r + GUI headers |
-| Testing & Verification               | 4/10       | 4/10       | D      | —                                            |
-| **TOTAL (revised)**                  | **43/100** | **58/100** | **C+** | **+15 points**                               |
+| Testing & Verification               | 4/10       | 4/10       | D      | —                                                   |
+| **TOTAL (revised)**                  | **43/100** | **58/100** | **C+** | **+15 points**                                      |
 
 **Next session target:** Priority 3 — Google Highway SIMD integration for BVH + adopt `Result<T>` in new parse/load APIs + activate SLIC3R_BUILD_TESTS in CI.
 

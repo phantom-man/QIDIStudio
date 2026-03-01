@@ -7,6 +7,7 @@ is a Model Context Protocol server that gives AI assistants direct terminal and 
 host machine — without an API token budget.
 
 In this repo it is:
+
 - **Cloned** at `DesktopCommanderMCP/` (excluded from git — see `.gitignore`)
 - **Already registered** in the VS Code / Copilot Chat MCP toolset under the `mcp_desktop-comma_*` tool prefix
 - The backing process is managed by VS Code; no manual `npm install` or `node dist/index.js` needed for day-to-day use
@@ -15,21 +16,21 @@ In this repo it is:
 
 ## Available Tools (prefix: `mcp_desktop-comma_`)
 
-| Tool | Purpose |
-|---|---|
-| `start_process` | Launch a shell command / REPL (returns PID) |
-| `interact_with_process` | Send stdin to a running REPL, read response |
-| `list_sessions` | List all active shell sessions with PID + status |
-| `read_process_output` | Non-blocking read of accumulated stdout |
-| `start_search` | Async file-name or content search (returns session ID) |
-| `get_more_search_results` | Paginate search results |
-| `stop_search` | Cancel an active search |
-| `edit_block` | Surgical find-replace in any text/Excel/DOCX/PDF file |
-| `read_file` | Read text, PDF, Excel (supports negative offset for tail) |
-| `write_pdf` | Create or modify PDF from markdown |
-| `get_config` / `set_config_value` | Inspect / change DC server config |
-| `get_recent_tool_calls` | Replay recent tool history for context recovery |
-| `get_prompts` | Load onboarding prompt by ID |
+| Tool                              | Purpose                                                   |
+| --------------------------------- | --------------------------------------------------------- |
+| `start_process`                   | Launch a shell command / REPL (returns PID)               |
+| `interact_with_process`           | Send stdin to a running REPL, read response               |
+| `list_sessions`                   | List all active shell sessions with PID + status          |
+| `read_process_output`             | Non-blocking read of accumulated stdout                   |
+| `start_search`                    | Async file-name or content search (returns session ID)    |
+| `get_more_search_results`         | Paginate search results                                   |
+| `stop_search`                     | Cancel an active search                                   |
+| `edit_block`                      | Surgical find-replace in any text/Excel/DOCX/PDF file     |
+| `read_file`                       | Read text, PDF, Excel (supports negative offset for tail) |
+| `write_pdf`                       | Create or modify PDF from markdown                        |
+| `get_config` / `set_config_value` | Inspect / change DC server config                         |
+| `get_recent_tool_calls`           | Replay recent tool history for context recovery           |
+| `get_prompts`                     | Load onboarding prompt by ID                              |
 
 ---
 
@@ -46,6 +47,7 @@ cd C:\path && python script.py
 ```
 
 Other common gotchas:
+
 - Environment variables: `$env:VAR` not `$VAR`
 - `python3` may not exist — use `python` or full path
 - Paths with spaces: wrap in `'single quotes'` inside strings
@@ -56,6 +58,7 @@ Other common gotchas:
 ## Common Workflows for This Repo
 
 ### Run a build
+
 ```powershell
 # start_process with timeout_ms = 300000 (5 min)
 cd C:\QIDISrc\QIDIStudio\build
@@ -63,18 +66,21 @@ C:\CMake329\bin\cmake.exe --build . --config RelWithDebInfo -- /m:16 2>&1 | Sele
 ```
 
 ### Run tests
+
 ```powershell
 cd C:\QIDISrc\QIDIStudio\build
 C:\CMake329\bin\ctest.exe -C RelWithDebInfo --output-on-failure -j4 2>&1
 ```
 
 ### Memory sync (embed + upsert to LanceDB)
+
 ```powershell
 cd C:\Users\User\source\repos\QIDIStudio
 memory_env\Scripts\python.exe memory\extract.py 2>&1
 ```
 
 ### Search codebase
+
 ```json
 {
   "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\src",
@@ -85,6 +91,7 @@ memory_env\Scripts\python.exe memory\extract.py 2>&1
 ```
 
 ### Surgical header edit
+
 ```json
 {
   "file_path": "C:\\...\\src\\libslic3r\\SomeHeader.hpp",
@@ -115,6 +122,7 @@ The live MCP server is registered separately via the VS Code extension
 settings (`mcp.servers` or `MCP: Add Server`).
 
 To update to a newer DC version:
+
 ```powershell
 cd C:\Users\User\source\repos\QIDIStudio\DesktopCommanderMCP
 git pull
