@@ -1,6 +1,6 @@
 # QIDIStudio — Complete Engineering Knowledge Base
 
-_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, \_DebugSession, ai_debug_pipeline.py, §15.14) + 2026-02-28 (§18: PhD Cognitive Architecture — full absorption of PSV loop, System 1/2 thinking, HAVEN, Lean 4, cross-domain isomorphisms, applied to all pipelines) + 2026-02-28 (§19: Computational Aesthetics — Fourier symmetry score, spectral entropy, Leder B(s,σ) model, Golden Zone, skin FFT tile refinement, ai_beauty_scorer.py) + 2025 (§20: 3D Viewer PhD code review — Gouraud/PBR/gamma/lights/FXAA/SSAO/shadow deficiencies catalogued; full report docs/3D_Viewer_Code_Review_Report.md)_
+_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, \_DebugSession, ai_debug_pipeline.py, §15.14) + 2026-02-28 (§18: PhD Cognitive Architecture — full absorption of PSV loop, System 1/2 thinking, HAVEN, Lean 4, cross-domain isomorphisms, applied to all pipelines) + 2026-02-28 (§19: Computational Aesthetics — Fourier symmetry score, spectral entropy, Leder B(s,σ) model, Golden Zone, skin FFT tile refinement, ai_beauty_scorer.py) + 2025 (§20: 3D Viewer PhD code review — Gouraud/PBR/gamma/lights/FXAA/SSAO/shadow deficiencies catalogued; full report docs/3D_Viewer_Code_Review_Report.md) + 2026-02-28 (§21: C++ Modernization Scorecard — PhD-level tech stack audit, 43/100 baseline score, full action plan; full report docs/CPP_MODERNIZATION_SCORE.md)_
 
 This document captures all reverse-engineered knowledge about QIDIStudio's source code,
 build system, configuration, and 3MF format. It serves as the single source of truth
@@ -23,6 +23,7 @@ for anyone working on the phantom-man/QIDIStudio fork.
 11. [Known Bugs & Workarounds](#11-known-bugs--workarounds)
 12. [GCode Post-Processing Integration](#12-gcode-post-processing-integration)
 13. [Our Modifications vs Upstream](#13-our-modifications-vs-upstream)
+14. [§21 C++ Modernization Scorecard](#21-c-modernization-scorecard)
 
 ---
 
@@ -2878,3 +2879,63 @@ enum ConfigOptionMode {
 Each config option in `PrintConfig.cpp` is tagged with a mode threshold.
 Options tagged `comDevelop` only appear when `user_mode = "develop"`.
 This is what QIDI documentation calls "Expert Mode".
+
+---
+
+## §21 C++ Modernization Scorecard
+
+_Absorbed: 2026-02-28. Full report: docs/CPP_MODERNIZATION_SCORE.md_
+
+### §21.1 Baseline Score — 43/100 (D+)
+
+| Dimension | Score | Key Finding |
+|---|---|---|
+| Language Standard | 4/10 | C++17 not globally enforced; GUI target has no CXX_STANDARD set; zero C++20/23 features |
+| Memory & Ownership | 5/10 | `unique_ptr` used; no PMR; likely `shared_ptr` overuse in model tree |
+| Type Safety | 4/10 | Raw `float`/`double` for all physical quantities; no strong typedefs; no `[[nodiscard]]` |
+| Error Handling | 4/10 | 3 incompatible styles (bool, exception, sentinel); move ctors likely not `noexcept` |
+| OpenGL/Rendering | 4/10 | All legacy non-DSA patterns; no RAII GL wrappers; GPU normal matrix now done (was 2/10) |
+| Concurrency | 6/10 | TBB correct throughout; `boost::thread` in GCodeSender; no `jthread`/coroutines |
+| Build System | 3/10 | No CMakePresets.json; no clang-tidy CI; no vcpkg manifest; C++ standard patchwork |
+| Performance | 4/10 | No SIMD (no Highway); AoS vertex layout; `std::map` where `unordered_map` needed |
+| Code Quality | 5/10 | 99% traditional `#ifndef` guards; missing `override`/`[[nodiscard]]`/`std::span` |
+| Testing | 4/10 | Tests exist but off-by-default; no fuzzing; no PBT; no mutation testing |
+| **TOTAL** | **43/100** | |
+
+### §21.2 Technology Stack Recommendation (2026)
+
+| Concern | Current | Target | Effort |
+|---|---|---|---|
+| C++ standard | C++17 patchwork | **C++20 globally** | trivial |
+| Managed threads | `boost::thread` | `std::jthread` + `stop_token` | moderate |
+| SIMD geometry | None | **Google Highway** | significant |
+| GL object safety | Raw `GLuint` | **RAII wrappers** (50-line header) | low |
+| GL API style | Bind-to-modify | **DSA (glNamed*)** | moderate |
+| Error handling (new code) | bool/exception mix | `std::expected<T,E>` (C++23) | low |
+| Async subprocess | Blocking `wxExecute` | C++20 coroutines | moderate |
+| Build config | Ad-hoc cache | `CMakePresets.json` | trivial |
+| Static analysis | None | clang-tidy in CI | low |
+| Parser safety | No fuzzing | libFuzzer on STL/3MF/GCode | low |
+
+### §21.3 Priority 1 Actions (Zero-Risk, < 2 Days Each)
+
+1. Add to root `CMakeLists.txt` after `project()`: `set(CMAKE_CXX_STANDARD 20)` + `set(CMAKE_CXX_STANDARD_REQUIRED ON)` + `set(CMAKE_CXX_EXTENSIONS OFF)`
+2. Create `CMakePresets.json` with `msvc-relwithdebinfo` and `msvc-asan` presets.
+3. Add `.clang-tidy` with `modernize-use-override`, `bugprone-use-after-move`, `performance-move-const-arg`.
+4. Mark move constructors `noexcept` on `TriangleMesh`, `ModelObject`, `ModelVolume`.
+5. Replace `boost::thread` in `GCodeSender.cpp` with `std::jthread`.
+
+### §21.4 OpenGL RAII Canonical Pattern
+
+Single 50-line header `src/slic3r/GUI/GLResource.hpp` using `template <auto Creator, auto Deleter>` wraps the Rule-of-Five for any GL object. Provides `GlBuffer`, `GlVao`, `GlTexture` types that auto-delete on destruction and are move-only with `std::exchange(o.id, 0)` idiom.
+
+### §21.5 DO NOT Adopt (Cost > Benefit in 2026)
+
+- C++20 Modules: MSVC support incomplete; 500k LOC migration risk
+- C++26 Contracts (P2900): zero compiler support as of Feb 2026
+- `std::simd` / `<simd>` header: not shipped in any production STL yet
+- vcpkg full migration: existing deps/ works; high migration risk
+
+### §21.6 Sources
+
+cppreference.com (Feb 2026), C++ Core Guidelines, CppCon 2024 (Sean Parent, Phil Nash, Erez Strauss), Daniel Lemire Oct 2025, NVIDIA/stdexec, C++Now 2024 (Fedor G. Pikus), WG21 Feb 2025 Hagenberg trip report.
