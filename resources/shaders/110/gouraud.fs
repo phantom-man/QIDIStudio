@@ -1,5 +1,17 @@
 #version 110
 
+// Per-pixel Phong lighting constants (match gouraud.vs)
+#define INTENSITY_CORRECTION 0.6
+const vec3 LIGHT_TOP_DIR   = vec3(-0.4574957,  0.4574957, 0.7624929);
+#define LIGHT_TOP_DIFFUSE   (0.8   * INTENSITY_CORRECTION)
+#define LIGHT_TOP_SPECULAR  (0.125 * INTENSITY_CORRECTION)
+#define LIGHT_TOP_SHININESS 20.0
+const vec3 LIGHT_FRONT_DIR = vec3( 0.6985074,  0.1397015, 0.6985074);
+#define LIGHT_FRONT_DIFFUSE (0.3 * INTENSITY_CORRECTION)
+const vec3 LIGHT_BACK_DIR  = vec3( 0.1397015,  0.6985074, 0.6985074);
+#define LIGHT_BACK_DIFFUSE  (0.3 * INTENSITY_CORRECTION)
+#define INTENSITY_AMBIENT   0.3
+
 const vec3 ZERO = vec3(0.0, 0.0, 0.0);
 //QDS: add grey and orange
 //const vec3 GREY = vec3(0.9, 0.9, 0.9);
@@ -40,6 +52,7 @@ uniform SlopeDetection slope;
 uniform bool is_outline;
 
 uniform bool offset_depth_buffer;
+uniform bool is_text_shape;
 
 #ifdef ENABLE_ENVIRONMENT_MAP
     uniform sampler2D environment_tex;
@@ -56,6 +69,8 @@ uniform vec3 extruder_printable_heights;
 varying vec4 world_pos;
 varying float world_normal_z;
 varying vec3 eye_normal;
+// Eye-space position for view-vector computation
+varying vec3 v_pos_eye;
 
 void main()
 {
@@ -110,8 +125,22 @@ void main()
     else if (use_environment_tex)
         gl_FragColor = vec4(0.45 * texture2D(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + 0.8 * color * intensity.x, alpha);
 #endif
-	else
-        gl_FragColor = vec4(vec3(intensity.y) + color * intensity.x, alpha);
+	else {
+        // Per-pixel Phong lighting
+        vec3 N = normalize(eye_normal);
+        vec3 V = normalize(-v_pos_eye);
+        float NdotL_top   = max(dot(N, LIGHT_TOP_DIR),   0.0);
+        float NdotL_front = max(dot(N, LIGHT_FRONT_DIR), 0.0);
+        float NdotL_back  = is_text_shape ? 0.0 : max(dot(N, LIGHT_BACK_DIR), 0.0);
+        float diff = INTENSITY_AMBIENT
+                   + NdotL_top   * LIGHT_TOP_DIFFUSE
+                   + NdotL_front * LIGHT_FRONT_DIFFUSE
+                   + NdotL_back  * LIGHT_BACK_DIFFUSE;
+        float spec = LIGHT_TOP_SPECULAR * pow(max(dot(V, reflect(-LIGHT_TOP_DIR, N)), 0.0), LIGHT_TOP_SHININESS);
+        vec3 lit_color = vec3(spec) + color * diff;
+        // Gamma correction: linear -> sRGB
+        gl_FragColor = vec4(pow(clamp(lit_color, 0.0, 1.0), vec3(1.0 / 2.2)), alpha);
+    }
 
     // In the support painting gizmo and the seam painting gizmo are painted triangles rendered over the already
     // rendered object. To resolved z-fighting between previously rendered object and painted triangles, values

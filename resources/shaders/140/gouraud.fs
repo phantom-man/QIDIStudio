@@ -1,5 +1,15 @@
 #version 140
 
+// Per-pixel Phong lighting constants
+#define INTENSITY_CORRECTION 0.6
+#define LIGHT_TOP_DIFFUSE   (0.8   * INTENSITY_CORRECTION)
+#define LIGHT_TOP_SPECULAR  (0.125 * INTENSITY_CORRECTION)
+// Blinn-Phong shininess: ~4x Phong equivalent for same highlight width
+#define LIGHT_TOP_SHININESS 80.0
+#define LIGHT_FRONT_DIFFUSE (0.3 * INTENSITY_CORRECTION)
+#define LIGHT_BACK_DIFFUSE  (0.3 * INTENSITY_CORRECTION)
+#define INTENSITY_AMBIENT   0.3
+
 const vec3 ZERO = vec3(0.0, 0.0, 0.0);
 //QDS: add grey and orange
 //const vec3 GREY = vec3(0.9, 0.9, 0.9);
@@ -40,6 +50,7 @@ uniform SlopeDetection slope;
 uniform bool is_outline;
 
 uniform bool offset_depth_buffer;
+uniform bool is_text_shape;
 
 #ifdef ENABLE_ENVIRONMENT_MAP
     uniform sampler2D environment_tex;
@@ -56,6 +67,12 @@ uniform vec3 extruder_printable_heights;
 in vec4 world_pos;
 in float world_normal_z;
 in vec3 eye_normal;
+// Eye-space position for view-vector computation
+in vec3 v_pos_eye;
+// Eye-space light directions from the vertex shader (world-space rotated by view matrix)
+in vec3 v_light_top;
+in vec3 v_light_front;
+in vec3 v_light_back;
 
 out vec4 frag_color;
 
@@ -112,8 +129,24 @@ void main()
     else if (use_environment_tex)
         frag_color = vec4(0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + 0.8 * color * intensity.x, alpha);
 #endif
-	else
-        frag_color = vec4(vec3(intensity.y) + color * intensity.x, alpha);
+	else {
+        // Per-pixel Blinn-Phong lighting with world-space light directions
+        vec3 N = normalize(eye_normal);
+        vec3 V = normalize(-v_pos_eye);
+        float NdotL_top   = max(dot(N, v_light_top),   0.0);
+        float NdotL_front = max(dot(N, v_light_front), 0.0);
+        float NdotL_back  = is_text_shape ? 0.0 : max(dot(N, v_light_back), 0.0);
+        float diff = INTENSITY_AMBIENT
+                   + NdotL_top   * LIGHT_TOP_DIFFUSE
+                   + NdotL_front * LIGHT_FRONT_DIFFUSE
+                   + NdotL_back  * LIGHT_BACK_DIFFUSE;
+        // Blinn-Phong specular: half-vector is cheaper than reflect() and more physically correct
+        vec3 H = normalize(v_light_top + V);
+        float spec = LIGHT_TOP_SPECULAR * pow(max(dot(N, H), 0.0), LIGHT_TOP_SHININESS);
+        vec3 lit_color = vec3(spec) + color * diff;
+        // Gamma correction: linear -> sRGB
+        frag_color = vec4(pow(clamp(lit_color, 0.0, 1.0), vec3(1.0 / 2.2)), alpha);
+    }
 
     // In the support painting gizmo and the seam painting gizmo are painted triangles rendered over the already
     // rendered object. To resolved z-fighting between previously rendered object and painted triangles, values

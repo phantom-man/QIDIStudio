@@ -1,20 +1,10 @@
 #version 140
 #define INTENSITY_CORRECTION 0.6
 
-// normalized values for (-0.6/1.31, 0.6/1.31, 1./1.31)
-const vec3 LIGHT_TOP_DIR = vec3(-0.4574957, 0.4574957, 0.7624929);
-#define LIGHT_TOP_DIFFUSE    (0.8 * INTENSITY_CORRECTION)
-#define LIGHT_TOP_SPECULAR   (0.125 * INTENSITY_CORRECTION)
-#define LIGHT_TOP_SHININESS  20.0
-
-// normalized values for (1./1.43, 0.2/1.43, 1./1.43)
-const vec3 LIGHT_FRONT_DIR = vec3(0.6985074, 0.1397015, 0.6985074);
-#define LIGHT_FRONT_DIFFUSE  (0.3 * INTENSITY_CORRECTION)
-//#define LIGHT_FRONT_SPECULAR (0.0 * INTENSITY_CORRECTION)
-//#define LIGHT_FRONT_SHININESS 5.0
-
-const vec3 LIGHT_BACK_DIR = vec3(0.1397015, 0.6985074,0.6985074);
-#define LIGHT_BACK_DIFFUSE  (0.3 * INTENSITY_CORRECTION)
+// World-space light directions — transformed to eye-space on GPU each draw
+const vec3 LIGHT_TOP_DIR_WS   = vec3(-0.4574957, 0.4574957, 0.7624929);
+const vec3 LIGHT_FRONT_DIR_WS = vec3( 0.6985074, 0.1397015, 0.6985074);
+const vec3 LIGHT_BACK_DIR_WS  = vec3( 0.1397015, 0.6985074, 0.6985074);
 
 #define INTENSITY_AMBIENT    0.3
 
@@ -32,7 +22,9 @@ in vec3 v_normal;
 
 uniform mat4 view_model_matrix;
 uniform mat4 projection_matrix;
-uniform mat3 normal_matrix;
+// view_matrix is separate so we can transform world-space lights to eye-space on GPU.
+// normal_matrix is computed entirely on GPU (transpose(inverse(...))) — no CPU upload needed.
+uniform mat4 view_matrix;
 
 uniform mat4 volume_world_matrix;
 uniform SlopeDetection slope;
@@ -42,7 +34,7 @@ uniform vec2 z_range;
 // Clipping plane - general orientation. Used by the SLA gizmo.
 uniform vec4 clipping_plane;
 uniform bool is_text_shape;
-// x = diffuse, y = specular;
+// x = diffuse, y = specular (kept for FS compatibility; lighting now computed per-pixel in FS)
 out vec2 intensity;
 
 out vec3 clipping_planes_dots;
@@ -51,28 +43,32 @@ out vec4 model_pos;
 out vec4 world_pos;
 out float world_normal_z;
 out vec3 eye_normal;
+// Eye-space position for view-vector computation in the fragment shader
+out vec3 v_pos_eye;
+// Eye-space light directions (world-space dirs rotated by view matrix, constant per draw call)
+out vec3 v_light_top;
+out vec3 v_light_front;
+out vec3 v_light_back;
 
 void main()
 {
-	// First transform the normal into camera space and normalize the result.
-	eye_normal = normalize(normal_matrix * v_normal);
+	// GPU-computed normal matrix — eliminates CPU inverse+transpose per draw call.
+	mat3 gpu_nm = transpose(inverse(mat3(view_model_matrix)));
+	eye_normal = normalize(gpu_nm * v_normal);
 
-	// Compute the cos of the angle between the normal and lights direction. The light is directional so the direction is constant for every vertex.
-	// Since these two are normalized the cosine is the dot product. We also need to clamp the result to the [0,1] range.
-	float NdotL = max(dot(eye_normal, LIGHT_TOP_DIR), 0.0);
-
-	intensity.x = INTENSITY_AMBIENT + NdotL * LIGHT_TOP_DIFFUSE;
 	vec4 position = (view_model_matrix * vec4(v_position, 1.0));
-	intensity.y = LIGHT_TOP_SPECULAR * pow(max(dot(-normalize(position.xyz), reflect(-LIGHT_TOP_DIR, eye_normal)), 0.0), LIGHT_TOP_SHININESS);
+	// Pass eye-space position to fragment shader for view-vector computation.
+	v_pos_eye = position.xyz;
 
-	// Perform the same lighting calculation for the 2nd light source (no specular applied).
-	NdotL = max(dot(eye_normal, LIGHT_FRONT_DIR), 0.0);
-	intensity.x += NdotL * LIGHT_FRONT_DIFFUSE;
+	// Transform world-space light dirs to eye-space once per vertex (constant across draw).
+	mat3 view_rot = mat3(view_matrix);
+	v_light_top   = normalize(view_rot * LIGHT_TOP_DIR_WS);
+	v_light_front = normalize(view_rot * LIGHT_FRONT_DIR_WS);
+	v_light_back  = normalize(view_rot * LIGHT_BACK_DIR_WS);
 
-	if(!is_text_shape){
-		NdotL = max(dot(eye_normal, LIGHT_BACK_DIR), 0.0);
-		intensity.x += NdotL * LIGHT_BACK_DIFFUSE;
-	}
+	// Lighting is computed per-pixel in the fragment shader.
+	intensity = vec2(1.0, 0.0);
+
     // Point in homogenous coordinates.
     world_pos = volume_world_matrix * vec4(v_position, 1.0);
 

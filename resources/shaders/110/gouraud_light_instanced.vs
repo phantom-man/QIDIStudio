@@ -21,26 +21,24 @@ attribute vec3 v_normal;
 attribute vec3 i_offset;
 attribute vec2 i_scales;
 
-// x = tainted, y = specular;
+// x = diffuse, y = specular (kept for FS compatibility; lighting now computed per-pixel in FS)
 varying vec2 intensity;
+// Eye-space normal and position for per-pixel Phong in the fragment shader
+varying vec3 eye_normal;
+varying vec3 v_pos_eye;
 
 void main()
 {
-    // First transform the normal into camera space and normalize the result.
-    vec3 eye_normal = normalize(gl_NormalMatrix * v_normal);
-    
-    // Compute the cos of the angle between the normal and lights direction. The light is directional so the direction is constant for every vertex.
-    // Since these two are normalized the cosine is the dot product. We also need to clamp the result to the [0,1] range.
-    float NdotL = max(dot(eye_normal, LIGHT_TOP_DIR), 0.0);
+    // Transform normal into eye space for per-pixel lighting in the fragment shader.
+    eye_normal = normalize(gl_NormalMatrix * v_normal);
 
-    intensity.x = INTENSITY_AMBIENT + NdotL * LIGHT_TOP_DIFFUSE;
     vec4 world_position = vec4(v_position * vec3(vec2(1.5 * i_scales.x), 1.5 * i_scales.y) + i_offset - vec3(0.0, 0.0, 0.5 * i_scales.y), 1.0);
     vec3 eye_position = (gl_ModelViewMatrix * world_position).xyz;
-    intensity.y = LIGHT_TOP_SPECULAR * pow(max(dot(-normalize(eye_position), reflect(-LIGHT_TOP_DIR, eye_normal)), 0.0), LIGHT_TOP_SHININESS);
+    // Pass eye-space position to fragment shader for view-vector computation.
+    v_pos_eye = eye_position;
 
-    // Perform the same lighting calculation for the 2nd light source (no specular applied).
-    NdotL = max(dot(eye_normal, LIGHT_FRONT_DIR), 0.0);
-    intensity.x += NdotL * LIGHT_FRONT_DIFFUSE;
+    // Lighting is computed per-pixel in the fragment shader.
+    intensity = vec2(1.0, 0.0);
 
     gl_Position = gl_ProjectionMatrix * vec4(eye_position, 1.0);
 }

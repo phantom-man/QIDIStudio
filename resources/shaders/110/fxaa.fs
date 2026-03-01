@@ -28,7 +28,7 @@ vec4 fxaa(sampler2D tex, vec2 fragCoord, vec2 inv_resolution,
     vec3 rgbSE = texture2D(tex, v_rgbSE).xyz;
     vec4 texColor = texture2D(tex, v_rgbM);
     vec3 rgbM  = texColor.xyz;
-    vec3 luma = vec3(0.299, 0.587, 0.114);
+    vec3 luma = vec3(0.2126, 0.7152, 0.0722); // BT.709
     float lumaNW = dot(rgbNW, luma);
     float lumaNE = dot(rgbNE, luma);
     float lumaSW = dot(rgbSW, luma);
