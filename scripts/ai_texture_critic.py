@@ -375,6 +375,100 @@ def _analyse_topology(stage_data: dict, report: CriticReport) -> None:
                 )
             )
 
+    # ── NEW: Critic blind-spot guard — OBJECT + full_surface=False coverage check ──
+    # When projection=OBJECT and full_surface=False, the Displace modifier is masked
+    # by a TopFace vertex group (faces with normal.z > 0.5 only).  This works for
+    # simple flat parts but produces near-zero coverage on:
+    #   (a) Tall parts (z_ratio > 1.0): only the tiny top cap is displaced.
+    #   (b) Flat parts with many cutouts (χ << -2): boundary/sidewall faces near
+    #       cutouts have mixed normals → vertex group is extremely sparse.
+    # The UV-stretch diagnostic NEVER fires for OBJECT-mode (no UV layer),
+    # so this is the only guard preventing false PASS verdicts.
+    #
+    # Mathematical basis: for an open cylinder of radius r and height h,
+    # the fraction of surface area with normal.z > 0.5 is:
+    #   f_top ≈ π r² / (2πrh + 2πr²) = r / (2h + 2r)
+    # For vacuum_crevice_nozzle (r≈21mm, h≈195mm):  f_top ≈ 21/(390+42) ≈ 4.9%
+    # i.e. only 5% of the surface would be displaced — effectively invisible.
+    full_surface = stage_data.get("full_surface", None)
+    if full_surface is False and proj == "object":
+        if z_ratio is not None and z_ratio > 1.0:
+            report.add(
+                DiagnosticIssue(
+                    severity="ERROR",
+                    stage="post_classify",
+                    signal="topology",
+                    description=(
+                        f"OBJECT projection with full_surface=False on tall mesh (z_ratio={z_ratio:.2f} > 1.0). "
+                        f"Class={mesh_class}. Only top-cap faces (~{100/(2*z_ratio+2):.0f}% of surface) "
+                        f"are displaced — the tube/tower body will show NO texture."
+                    ),
+                    root_cause=(
+                        "For a part with z_ratio > 1 the TopFace vertex group (normal.z > 0.5) "
+                        "covers only the tiny end-cap area.  The entire cylindrical/tall side wall "
+                        "has normals pointing sideways (normal.z ≈ 0) and is excluded from displacement.\n"
+                        "Root formula: cap fraction ≈ r/(2h+2r); for z_ratio≈4.6 this is ~5% surface area."
+                    ),
+                    remediation=(
+                        "In apply_texture_bpy.py _classify_mesh_topology(), set full_surface=True "
+                        "for all PRISMATIC cases (tall complex-topology branches):\n"
+                        "  case (False, True, False) if annular:  → full_surface = True\n"
+                        "  case (False, _, True):                 → full_surface = True\n"
+                        "OBJECT projection will still box-map the texture correctly across the full body."
+                    ),
+                )
+            )
+        if euler_char is not None and euler_char < -2:
+            cutouts = abs(euler_char + 2)  # approximate number of extra holes
+            report.add(
+                DiagnosticIssue(
+                    severity="WARNING" if euler_char >= -6 else "ERROR",
+                    stage="post_classify",
+                    signal="topology",
+                    description=(
+                        f"OBJECT projection with full_surface=False on perforated mesh "
+                        f"(χ={euler_char}, approx {cutouts} extra boundary loops). "
+                        f"Class={mesh_class}. Boundary/sidewall vertices near cutouts have "
+                        f"out-of-plane normals → TopFace vertex group is sparse → artifacts only."
+                    ),
+                    root_cause=(
+                        "Each cutout (camera hole, port slot, ventilation slot) adds boundary-loop "
+                        "vertices with normal.z near zero.  These fall outside the TopFace vertex "
+                        "group (normal.z > 0.5 threshold), leaving them undisplaced while "
+                        "slightly-tilted faces near the cutout rims get displaced — producing artifacts."
+                    ),
+                    remediation=(
+                        "Set full_surface=True for FLAT_SHELL in _classify_mesh_topology():\n"
+                        "  case (True, _, _):  → full_surface = True\n"
+                        "This displaces ALL faces equally under the OBJECT Z-projection, "
+                        "producing uniform texture across the back panel and around cutout rims."
+                    ),
+                )
+            )
+        elif mesh_class in ("FLAT_SHELL", "PRISMATIC"):
+            # Even simple FLAT_SHELL/PRISMATIC parts should now use full_surface=True.
+            # Seeing False here means this was run with old pipeline code — re-run needed.
+            report.add(
+                DiagnosticIssue(
+                    severity="WARNING",
+                    stage="post_classify",
+                    signal="topology",
+                    description=(
+                        f"{mesh_class} with full_surface=False (χ={euler_char}, z_ratio={z_ratio:.3f}). "
+                        "Pipeline has been updated to use full_surface=True for this class. "
+                        "Re-run the pipeline to apply texture to full surface."
+                    ),
+                    root_cause=(
+                        "Old snapshot — captured before full_surface=True was set for FLAT_SHELL/PRISMATIC. "
+                        "Displacement was restricted to TopFace vertex group, which may have limited coverage."
+                    ),
+                    remediation=(
+                        "This is an old run. Re-run apply_texture_bpy.py — the updated classifier "
+                        "now assigns full_surface=True for all FLAT_SHELL and PRISMATIC meshes."
+                    ),
+                )
+            )
+
     # Summary info record
     report.add(
         DiagnosticIssue(
@@ -383,10 +477,11 @@ def _analyse_topology(stage_data: dict, report: CriticReport) -> None:
             signal="topology",
             description=(
                 f"Topology: class={mesh_class}  projection={proj}  "
+                f"full_surface={full_surface}  "
                 f"sharp={sharp_frac:.1%}  z_ratio={z_ratio:.3f}  "
                 f"K_std={k_std:.4f}  χ={euler_char}"
                 if all(x is not None for x in [sharp_frac, z_ratio, k_std, euler_char])
-                else f"Topology: class={mesh_class}  projection={proj}"
+                else f"Topology: class={mesh_class}  projection={proj}  full_surface={full_surface}"
             ),
             root_cause="Topology classification summary (informational)",
             remediation="No action needed if class matches expected. "
