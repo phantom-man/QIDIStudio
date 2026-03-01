@@ -8,23 +8,24 @@
 #include "Polyline.hpp"
 #include "Polygon.hpp"
 
-namespace Slic3r {
-
-namespace EdgeGrid {
-	class Grid;
-}
-
-struct TrimmedLoop
+namespace Slic3r
 {
-	std::vector<Point> 			points;
-	// Number of points per segment. Empty if the loop is 
-	std::vector<unsigned int> 	segments;
 
-	bool 	is_trimmed() const { return ! segments.empty(); }
-};
+	namespace EdgeGrid
+	{
+		class Grid;
+	}
 
-TrimmedLoop trim_loop(const Polygon &loop, const EdgeGrid::Grid &grid);
-std::vector<TrimmedLoop> trim_loops(const Polygons &loops, const EdgeGrid::Grid &grid);
+	struct TrimmedLoop
+	{
+		std::vector<Point> points;
+		// Number of points per segment. Empty if the loop is
+		std::vector<unsigned int> segments;
+
+		bool is_trimmed() const { return !segments.empty(); }
+	};
+
+	TrimmedLoop trim_loop(const Polygon &loop, const EdgeGrid::Grid &grid);
+	std::vector<TrimmedLoop> trim_loops(const Polygons &loops, const EdgeGrid::Grid &grid);
 
 } // namespace Slic3r
-

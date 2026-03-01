@@ -2,22 +2,23 @@
 
 #include "Point.hpp"
 
-namespace Slic3r {
-class ModelObject;
-class TriangleMesh;
+namespace Slic3r
+{
+	class ModelObject;
+	class TriangleMesh;
 
-class FaceDetector {
-public:
-	FaceDetector(std::vector<TriangleMesh>& tms, std::vector<Transform3d>& transfos, double sample_interval)
-		: m_meshes(tms), m_transfos(transfos), m_sample_interval(sample_interval) {}
+	class FaceDetector
+	{
+	public:
+		FaceDetector(std::vector<TriangleMesh> &tms, std::vector<Transform3d> &transfos, double sample_interval)
+			: m_meshes(tms), m_transfos(transfos), m_sample_interval(sample_interval) {}
 
-	void detect_exterior_face();
+		void detect_exterior_face();
 
-private:
-	std::vector<TriangleMesh>& m_meshes;
-	std::vector<Transform3d>& m_transfos;
-	double m_sample_interval;
-};
+	private:
+		std::vector<TriangleMesh> &m_meshes;
+		std::vector<Transform3d> &m_transfos;
+		double m_sample_interval;
+	};
 
 }
-

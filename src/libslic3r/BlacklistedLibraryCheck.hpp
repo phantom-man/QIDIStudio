@@ -1,44 +1,47 @@
 #pragma once
 
-#ifdef  WIN32
+#ifdef WIN32
 #include <windows.h>
 #include <vector>
 #include <string>
-#endif //WIN32
+#endif // WIN32
 
-namespace Slic3r {
-
-#ifdef  WIN32
-class BlacklistedLibraryCheck
+namespace Slic3r
 {
-public:
-    static BlacklistedLibraryCheck& get_instance()
+
+#ifdef WIN32
+    class BlacklistedLibraryCheck
     {
-        static BlacklistedLibraryCheck instance; 
-                              
-        return instance;
-    }
-private:
-    BlacklistedLibraryCheck() = default;
+    public:
+        static BlacklistedLibraryCheck &get_instance()
+        {
+            static BlacklistedLibraryCheck instance;
 
-    std::vector<std::wstring> m_found;
-public:
-    BlacklistedLibraryCheck(BlacklistedLibraryCheck const&) = delete;
-    void operator=(BlacklistedLibraryCheck const&) = delete;
-    // returns all found blacklisted dlls
-    bool get_blacklisted(std::vector<std::wstring>& names);
-    std::wstring get_blacklisted_string();
-    // returns true if enumerating found blacklisted dll
-    bool perform_check();
+            return instance;
+        }
 
-    // UTF-8 encoded path
-    static bool is_blacklisted(const std::string &dllpath);
-    static bool is_blacklisted(const std::wstring &dllpath);
-private:
-    static const std::vector<std::wstring> blacklist;
-};
+    private:
+        BlacklistedLibraryCheck() = default;
 
-#endif //WIN32
+        std::vector<std::wstring> m_found;
+
+    public:
+        BlacklistedLibraryCheck(BlacklistedLibraryCheck const &) = delete;
+        void operator=(BlacklistedLibraryCheck const &) = delete;
+        // returns all found blacklisted dlls
+        bool get_blacklisted(std::vector<std::wstring> &names);
+        std::wstring get_blacklisted_string();
+        // returns true if enumerating found blacklisted dll
+        bool perform_check();
+
+        // UTF-8 encoded path
+        static bool is_blacklisted(const std::string &dllpath);
+        static bool is_blacklisted(const std::wstring &dllpath);
+
+    private:
+        static const std::vector<std::wstring> blacklist;
+    };
+
+#endif // WIN32
 
 } // namespace Slic3r
-

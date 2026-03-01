@@ -421,4 +421,3 @@ namespace cereal
         archive(mesh.its.indices, mesh.its.vertices);
     }
 }
-

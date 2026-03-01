@@ -8,41 +8,41 @@ _Maintained by: GitHub Copilot | Research date: 2026-02-28 | **Updated: 2026-02-
 
 ## Implementation Status (2026-02-28)
 
-| Priority | Action                                      | Status          | Files Changed                                                                                                           |
-| -------- | ------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| P1       | Set `CMAKE_CXX_STANDARD 20` globally        | ✅ **DONE**     | `CMakeLists.txt`                                                                                                        |
-| P1       | Add `CMakePresets.json`                     | ✅ **DONE**     | `CMakePresets.json` (NEW)                                                                                               |
-| P1       | Add `.clang-tidy` config                    | ✅ **DONE**     | `.clang-tidy` (NEW)                                                                                                     |
-| P1       | Replace `boost::thread` in GCodeSender      | ✅ **DONE**     | `GCodeSender.hpp`, `GCodeSender.cpp`                                                                                    |
-| P1       | Mark move ctors `noexcept`                  | ✅ **DONE**     | `TriangleMesh.hpp`                                                                                                      |
-| P2       | RAII GL object wrappers                     | ✅ **DONE**     | `src/slic3r/GUI/GLResource.hpp` (NEW)                                                                                   |
-| P2       | `[[nodiscard]]` on parse/IO functions       | ✅ **DONE**     | `TriangleMesh.hpp`, `Format/STL.hpp`, `Format/AMF.hpp`                                                                  |
-| P2       | `#pragma once` migration script             | ✅ **DONE**     | `scripts/migrate_pragma_once.py` (NEW)                                                                                  |
-| P2       | `#pragma once` — pilot (2 headers)          | ✅ **DONE**     | `Format/STL.hpp`, `Format/AMF.hpp`                                                                                      |
-| P2       | `std::unordered_map` in Config              | ⚠️ **DEFERRED** | `Config.hpp` — sorted-iter dependency                                                                                   |
-| P3       | `#pragma once` — ALL libslic3r headers      | ✅ **DONE**     | 80+ headers in `src/libslic3r/*.hpp` — complete sweep                                                                   |
-| P3       | `[[nodiscard]]` on all GCode output methods | ✅ **DONE**     | `GCodeWriter.hpp` (25+ methods), `GCode.hpp` (10 methods), `Print.hpp` (4 methods)                                      |
-| P3       | `std::expected` Result type                 | ✅ **DONE**     | `src/libslic3r/Result.hpp` (NEW)                                                                                        |
-| P3       | Google Highway SIMD                         | ⏳ Future       | —                                                                                                                       |
-| P3       | Coroutine Blender subprocess                | ⏳ Future       | —                                                                                                                       |
+| Priority | Action                                      | Status          | Files Changed                                                                      |
+| -------- | ------------------------------------------- | --------------- | ---------------------------------------------------------------------------------- |
+| P1       | Set `CMAKE_CXX_STANDARD 20` globally        | ✅ **DONE**     | `CMakeLists.txt`                                                                   |
+| P1       | Add `CMakePresets.json`                     | ✅ **DONE**     | `CMakePresets.json` (NEW)                                                          |
+| P1       | Add `.clang-tidy` config                    | ✅ **DONE**     | `.clang-tidy` (NEW)                                                                |
+| P1       | Replace `boost::thread` in GCodeSender      | ✅ **DONE**     | `GCodeSender.hpp`, `GCodeSender.cpp`                                               |
+| P1       | Mark move ctors `noexcept`                  | ✅ **DONE**     | `TriangleMesh.hpp`                                                                 |
+| P2       | RAII GL object wrappers                     | ✅ **DONE**     | `src/slic3r/GUI/GLResource.hpp` (NEW)                                              |
+| P2       | `[[nodiscard]]` on parse/IO functions       | ✅ **DONE**     | `TriangleMesh.hpp`, `Format/STL.hpp`, `Format/AMF.hpp`                             |
+| P2       | `#pragma once` migration script             | ✅ **DONE**     | `scripts/migrate_pragma_once.py` (NEW)                                             |
+| P2       | `#pragma once` — pilot (2 headers)          | ✅ **DONE**     | `Format/STL.hpp`, `Format/AMF.hpp`                                                 |
+| P2       | `std::unordered_map` in Config              | ⚠️ **DEFERRED** | `Config.hpp` — sorted-iter dependency                                              |
+| P3       | `#pragma once` — ALL libslic3r headers      | ✅ **DONE**     | 80+ headers in `src/libslic3r/*.hpp` — complete sweep                              |
+| P3       | `[[nodiscard]]` on all GCode output methods | ✅ **DONE**     | `GCodeWriter.hpp` (25+ methods), `GCode.hpp` (10 methods), `Print.hpp` (4 methods) |
+| P3       | `std::expected` Result type                 | ✅ **DONE**     | `src/libslic3r/Result.hpp` (NEW)                                                   |
+| P3       | Google Highway SIMD                         | ⏳ Future       | —                                                                                  |
+| P3       | Coroutine Blender subprocess                | ⏳ Future       | —                                                                                  |
 
 ---
 
 ## Executive Summary (REVISED after P1+P2+P3 implementation)
 
-| Dimension                            | Baseline   | Now        | Grade | Change                                     |
-| ------------------------------------ | ---------- | ---------- | ----- | ------------------------------------------ |
-| Language Standard & Feature Adoption | 4/10       | **6/10**   | C     | C++20 global + noexcept                    |
-| Memory & Ownership                   | 5/10       | 5/10       | C     | —                                          |
-| Type Safety                          | 4/10       | **6/10**   | C+    | [[nodiscard]] 35+ GCode/IO methods         |
-| Error Handling                       | 4/10       | **5/10**   | C     | noexcept move ctors + Result.hpp available |
-| OpenGL / Rendering C++               | 4/10       | **5/10**   | C     | GLResource.hpp RAII                        |
-| Concurrency & Parallelism            | 6/10       | **7/10**   | B-    | jthread in GCodeSender                     |
-| Build System & Tooling               | 3/10       | **7/10**   | B     | CMakePresets + clang-tidy                  |
-| Performance Architecture             | 4/10       | 4/10       | D     | —                                          |
-| Code Quality & Modern Idioms         | 5/10       | **8/10**   | B+    | #pragma once complete — ALL libslic3r/*.hpp |
-| Testing & Verification               | 4/10       | 4/10       | D     | —                                          |
-| **TOTAL (revised)**                  | **43/100** | **57/100** | **C+** | **+14 points**                            |
+| Dimension                            | Baseline   | Now        | Grade  | Change                                       |
+| ------------------------------------ | ---------- | ---------- | ------ | -------------------------------------------- |
+| Language Standard & Feature Adoption | 4/10       | **6/10**   | C      | C++20 global + noexcept                      |
+| Memory & Ownership                   | 5/10       | 5/10       | C      | —                                            |
+| Type Safety                          | 4/10       | **6/10**   | C+     | [[nodiscard]] 35+ GCode/IO methods           |
+| Error Handling                       | 4/10       | **5/10**   | C      | noexcept move ctors + Result.hpp available   |
+| OpenGL / Rendering C++               | 4/10       | **5/10**   | C      | GLResource.hpp RAII                          |
+| Concurrency & Parallelism            | 6/10       | **7/10**   | B-     | jthread in GCodeSender                       |
+| Build System & Tooling               | 3/10       | **7/10**   | B      | CMakePresets + clang-tidy                    |
+| Performance Architecture             | 4/10       | 4/10       | D      | —                                            |
+| Code Quality & Modern Idioms         | 5/10       | **8/10**   | B+     | #pragma once complete — ALL libslic3r/\*.hpp |
+| Testing & Verification               | 4/10       | 4/10       | D      | —                                            |
+| **TOTAL (revised)**                  | **43/100** | **57/100** | **C+** | **+14 points**                               |
 
 **Next session target:** Priority 3 — Google Highway SIMD integration for BVH + adopt `Result<T>` in new parse/load APIs + activate SLIC3R_BUILD_TESTS in CI.
 
