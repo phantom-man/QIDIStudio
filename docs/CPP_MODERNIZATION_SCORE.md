@@ -8,23 +8,23 @@ _Maintained by: GitHub Copilot | Research date: 2026-02-28 | **Updated: 2026-02-
 
 ## Implementation Status (2026-02-28)
 
-| Priority | Action                                          | Status              | Files Changed                                                                                   |
-| -------- | ----------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------- |
-| P1       | Set `CMAKE_CXX_STANDARD 20` globally            | ✅ **DONE**         | `CMakeLists.txt`                                                                                |
-| P1       | Add `CMakePresets.json`                         | ✅ **DONE**         | `CMakePresets.json` (NEW)                                                                       |
-| P1       | Add `.clang-tidy` config                        | ✅ **DONE**         | `.clang-tidy` (NEW)                                                                             |
-| P1       | Replace `boost::thread` in GCodeSender          | ✅ **DONE**         | `GCodeSender.hpp`, `GCodeSender.cpp`                                                            |
-| P1       | Mark move ctors `noexcept`                      | ✅ **DONE**         | `TriangleMesh.hpp`                                                                              |
-| P2       | RAII GL object wrappers                         | ✅ **DONE**         | `src/slic3r/GUI/GLResource.hpp` (NEW)                                                           |
-| P2       | `[[nodiscard]]` on parse/IO functions           | ✅ **DONE**         | `TriangleMesh.hpp`, `Format/STL.hpp`, `Format/AMF.hpp`                                          |
-| P2       | `#pragma once` migration script                 | ✅ **DONE**         | `scripts/migrate_pragma_once.py` (NEW)                                                          |
-| P2       | `#pragma once` — pilot (2 headers)              | ✅ **DONE**         | `Format/STL.hpp`, `Format/AMF.hpp`                                                              |
-| P2       | `std::unordered_map` in Config                  | ⚠️ **DEFERRED**     | `Config.hpp` — sorted-iter dependency                                                           |
-| P3       | `#pragma once` — 11 core headers                | ✅ **DONE**         | `Point`, `BoundingBox`, `ExPolygon`, `Polygon`, `Polyline`, `Line`, `Layer`, `GCode`, `Surface`, `GCodeWriter`, `Print` |
-| P3       | `[[nodiscard]]` on all GCode output methods     | ✅ **DONE**         | `GCodeWriter.hpp` (25+ methods), `GCode.hpp` (10 methods), `Print.hpp` (4 methods)              |
-| P3       | `std::expected` Result type                     | ✅ **DONE**         | `src/libslic3r/Result.hpp` (NEW)                                                                |
-| P3       | Google Highway SIMD                             | ⏳ Future           | —                                                                                               |
-| P3       | Coroutine Blender subprocess                    | ⏳ Future           | —                                                                                               |
+| Priority | Action                                      | Status          | Files Changed                                                                                                           |
+| -------- | ------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| P1       | Set `CMAKE_CXX_STANDARD 20` globally        | ✅ **DONE**     | `CMakeLists.txt`                                                                                                        |
+| P1       | Add `CMakePresets.json`                     | ✅ **DONE**     | `CMakePresets.json` (NEW)                                                                                               |
+| P1       | Add `.clang-tidy` config                    | ✅ **DONE**     | `.clang-tidy` (NEW)                                                                                                     |
+| P1       | Replace `boost::thread` in GCodeSender      | ✅ **DONE**     | `GCodeSender.hpp`, `GCodeSender.cpp`                                                                                    |
+| P1       | Mark move ctors `noexcept`                  | ✅ **DONE**     | `TriangleMesh.hpp`                                                                                                      |
+| P2       | RAII GL object wrappers                     | ✅ **DONE**     | `src/slic3r/GUI/GLResource.hpp` (NEW)                                                                                   |
+| P2       | `[[nodiscard]]` on parse/IO functions       | ✅ **DONE**     | `TriangleMesh.hpp`, `Format/STL.hpp`, `Format/AMF.hpp`                                                                  |
+| P2       | `#pragma once` migration script             | ✅ **DONE**     | `scripts/migrate_pragma_once.py` (NEW)                                                                                  |
+| P2       | `#pragma once` — pilot (2 headers)          | ✅ **DONE**     | `Format/STL.hpp`, `Format/AMF.hpp`                                                                                      |
+| P2       | `std::unordered_map` in Config              | ⚠️ **DEFERRED** | `Config.hpp` — sorted-iter dependency                                                                                   |
+| P3       | `#pragma once` — 11 core headers            | ✅ **DONE**     | `Point`, `BoundingBox`, `ExPolygon`, `Polygon`, `Polyline`, `Line`, `Layer`, `GCode`, `Surface`, `GCodeWriter`, `Print` |
+| P3       | `[[nodiscard]]` on all GCode output methods | ✅ **DONE**     | `GCodeWriter.hpp` (25+ methods), `GCode.hpp` (10 methods), `Print.hpp` (4 methods)                                      |
+| P3       | `std::expected` Result type                 | ✅ **DONE**     | `src/libslic3r/Result.hpp` (NEW)                                                                                        |
+| P3       | Google Highway SIMD                         | ⏳ Future       | —                                                                                                                       |
+| P3       | Coroutine Blender subprocess                | ⏳ Future       | —                                                                                                                       |
 
 ---
 

@@ -26,52 +26,52 @@
 namespace Slic3r
 {
 
-// ---------------------------------------------------------------------------
-// Primary alias.
-// Result<T> = T on success, std::string error message on failure.
-// ---------------------------------------------------------------------------
-template <typename T>
-using Result = std::expected<T, std::string>;
+    // ---------------------------------------------------------------------------
+    // Primary alias.
+    // Result<T> = T on success, std::string error message on failure.
+    // ---------------------------------------------------------------------------
+    template <typename T>
+    using Result = std::expected<T, std::string>;
 
-// Alias for functions that succeed with no value (previously returning bool).
-using VoidResult = std::expected<void, std::string>;
+    // Alias for functions that succeed with no value (previously returning bool).
+    using VoidResult = std::expected<void, std::string>;
 
-// ---------------------------------------------------------------------------
-// Factory helpers — make call-site error paths read like prose.
-// ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // Factory helpers — make call-site error paths read like prose.
+    // ---------------------------------------------------------------------------
 
-/// Create an error result from a string message.
-/// Example: return Err("file not found: " + path);
-template <typename E>
-[[nodiscard]] inline auto Err(E &&e)
-{
-    return std::unexpected(std::forward<E>(e));
-}
+    /// Create an error result from a string message.
+    /// Example: return Err("file not found: " + path);
+    template <typename E>
+    [[nodiscard]] inline auto Err(E &&e)
+    {
+        return std::unexpected(std::forward<E>(e));
+    }
 
-/// Overload for string_view to avoid requiring a temporary std::string.
-[[nodiscard]] inline std::unexpected<std::string> Err(std::string_view msg)
-{
-    return std::unexpected(std::string(msg));
-}
+    /// Overload for string_view to avoid requiring a temporary std::string.
+    [[nodiscard]] inline std::unexpected<std::string> Err(std::string_view msg)
+    {
+        return std::unexpected(std::string(msg));
+    }
 
-/// Overload for C-string literals.
-[[nodiscard]] inline std::unexpected<std::string> Err(const char *msg)
-{
-    return std::unexpected(std::string(msg));
-}
+    /// Overload for C-string literals.
+    [[nodiscard]] inline std::unexpected<std::string> Err(const char *msg)
+    {
+        return std::unexpected(std::string(msg));
+    }
 
-// ---------------------------------------------------------------------------
-// OK helper — symmetric with Err() for clarity at call sites.
-// ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // OK helper — symmetric with Err() for clarity at call sites.
+    // ---------------------------------------------------------------------------
 
-/// Return a successful result.
-/// Example: return Ok(volume);
-/// Note: for void results just `return {};` works fine.
-template <typename T>
-[[nodiscard]] inline std::expected<std::remove_cvref_t<T>, std::string> Ok(T &&value)
-{
-    return std::expected<std::remove_cvref_t<T>, std::string>(std::forward<T>(value));
-}
+    /// Return a successful result.
+    /// Example: return Ok(volume);
+    /// Note: for void results just `return {};` works fine.
+    template <typename T>
+    [[nodiscard]] inline std::expected<std::remove_cvref_t<T>, std::string> Ok(T &&value)
+    {
+        return std::expected<std::remove_cvref_t<T>, std::string>(std::forward<T>(value));
+    }
 
 } // namespace Slic3r
 
