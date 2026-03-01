@@ -46,6 +46,9 @@ agents/__pycache__/
 .cursor/
 .claude/
 .agents/
+
+# Desktop Commander MCP — cloned upstream source (not project code)
+DesktopCommanderMCP/
 data/lancedb
 
 # Local debug artifacts / scratch outputs
