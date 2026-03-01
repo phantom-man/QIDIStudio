@@ -1,20 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Generator: Adobe Illustrator 25.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
-<svg version="1.1" id="图层_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 256 256" enable-background="new 0 0 256 256" xml:space="preserve">
-<g>
-	<path fill="#303AB2" d="M196,256H60c-33.1,0-60-26.9-60-60V60C0,26.9,26.9,0,60,0h136c33.1,0,60,26.9,60,60v136
-		C256,229.1,229.1,256,196,256z"/>
-</g>
-<g>
-	<path fill="#FFFFFF" d="M145,177.9v-13.2v-21.3c0-2.3,1.2-4.5,3.2-5.6l28.3-16.3l13-7.5V93c0-4.6-2.5-8.9-6.5-11.2l-57.8-33.4
-		c-4-2.3-8.9-2.3-13,0L54.5,81.8c-4,2.3-6.5,6.6-6.5,11.2v66.7c0,4.6,2.5,8.9,6.5,11.2l57.8,33.4c4,2.3,8.9,2.3,13,0l19.7-11.4l0,0
-		V177.9z M125.2,115.2c-4,2.3-6.5,6.6-6.5,11.2v55.4c0,5-5.4,8.1-9.7,5.6l-44.8-25.9c-2-1.2-3.2-3.3-3.2-5.6V96.7
-		c0-2.3,1.2-4.5,3.2-5.6l51.3-29.6c2-1.2,4.5-1.2,6.5,0l38.3,22.1c4.3,2.5,4.3,8.7,0,11.2L125.2,115.2z"/>
-</g>
-<g>
-	<path fill="#FFFFFF" d="M198.3,108.9l-8.8,5.1v18.2v1.8v22.1v7.5c0,2.3-1.2,4.4-3.2,5.5l0,0l-0.7,0.4l-0.9,0.5l-8.1,4.7l-5.2,3
-		L145,192.9l0,0v6.4v3.1v0.1c0,0,0,0,0,0v0.4c0.1,4.8,5.2,7.9,9.5,5.7l0.2-0.1l5.2-3l44.9-26c2-1.2,3.2-3.3,3.2-5.6v-59.4
-		C208,109.5,202.6,106.4,198.3,108.9z"/>
-</g>
+<!-- NexusSlicer Dark Forge brand icon — 2026-03-01
+     Palette: background #0D0D0F, surface #1C1C21, accent #00D4FF, secondary #FF6B35
+     Geometric concept: 3D mesh layers being "sliced" — glowing cyan edges on forge-black field -->
+<svg version="1.1" id="nexusslicer_logo" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     x="0px" y="0px" viewBox="0 0 256 256" enable-background="new 0 0 256 256" xml:space="preserve">
+
+  <defs>
+    <!-- Subtle radial glow behind icon centre -->
+    <radialGradient id="bg_glow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%"  stop-color="#1C1C21" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#0D0D0F" stop-opacity="1"/>
+    </radialGradient>
+    <!-- Cyan edge glow for the "slice plane" line -->
+    <filter id="cyan_glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background: rounded square, forge black with subtle depth gradient -->
+  <rect x="0" y="0" width="256" height="256" rx="48" ry="48" fill="url(#bg_glow)"/>
+
+  <!-- Main mesh geometry — primary shape in electric cyan (was white on QIDI blue) -->
+  <!-- Hexagonal 3D mesh outline: the original QIDI connectivity geometry recoloured -->
+  <g opacity="0.95">
+    <path fill="#00D4FF" filter="url(#cyan_glow)" d="M145,177.9v-13.2v-21.3c0-2.3,1.2-4.5,3.2-5.6l28.3-16.3l13-7.5V93
+      c0-4.6-2.5-8.9-6.5-11.2l-57.8-33.4c-4-2.3-8.9-2.3-13,0L54.5,81.8c-4,2.3-6.5,6.6-6.5,11.2v66.7
+      c0,4.6,2.5,8.9,6.5,11.2l57.8,33.4c4,2.3,8.9,2.3,13,0l19.7-11.4l0,0V177.9z
+      M125.2,115.2c-4,2.3-6.5,6.6-6.5,11.2v55.4c0,5-5.4,8.1-9.7,5.6l-44.8-25.9
+      c-2-1.2-3.2-3.3-3.2-5.6V96.7c0-2.3,1.2-4.5,3.2-5.6l51.3-29.6c2-1.2,4.5-1.2,6.5,0l38.3,22.1
+      c4.3,2.5,4.3,8.7,0,11.2L125.2,115.2z"/>
+  </g>
+
+  <!-- Secondary geometry — the "cap" element in molten orange accent (was white) -->
+  <!-- This becomes the visible "slice plane" cutting through the mesh -->
+  <g opacity="0.90">
+    <path fill="#FF6B35" d="M198.3,108.9l-8.8,5.1v18.2v1.8v22.1v7.5c0,2.3-1.2,4.4-3.2,5.5l0,0
+      l-0.7,0.4l-0.9,0.5l-8.1,4.7l-5.2,3L145,192.9l0,0v6.4v3.1v0.1c0,0,0,0,0,0v0.4
+      c0.1,4.8,5.2,7.9,9.5,5.7l0.2-0.1l5.2-3l44.9-26c2-1.2,3.2-3.3,3.2-5.6v-59.4
+      C208,109.5,202.6,106.4,198.3,108.9z"/>
+  </g>
+
+  <!-- Horizontal slice line — the "cutting plane" visual metaphor, glowing cyan -->
+  <line x1="38" y1="128" x2="218" y2="128"
+        stroke="#00D4FF" stroke-width="1.5" stroke-opacity="0.35"
+        filter="url(#cyan_glow)"/>
 </svg>

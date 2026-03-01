@@ -64,6 +64,7 @@
 
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
+#include "QidiTheme.hpp"  // Dark Forge brand palette — single source of truth for all colours
 #include "3DScene.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
@@ -3508,23 +3509,34 @@ const wxColour GUI_App::get_label_default_clr_modified()
 
 void GUI_App::init_label_colours()
 {
+    // Dark Forge palette — all brand colours defined in QidiTheme.hpp.
+    // Adjust the palette there; never scatter raw RGB here.
     bool is_dark_mode = dark_mode();
-    m_color_label_modified = is_dark_mode ? wxColour("#F1754E") : wxColour("#F1754E");
-    m_color_label_sys      = is_dark_mode ? wxColour("#B2B3B5") : wxColour("#363636");
+
+    // Modified-parameter label: orange-red, same in both modes.
+    m_color_label_modified = wxColour(QidiTheme::HEX_MODIFIED);
+    m_color_label_sys      = is_dark_mode ? QidiTheme::TEXT_SECONDARY()
+                                          : wxColour("#363636");
 
 #ifdef _WIN32
-    m_color_label_default           = is_dark_mode ? wxColour(250, 250, 250) : m_color_label_sys; // wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
-    m_color_highlight_label_default = is_dark_mode ? wxColour(230, 230, 230): wxSystemSettings::GetColour(/*wxSYS_COLOUR_HIGHLIGHTTEXT*/wxSYS_COLOUR_WINDOWTEXT);
-    m_color_highlight_default       = is_dark_mode ? wxColour(78, 78, 78)   : wxSystemSettings::GetColour(wxSYS_COLOUR_3DLIGHT);
-    m_color_hovered_btn_label       = is_dark_mode ? wxColour(255, 255, 254) : wxColour(0,0,0);
-    m_color_default_btn_label       = is_dark_mode ? wxColour(255, 255, 254): wxColour(0,0,0);
-    m_color_selected_btn_bg         = is_dark_mode ? wxColour(84, 84, 91)   : wxColour(206, 206, 206);
+    m_color_label_default           = is_dark_mode ? QidiTheme::TEXT_PRIMARY()
+                                                   : m_color_label_sys;
+    m_color_highlight_label_default = is_dark_mode ? wxColour(230, 230, 230)
+                                                   : wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+    m_color_highlight_default       = is_dark_mode ? QidiTheme::SURFACE_HOVER()
+                                                   : wxSystemSettings::GetColour(wxSYS_COLOUR_3DLIGHT);
+    m_color_hovered_btn_label       = is_dark_mode ? QidiTheme::TEXT_PRIMARY() : wxColour(0, 0, 0);
+    m_color_default_btn_label       = is_dark_mode ? QidiTheme::TEXT_PRIMARY() : wxColour(0, 0, 0);
+    m_color_selected_btn_bg         = is_dark_mode ? QidiTheme::SURFACE_ELEVATED()
+                                                   : wxColour(206, 206, 206);
 #elif __linux__
-    m_color_label_default           = is_dark_mode ? wxColour(250, 250, 250) : m_color_label_sys;
+    m_color_label_default           = is_dark_mode ? QidiTheme::TEXT_PRIMARY() : m_color_label_sys;
 #else
     m_color_label_default = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
 #endif
-    m_color_window_default          = is_dark_mode ? wxColour(43, 43, 43)   : wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
+    // Window background: forge black in dark mode.
+    m_color_window_default = is_dark_mode ? QidiTheme::BACKGROUND()
+                                          : wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
     StateColor::SetDarkMode(is_dark_mode);
 }
 

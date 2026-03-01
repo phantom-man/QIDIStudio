@@ -37,6 +37,10 @@ namespace Slic3r {
 class RenderColor {
 public:
     static ImVec4      colors[RenderCol_Count];
+
+    // Apply the Dark Forge brand palette to the 3D viewport colour table.
+    // Call once from OpenGLManager::init() after GL context is established.
+    static void        init_dark_forge();
 };
 const char* GetRenderColName(RenderCol idx);
 inline std::array<float, 4> GLColor(ImVec4 color) {

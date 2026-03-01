@@ -1,14 +1,23 @@
 #include "StateColor.hpp"
+// QidiTheme palette applied to dark-mode colour remapping.
+// Hex values kept in sync with QidiTheme.hpp — do not change independently.
+static constexpr const char* kBrandCyan        = "#00D4FF";  // QidiTheme::HEX_ACCENT_CYAN
+static constexpr const char* kBrandCyanDim     = "#0099BB";  // QidiTheme::HEX_ACCENT_CYAN_DIM
+static constexpr const char* kBrandOrange      = "#FF6B35";  // QidiTheme::HEX_ACCENT_ORANGE
+static constexpr const char* kBrandSurface     = "#1C1C21";  // QidiTheme::HEX_SURFACE
+static constexpr const char* kBrandBackground  = "#0D0D0F";  // QidiTheme::HEX_BACKGROUND
+static constexpr const char* kBrandElevated    = "#2A2A32";  // QidiTheme::HEX_SURFACE_ELEVATED
 
 static bool gDarkMode = false;
 
 static bool operator<(wxColour const &l, wxColour const &r) { return l.GetRGBA() < r.GetRGBA(); }
 
-//y 96
+//y 96 — updated 2026-03-01: QIDI blue (#4479FB, #1F8EEA) remapped to Dark Forge electric cyan;
+// orange (#FF6F00) remapped to molten orange; whites/greys mapped to brand surfaces.
 static std::map<wxColour, wxColour> gDarkColors{
-    {"#4479FB", "#4479FB"},
-    {"#1F8EEA", "#2778D2"},
-    {"#FF6F00", "#D15B00"},
+    {"#4479FB", kBrandCyan},      // QIDI blue  → electric cyan
+    {"#1F8EEA", kBrandCyanDim},   // QIDI blue2 → dimmed cyan
+    {"#FF6F00", kBrandOrange},    // generic orange → molten orange
     {"#D01B1B", "#BB2A3A"},
     {"#262E30", "#EFEFF0"},
     {"#2C2C2E", "#B3B3B4"},
@@ -18,8 +27,8 @@ static std::map<wxColour, wxColour> gDarkColors{
     {"#EEEEEE", "#4C4C55"},
     {"#E8E8E8", "#3E3E45"},
     {"#323A3D", "#E5E5E4"},
-    {"#FFFFFF", "#2D2D31"},
-    {"#F8F8F8", "#36363C"},
+    {"#FFFFFF", kBrandSurface},   // white → graphite surface
+    {"#F8F8F8", kBrandSurface},
     {"#F1F1F1", "#36363B"},
     {"#3B4446", "#2D2D30"},
     {"#CECECE", "#54545B"},
