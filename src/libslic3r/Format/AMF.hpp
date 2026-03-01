@@ -1,5 +1,4 @@
-#ifndef slic3r_Format_AMF_hpp_
-#define slic3r_Format_AMF_hpp_
+#pragma once
 
 namespace Slic3r {
 
@@ -7,7 +6,7 @@ class Model;
 class DynamicPrintConfig;
 
 // Load the content of an amf file into the given model and configuration.
-extern bool load_amf(const char* path, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, bool* use_inches);
+[[nodiscard]] extern bool load_amf(const char* path, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, bool* use_inches);
 
 //QDS: remove amf export
 // Save the given model and the config data into an amf file.
@@ -16,4 +15,3 @@ extern bool load_amf(const char* path, DynamicPrintConfig* config, ConfigSubstit
 
 } // namespace Slic3r
 
-#endif /* slic3r_Format_AMF_hpp_ */

@@ -7,6 +7,16 @@ endif()
 
 project(QIDIStudio)
 
+# ── C++ Standard ──────────────────────────────────────────────────────────────
+# MSVC 2022 has complete C++20 support.  Set globally so that every target
+# (especially src/slic3r which had no explicit standard) compiles consistently.
+# Vendored third-party targets (mcut, earcut) may override downward; that is
+# intentional — do NOT remove their per-target overrides.
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+# ─────────────────────────────────────────────────────────────────────────────
+
 include("version.inc")
 include(GNUInstallDirs)
 include(CMakeDependentOption)

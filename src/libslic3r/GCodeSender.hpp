@@ -4,10 +4,11 @@
 #include "libslic3r.h"
 #include <queue>
 #include <string>
+#include <thread>   // std::jthread (C++20)
 #include <vector>
 #include <boost/asio.hpp>
 #include <boost/bind/bind.hpp>
-#include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>  // boost::mutex (no longer pulls in boost::thread)
 
 namespace Slic3r {
 
@@ -37,7 +38,7 @@ class GCodeSender : private boost::noncopyable {
     private:
     asio::io_service io;
     asio::serial_port serial;
-    boost::thread background_thread;
+    std::jthread background_thread;  // C++20: auto-joins + stop_token support
     boost::asio::streambuf read_buffer, write_buffer;
     bool open;      // whether the serial socket is connected
     bool connected; // whether the printer is online

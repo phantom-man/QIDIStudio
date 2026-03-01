@@ -1,0 +1,50 @@
+# QIDIStudio — clang-tidy configuration
+# Run via: clang-tidy --config-file=.clang-tidy <file> --
+# Integrate into CI with: run-clang-tidy -p <build-dir> -checks=...
+#
+# Tier 1 (warnings-as-errors): correctness issues that cause real bugs
+# Tier 2 (warnings-only): modernisation that improve safety and performance
+# NOT enabled: cppcoreguidelines-* in bulk (too noisy on legacy code),
+#              readability-* in bulk (style bike-shedding, focus on safety)
+
+---
+Checks: >
+  clang-diagnostic-*,
+  bugprone-use-after-move,
+  bugprone-undefined-memory-manipulation,
+  bugprone-misplaced-operator-in-strlen-in-alloc,
+  bugprone-string-constructor,
+  bugprone-suspicious-memset-usage,
+  bugprone-swapped-arguments,
+  modernize-use-override,
+  modernize-use-nullptr,
+  modernize-use-default-member-init,
+  modernize-loop-convert,
+  modernize-use-emplace,
+  performance-unnecessary-value-param,
+  performance-move-const-arg,
+  performance-for-range-copy,
+  performance-inefficient-vector-operation,
+  cppcoreguidelines-pro-type-member-init,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic
+
+WarningsAsErrors: >
+  bugprone-use-after-move,
+  bugprone-undefined-memory-manipulation,
+  bugprone-suspicious-memset-usage,
+  bugprone-swapped-arguments
+
+# Only report issues in our own source; suppress vendored headers
+HeaderFilterRegex: "src/(libslic3r|slic3r)/.*\\.(h|hpp)$"
+
+# Suppress known-acceptable patterns
+CheckOptions:
+  - key: modernize-use-default-member-init.UseAssignment
+    value: "1"
+  - key: modernize-loop-convert.MaxCopySize
+    value: "16"
+  - key: performance-for-range-copy.WarnOnAllAutoCopies
+    value: "1"
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: ""

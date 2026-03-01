@@ -1,0 +1,101 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 13, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "toolset": "host=x64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "SLIC3R_STATIC": "ON",
+        "SLIC3R_GUI": "ON",
+        "SLIC3R_BUILD_TESTS": "OFF",
+        "SLIC3R_MSVC_COMPILE_PARALLEL": "ON",
+        "SLIC3R_MSVC_PDB": "ON"
+      },
+      "environment": {
+        "CMAKE_PREFIX_PATH": "C:/QIDISrc/QIDIStudio/deps/build/destdir/usr/local"
+      }
+    },
+    {
+      "name": "msvc-release",
+      "displayName": "MSVC Release",
+      "inherits": "base",
+      "binaryDir": "C:/QIDISrc/QIDIStudio/build",
+      "installDir": "C:/QIDISrc/QIDIStudio/install_dir",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "QDT_RELEASE_TO_PUBLIC": "1"
+      }
+    },
+    {
+      "name": "msvc-relwithdebinfo",
+      "displayName": "MSVC RelWithDebInfo (default dev)",
+      "inherits": "base",
+      "binaryDir": "C:/QIDISrc/QIDIStudio/build",
+      "installDir": "C:/QIDISrc/QIDIStudio/install_dir",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "QDT_RELEASE_TO_PUBLIC": "1"
+      }
+    },
+    {
+      "name": "msvc-asan",
+      "displayName": "MSVC ASan (debug with sanitizer)",
+      "inherits": "base",
+      "binaryDir": "C:/QIDISrc/QIDIStudio/build_asan",
+      "installDir": "C:/QIDISrc/QIDIStudio/install_dir_debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS": "/fsanitize=address /Zi",
+        "QDT_RELEASE_TO_PUBLIC": "1"
+      }
+    },
+    {
+      "name": "msvc-tests",
+      "displayName": "MSVC with Tests enabled",
+      "inherits": "msvc-relwithdebinfo",
+      "cacheVariables": {
+        "SLIC3R_BUILD_TESTS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "msvc-release-build",
+      "displayName": "Build Release",
+      "configurePreset": "msvc-release",
+      "configuration": "Release",
+      "targets": ["install"],
+      "jobs": 16
+    },
+    {
+      "name": "msvc-relwithdebinfo-build",
+      "displayName": "Build RelWithDebInfo",
+      "configurePreset": "msvc-relwithdebinfo",
+      "configuration": "RelWithDebInfo",
+      "targets": ["install"],
+      "jobs": 16
+    },
+    {
+      "name": "msvc-asan-build",
+      "displayName": "Build ASan",
+      "configurePreset": "msvc-asan",
+      "configuration": "RelWithDebInfo",
+      "targets": ["install"],
+      "jobs": 16
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "msvc-tests-run",
+      "displayName": "Run C++ tests",
+      "configurePreset": "msvc-tests",
+      "configuration": "RelWithDebInfo",
+      "output": { "verbosity": "verbose" }
+    }
+  ]
+}

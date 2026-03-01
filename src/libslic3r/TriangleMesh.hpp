@@ -88,16 +88,22 @@ class TriangleMesh
 {
 public:
     TriangleMesh() = default;
+    // Explicit noexcept move ops — ensures std::vector uses move (not copy) on reallocation.
+    TriangleMesh(TriangleMesh&&) noexcept = default;
+    TriangleMesh& operator=(TriangleMesh&&) noexcept = default;
+    // Explicit copy ops (keep symmetry with the Rule of Five).
+    TriangleMesh(const TriangleMesh&) = default;
+    TriangleMesh& operator=(const TriangleMesh&) = default;
     TriangleMesh(const std::vector<Vec3f> &vertices, const std::vector<Vec3i> &faces);
     TriangleMesh(std::vector<Vec3f> &&vertices, const std::vector<Vec3i> &&faces);
     explicit TriangleMesh(const indexed_triangle_set &M);
     explicit TriangleMesh(indexed_triangle_set &&M, const RepairedMeshErrors& repaired_errors = RepairedMeshErrors());
     void clear() { this->its.clear(); this->m_stats.clear(); }
-    bool from_stl(stl_file& stl, bool repair = true);
-    bool  ReadSTLFile(const char *input_file, bool repair = true, ImportstlProgressFn stlFn = nullptr, int custom_header_length = 80);
-    bool write_ascii(const char* output_file);
-    bool write_binary(const char* output_file);
-    float volume();
+    [[nodiscard]] bool from_stl(stl_file& stl, bool repair = true);
+    [[nodiscard]] bool ReadSTLFile(const char *input_file, bool repair = true, ImportstlProgressFn stlFn = nullptr, int custom_header_length = 80);
+    [[nodiscard]] bool write_ascii(const char* output_file);
+    [[nodiscard]] bool write_binary(const char* output_file);
+    [[nodiscard]] float volume();
     void WriteOBJFile(const char* output_file) const;
     void scale(float factor);
     void scale(const Vec3f &versor);

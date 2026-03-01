@@ -107,8 +107,9 @@ GCodeSender::connect(std::string devname, unsigned int baud_rate)
     this->io.post(boost::bind(&GCodeSender::do_read, this));
     
     // start reading in the background thread
-    boost::thread t(boost::bind(&boost::asio::io_service::run, &this->io));
-    this->background_thread.swap(t);
+    // C++20 std::jthread: auto-joins on destruction; stop_token available if needed.
+    std::jthread t([this](std::stop_token /*st*/) { this->io.run(); });
+    this->background_thread = std::move(t);
     
     // always send a M105 to check for connection because firmware might be silent on connect
     //FIXME Vojtech: This is being sent too early, leading to line number synchronization issues,
