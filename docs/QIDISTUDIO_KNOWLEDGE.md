@@ -1,6 +1,6 @@
 # QIDIStudio — Complete Engineering Knowledge Base
 
-_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, \_DebugSession, ai_debug_pipeline.py, §15.14) + 2026-02-28 (§18: PhD Cognitive Architecture — full absorption of PSV loop, System 1/2 thinking, HAVEN, Lean 4, cross-domain isomorphisms, applied to all pipelines) + 2026-02-28 (§19: Computational Aesthetics — Fourier symmetry score, spectral entropy, Leder B(s,σ) model, Golden Zone, skin FFT tile refinement, ai_beauty_scorer.py)_
+_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, \_DebugSession, ai_debug_pipeline.py, §15.14) + 2026-02-28 (§18: PhD Cognitive Architecture — full absorption of PSV loop, System 1/2 thinking, HAVEN, Lean 4, cross-domain isomorphisms, applied to all pipelines) + 2026-02-28 (§19: Computational Aesthetics — Fourier symmetry score, spectral entropy, Leder B(s,σ) model, Golden Zone, skin FFT tile refinement, ai_beauty_scorer.py) + 2025 (§20: 3D Viewer PhD code review — Gouraud/PBR/gamma/lights/FXAA/SSAO/shadow deficiencies catalogued; full report docs/3D_Viewer_Code_Review_Report.md)_
 
 This document captures all reverse-engineered knowledge about QIDIStudio's source code,
 build system, configuration, and 3MF format. It serves as the single source of truth
@@ -2702,6 +2702,74 @@ $$\text{tile\_final} = \text{snap\_to\_integer\_repeat}(0.55 \cdot \text{tile\_g
 | docs/Measuring Aethetics.md                     | Spectral Entropy implementation, Simple=2.06 / Random=4.64 / Gyroid=4.62, Golden Zone definition             | §19.2–§19.3, `ai_beauty_scorer.py` `spectral_entropy()` |
 | Wikipedia: Processing Fluency Theory            | Inverted-U Wundt curve, hedonic marking, fluency-as-information account                                      | §19.1 Wundt penalty derivation                          |
 | Nature Comms 13:1858 (Johnston 2022)            | Symmetry as simplicity bias in evolution — directly supports $A \propto 1/K(S)$                              | §19.1 theoretical basis                                 |
+
+---
+
+## §20 3D Viewer Rendering Architecture — PhD-Level Analysis
+
+**Absorbed:** 2025 (this session)  
+**Source documents:** `docs/PhD-Level 3D Model Representation.md`, `docs/3D Projection Jacobian Accuracy.md`, `docs/Inverse Rendering_ Jacobian and Loss.md`, `docs/PhD Thesis_ Differentiable Rendering Pipeline.md`, `docs/PhD Whitepaper_ Inverse Graphics Framework.md`  
+**Full report:** `docs/3D_Viewer_Code_Review_Report.md`
+
+### §20.1 Current Rendering Stack
+
+| Layer            | Implementation                                 | File                |
+| ---------------- | ---------------------------------------------- | ------------------- |
+| Shading          | **Gouraud** (per-vertex Blinn-Phong)           | `gouraud.vs`        |
+| BRDF             | Non-physical Blinn-Phong, shininess=20         | `gouraud.vs`        |
+| Lighting         | 3 hardcoded **eye-space** directional lights   | `gouraud.vs`        |
+| Anti-aliasing    | FXAA post-process only (BT.601 luma)           | `fxaa.fs`           |
+| Gamma / color    | **None** — linear pipeline, no sRGB encode     | All FS              |
+| Environment      | Dead code guard (`ENABLE_ENVIRONMENT_MAP`)     | `gouraud.fs`        |
+| Shadows          | None                                           | —                   |
+| SSAO             | None — ambient = flat 0.3 constant             | `gouraud.vs`        |
+| MSAA (viewport)  | Off by default (`m_multisample_allowed=false`) | `GLCanvas3D.cpp`    |
+| MSAA (offscreen) | Full X2/X4/X8/X16 support — thumbnails only    | `OpenGLManager.cpp` |
+| Normal matrix    | CPU per draw call, Matrix3d inverse+transpose  | `GLCanvas3D.cpp`    |
+| Uniform cache    | Linear search `std::vector<pair<string,int>>`  | `GLShader.cpp`      |
+| Tessellation     | Declared in enum, **never instantiated**       | `GLShader.hpp`      |
+
+### §20.2 Critical Deficiencies vs. Rendering Equation
+
+The Rendering Equation requires integrating $f_r(\omega_i, \omega_o) \cdot L_i \cdot (\omega_i \cdot \hat{n})\, d\omega_i$ at every surface point. Current violations:
+
+1. **Gouraud shading** — integrates at vertices, interpolates the _result_, not the normal. SSIM ≈ 0.62 on curved surfaces vs. target 0.98.
+2. **Eye-space lights** — lights rotate with camera, destroying shape-from-shading depth cues.
+3. **No gamma correction** — output violates sRGB display contract, midtones appear 28% too dark.
+4. **No PBR/GGX** — Blinn-Phong violates White Furnace Test (energy not conserved); `INTENSITY_CORRECTION=0.6` is a non-physical patch.
+5. **IBL dead code** — ambient is uncorrelated with environment; no indirect light contribution.
+
+### §20.3 Projective Jacobian Connection
+
+From `docs/3D Projection Jacobian Accuracy.md`, the 2×3 projection Jacobian:
+
+$$J_G = \begin{bmatrix} f/z & 0 & -fx/z^2 \\ 0 & f/z & -fy/z^2 \end{bmatrix}$$
+
+The Camera.cpp projection matrix is mathematically correct (standard GL frustum/ortho). The Jacobian eigenvalues are therefore accurate. However, the _shading output_ does not faithfully represent what a correct renderer would produce at those projected coordinates. The viewer shows correct geometry placement but incorrect surface appearance.
+
+### §20.4 Remediation Priority (P0 = immediate)
+
+| P   | Fix                 | 2-line summary                                                                         |
+| --- | ------------------- | -------------------------------------------------------------------------------------- |
+| P0  | World-space lights  | Pass eye-space transform of world dir as uniform; remove hardcoded eye-space constants |
+| P0  | Phong shading       | Move `NdotL` / specular computation from VS to FS; pass normal as varying              |
+| P0  | Gamma correction    | Add `pow(rgb, 1/2.2)` at end of all fragment shaders                                   |
+| P1  | BT.709 luma in FXAA | `vec3(0.2126, 0.7152, 0.0722)`                                                         |
+| P1  | O(1) uniform cache  | Replace `std::vector` with `std::unordered_map` in `GLShader.cpp`                      |
+| P2  | Activate IBL        | Pass `ENABLE_ENVIRONMENT_MAP` define in `GLShadersManager.cpp` + provide env texture   |
+| P2  | GGX BRDF            | ~60 lines new GLSL: D(h), F(θ), G(l,v) Cook-Torrance                                   |
+| P2  | SSAO                | 16-tap hemisphere depth sample in new post-process pass                                |
+| P3  | Shadow map          | Depth pre-pass from primary light + PCF sampling in FS                                 |
+
+### §20.5 Source Document Index for §20
+
+| Document                                                | Key Content                                                   | Applied To                  |
+| ------------------------------------------------------- | ------------------------------------------------------------- | --------------------------- |
+| `docs/PhD-Level 3D Model Representation.md`             | Rendering Equation, Microfacet BRDF, SSIM target > 0.95       | All critical deficiencies   |
+| `docs/3D Projection Jacobian Accuracy.md`               | 2×3 Jacobian derivation, metric preservation, pixel footprint | Camera.cpp assessment, AE-2 |
+| `docs/Inverse Rendering_ Jacobian and Loss.md`          | Material Jacobian, chain rule, specular manifold sampling     | C-2 PBR remediation         |
+| `docs/PhD Thesis_ Differentiable Rendering Pipeline.md` | Structural Loss $\mathcal{L}_{total}$, Sobel structural loss  | AE-3 verification mode      |
+| `docs/PhD Whitepaper_ Inverse Graphics Framework.md`    | SSIM > 0.98 target, White Furnace Test, full pipeline design  | Roadmap scoring             |
 
 ---
 
