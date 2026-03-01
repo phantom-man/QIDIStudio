@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <memory>
 #include <vector>
 #include <boost/filesystem/path.hpp>
@@ -25,19 +24,18 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PrintBase.hpp"
 #include "libslic3r/Calib.hpp"
-//w29
+// w29
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/FlushVolCalc.hpp"
-//w29
+// w29
 #include "libslic3r/GCodeWriter.hpp"
 
-//y61
+// y61
 #if QDT_RELEASE_TO_PUBLIC
 #include "../QIDI/QIDINetwork.hpp"
 #endif
 
-
-#define FILAMENT_SYSTEM_COLORS_NUM      16
+#define FILAMENT_SYSTEM_COLORS_NUM 16
 
 class wxButton;
 class ScalableButton;
@@ -46,1066 +44,1079 @@ class wxString;
 class ComboBox;
 class Button;
 
-namespace Slic3r {
-class BackgroundSlicingProcess;
-class HelioBackgroundProcess;
-class BuildVolume;
-class Model;
-class ModelObject;
-enum class ModelObjectCutAttribute : int;
-using ModelObjectCutAttributes = enum_bitmask<ModelObjectCutAttribute>;
-class ModelInstance;
-class Print;
-class SLAPrint;
-//QDS: add partplatelist and SlicingStatusEvent
-class PartPlateList;
-class SlicingStatusEvent;
-class HelioCompletionEvent;
-
-enum SLAPrintObjectStep : unsigned int;
-enum class ConversionType : int;
-class DevAms;
-namespace csg {
-enum class BooleanFailReason;
-}
-using ModelInstancePtrs = std::vector<ModelInstance*>;
-
-
-namespace UndoRedo {
-    class Stack;
-    enum class SnapshotType : unsigned char;
-    struct Snapshot;
-}
-
-namespace GUI {
-class SyncAmsInfoDialog;
-class SyncBoxInfoDialog;
-class MainFrame;
-class ConfigOptionsGroup;
-class ObjectSettings;
-class ObjectLayers;
-class ObjectList;
-class GLCanvas3D;
-class Mouse3DController;
-class NotificationManager;
-class DailyTipsWindow;
-struct Camera;
-class GLToolbar;
-class PlaterPresetComboBox;
-class PartPlateList;
-class SyncNozzleAndBoxDialog;
-class FinishSyncAmsDialog;
-class Bed3D;
-class FinishSyncBoxDialog;
-using t_optgroups = std::vector <std::shared_ptr<ConfigOptionsGroup>>;
-//cj_2
-class QDSDevice;
-class Plater;
-enum class ActionButtonType : int;
-
-#define EVT_PUBLISHING_START        1
-#define EVT_PUBLISHING_STOP         2
-
-//QDS: add EVT_SLICING_UPDATE declare here
-wxDECLARE_EVENT(EVT_SLICING_UPDATE, Slic3r::SlicingStatusEvent);
-wxDECLARE_EVENT(EVT_PUBLISH,        wxCommandEvent);
-wxDECLARE_EVENT(EVT_OPEN_PLATESETTINGSDIALOG,        wxCommandEvent);
-
-// Explanation of int param
-// Bit 0: 1 = automatic mode, 0 = manual mode.
-// Bit 1: 1 = need auto slicing(from preview page), 0 = not need auto slicing.
-wxDECLARE_EVENT(EVT_OPEN_FILAMENT_MAP_SETTINGS_DIALOG, wxCommandEvent);
-wxDECLARE_EVENT(EVT_REPAIR_MODEL,        wxCommandEvent);
-wxDECLARE_EVENT(EVT_FILAMENT_COLOR_CHANGED,        wxCommandEvent);
-wxDECLARE_EVENT(EVT_INSTALL_PLUGIN_NETWORKING,        wxCommandEvent);
-wxDECLARE_EVENT(EVT_INSTALL_PLUGIN_HINT,        wxCommandEvent);
-wxDECLARE_EVENT(EVT_UPDATE_PLUGINS_WHEN_LAUNCH,        wxCommandEvent);
-wxDECLARE_EVENT(EVT_PREVIEW_ONLY_MODE_HINT,        wxCommandEvent);
-wxDECLARE_EVENT(EVT_GLCANVAS_COLOR_MODE_CHANGED,   SimpleEvent);
-wxDECLARE_EVENT(EVT_ENABLE_GCODE_OPTION_ITEM_CHANGED, SimpleEvent);
-wxDECLARE_EVENT(EVT_PRINT_FROM_SDCARD_VIEW,   SimpleEvent);
-wxDECLARE_EVENT(EVT_CREATE_FILAMENT, SimpleEvent);
-wxDECLARE_EVENT(EVT_MODIFY_FILAMENT, SimpleEvent);
-wxDECLARE_EVENT(EVT_ADD_FILAMENT, SimpleEvent);
-wxDECLARE_EVENT(EVT_DEL_FILAMENT, SimpleEvent);
-wxDECLARE_EVENT(EVT_NOTICE_CHILDE_SIZE_CHANGED, SimpleEvent);
-wxDECLARE_EVENT(EVT_NOTICE_FULL_SCREEN_CHANGED, IntEvent);
-using ColorEvent = Event<wxColour>;
-wxDECLARE_EVENT(EVT_ADD_CUSTOM_FILAMENT, ColorEvent);
-wxDECLARE_EVENT(EVT_SWITCH_TO_PREPARE_TAB, wxCommandEvent);
-
-// helio
-wxDECLARE_EVENT(EVT_HELIO_PROCESSING_COMPLETED, HelioCompletionEvent);
-wxDECLARE_EVENT(EVT_HELIO_PROCESSING_STARTED, SimpleEvent);
-wxDECLARE_EVENT(EVT_HELIO_INPUT_DLG, SimpleEvent);
-// end helio
-wxDECLARE_EVENT(EVT_GCODE_VIEWER_CHANGED, SimpleEvent);
-
-const wxString DEFAULT_PROJECT_NAME = "Untitled";
-
-//y59
-struct Box_msg {
-    std::vector<int> slot_state;
-    std::vector<int> slot_id;
-    std::vector<std::string> filament_id;
-    std::vector<std::string> filament_colors;
-    std::vector<std::string> filament_type;
-    std::string box_list_preset_name;
-    int box_count = 0;
-    int auto_reload_detect = 0;
-};
-
-class Sidebar : public wxPanel
+namespace Slic3r
 {
-    ConfigOptionMode    m_mode;
-    Button *         btn_sync{nullptr};
-    ScalableButton *  ams_btn{nullptr};
-    bool                                    m_last_slice_state = false;
-    SyncNozzleAndBoxDialog*                 m_sna_dialog{nullptr};  //y76
-    FinishSyncAmsDialog*                    m_fna_dialog{nullptr};
-    std::vector<BedType>                    m_cur_combox_bed_types;
-    std::string                             m_cur_image_bed_type;
-    int                                     m_last_combo_bedtype_count{0};
-    bool                                    m_begin_sync_printer_status{false};
-    SyncAmsInfoDialog*                      m_sync_dlg{nullptr};
-    //y59
-    SyncBoxInfoDialog*                      m_sync_box_dlg{nullptr};
+    class BackgroundSlicingProcess;
+    class HelioBackgroundProcess;
+    class BuildVolume;
+    class Model;
+    class ModelObject;
+    enum class ModelObjectCutAttribute : int;
+    using ModelObjectCutAttributes = enum_bitmask<ModelObjectCutAttribute>;
+    class ModelInstance;
+    class Print;
+    class SLAPrint;
+    // QDS: add partplatelist and SlicingStatusEvent
+    class PartPlateList;
+    class SlicingStatusEvent;
+    class HelioCompletionEvent;
 
-    void update_sync_ams_btn_enable(wxUpdateUIEvent &e);
+    enum SLAPrintObjectStep : unsigned int;
+    enum class ConversionType : int;
+    class DevAms;
+    namespace csg
+    {
+        enum class BooleanFailReason;
+    }
+    using ModelInstancePtrs = std::vector<ModelInstance *>;
 
-public:
-    enum DockingState { None, Left, Right };
-    Sidebar(Plater *parent);
-    Sidebar(Sidebar &&) = delete;
-    Sidebar(const Sidebar &) = delete;
-    Sidebar &operator=(Sidebar &&) = delete;
-    Sidebar &operator=(const Sidebar &) = delete;
-    ~Sidebar();
+    namespace UndoRedo
+    {
+        class Stack;
+        enum class SnapshotType : unsigned char;
+        struct Snapshot;
+    }
 
-    void on_enter_image_printer_bed(wxMouseEvent &evt);
-    void on_leave_image_printer_bed(wxMouseEvent &evt);
-    void on_change_color_mode(bool is_dark);
-    void create_printer_preset();
-    void init_filament_combo(PlaterPresetComboBox **combo, const int filament_idx);
-    void remove_unused_filament_combos(const size_t current_extruder_count);
-    void set_bed_by_curr_bed_type(AppConfig *config);
-    void update_all_preset_comboboxes();
-    //void update_partplate(PartPlateList& list);
-    void update_presets(Slic3r::Preset::Type preset_type);
-    //QDS
-    const std::vector<BedType>& get_cur_combox_bed_types() { return m_cur_combox_bed_types; }
-    void update_presets_from_to(Slic3r::Preset::Type preset_type, std::string from, std::string to);
-    bool set_bed_type(const std::string& bed_type_name);
-    void save_bed_type_to_config(const std::string &bed_type_name);
-    BedType get_cur_select_bed_type();
-    std::string get_cur_select_bed_image(bool& exist);
-    void set_bed_type_accord_combox(BedType bed_type);
-    bool reset_bed_type_combox_choices(bool is_sidebar_init = false);
-    bool use_default_bed_type(bool is_qdt_preset = true);
-    void change_top_border_for_mode_sizer(bool increase_border);
-    void msw_rescale();
-    void sys_color_changed();
-    void search();
-    void jump_to_option(size_t selected);
-    void jump_to_option(const std::string& opt_key, Preset::Type type, const std::wstring& category);
-    // QDS. Add filament_added() method.
-    void on_filament_count_change(size_t num_filaments);
-    void on_filaments_delete(size_t filament_id);
+    namespace GUI
+    {
+        class SyncAmsInfoDialog;
+        class SyncBoxInfoDialog;
+        class MainFrame;
+        class ConfigOptionsGroup;
+        class ObjectSettings;
+        class ObjectLayers;
+        class ObjectList;
+        class GLCanvas3D;
+        class Mouse3DController;
+        class NotificationManager;
+        class DailyTipsWindow;
+        struct Camera;
+        class GLToolbar;
+        class PlaterPresetComboBox;
+        class PartPlateList;
+        class SyncNozzleAndBoxDialog;
+        class FinishSyncAmsDialog;
+        class Bed3D;
+        class FinishSyncBoxDialog;
+        using t_optgroups = std::vector<std::shared_ptr<ConfigOptionsGroup>>;
+        // cj_2
+        class QDSDevice;
+        class Plater;
+        enum class ActionButtonType : int;
 
-    void add_filament();
-    void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1);  // 0 base, -1 means default
-    void change_filament(size_t from_id, size_t to_id);  // 0 base
-    void edit_filament();
-    void add_custom_filament(wxColour new_col);
-    bool is_new_project_in_gcode3mf();
-    // QDS
-    void on_bed_type_change(BedType bed_type);
-    void load_ams_list(MachineObject* obj);
-    std::map<int, DynamicPrintConfig> build_filament_ams_list(MachineObject* obj);
-    void sync_ams_list(bool is_from_big_sync_btn = false);
-    bool sync_extruder_list();
-    bool need_auto_sync_extruder_list_after_connect_priner(const MachineObject* obj);
-    void update_sync_status(std::shared_ptr<QDSDevice> obj);    //y76
-    int get_sidebar_pos_right_x();
-    void on_size(SimpleEvent &e);
-    void on_full_screen(IntEvent &);
-    void get_big_btn_sync_pos_size(wxPoint &pt, wxSize &size);
-    void get_small_btn_sync_pos_size(wxPoint &pt, wxSize &size);
-    void set_extruder_nozzle_count(int extruder_id, int nozzle_count);
-    void enable_nozzle_count_edit(bool enable);
-    void enable_purge_mode_btn(bool enable);
+#define EVT_PUBLISHING_START 1
+#define EVT_PUBLISHING_STOP 2
 
-    //w42 //y59
-    int box_count;
-    std::vector<std::string> box_filament_id;
-    std::vector<std::string> box_filament_colors;
-    std::vector<std::string> filament_type;
-    std::vector<int> box_slot_state;
-    std::vector<int> box_slot_id;
-    std::string box_list_preset_name;
-    std::string box_list_printer_ip;
-    void sync_box_list(bool is_from_big_sync_btn = false);  //y76
-    void load_box_list();
-    std::map<int, DynamicPrintConfig> build_filament_box_list(std::vector<std::string> id, std::vector<std::string> color, std::vector<int> slot_state, std::vector<int> slot_id, std::vector<std::string> type);
+        // QDS: add EVT_SLICING_UPDATE declare here
+        wxDECLARE_EVENT(EVT_SLICING_UPDATE, Slic3r::SlicingStatusEvent);
+        wxDECLARE_EVENT(EVT_PUBLISH, wxCommandEvent);
+        wxDECLARE_EVENT(EVT_OPEN_PLATESETTINGSDIALOG, wxCommandEvent);
 
-    PlaterPresetComboBox *  printer_combox();
-    ObjectList*             obj_list();
-    ObjectSettings*         obj_settings();
-    ObjectLayers*           obj_layers();
-    wxPanel*                scrolled_panel();
-    wxPanel* print_panel();
-    wxPanel* filament_panel();
+        // Explanation of int param
+        // Bit 0: 1 = automatic mode, 0 = manual mode.
+        // Bit 1: 1 = need auto slicing(from preview page), 0 = not need auto slicing.
+        wxDECLARE_EVENT(EVT_OPEN_FILAMENT_MAP_SETTINGS_DIALOG, wxCommandEvent);
+        wxDECLARE_EVENT(EVT_REPAIR_MODEL, wxCommandEvent);
+        wxDECLARE_EVENT(EVT_FILAMENT_COLOR_CHANGED, wxCommandEvent);
+        wxDECLARE_EVENT(EVT_INSTALL_PLUGIN_NETWORKING, wxCommandEvent);
+        wxDECLARE_EVENT(EVT_INSTALL_PLUGIN_HINT, wxCommandEvent);
+        wxDECLARE_EVENT(EVT_UPDATE_PLUGINS_WHEN_LAUNCH, wxCommandEvent);
+        wxDECLARE_EVENT(EVT_PREVIEW_ONLY_MODE_HINT, wxCommandEvent);
+        wxDECLARE_EVENT(EVT_GLCANVAS_COLOR_MODE_CHANGED, SimpleEvent);
+        wxDECLARE_EVENT(EVT_ENABLE_GCODE_OPTION_ITEM_CHANGED, SimpleEvent);
+        wxDECLARE_EVENT(EVT_PRINT_FROM_SDCARD_VIEW, SimpleEvent);
+        wxDECLARE_EVENT(EVT_CREATE_FILAMENT, SimpleEvent);
+        wxDECLARE_EVENT(EVT_MODIFY_FILAMENT, SimpleEvent);
+        wxDECLARE_EVENT(EVT_ADD_FILAMENT, SimpleEvent);
+        wxDECLARE_EVENT(EVT_DEL_FILAMENT, SimpleEvent);
+        wxDECLARE_EVENT(EVT_NOTICE_CHILDE_SIZE_CHANGED, SimpleEvent);
+        wxDECLARE_EVENT(EVT_NOTICE_FULL_SCREEN_CHANGED, IntEvent);
+        using ColorEvent = Event<wxColour>;
+        wxDECLARE_EVENT(EVT_ADD_CUSTOM_FILAMENT, ColorEvent);
+        wxDECLARE_EVENT(EVT_SWITCH_TO_PREPARE_TAB, wxCommandEvent);
 
-    ConfigOptionsGroup*     og_freq_chng_params(const bool is_fff);
-    wxButton*               get_wiping_dialog_button();
-    void                    set_flushing_volume_warning(const bool flushing_volume_modify);
+        // helio
+        wxDECLARE_EVENT(EVT_HELIO_PROCESSING_COMPLETED, HelioCompletionEvent);
+        wxDECLARE_EVENT(EVT_HELIO_PROCESSING_STARTED, SimpleEvent);
+        wxDECLARE_EVENT(EVT_HELIO_INPUT_DLG, SimpleEvent);
+        // end helio
+        wxDECLARE_EVENT(EVT_GCODE_VIEWER_CHANGED, SimpleEvent);
 
-    // QDS
-    void                    enable_buttons(bool enable);
-    void                    set_btn_label(const ActionButtonType btn_type, const wxString& label) const;
-    bool                    show_reslice(bool show) const;
-	bool                    show_export(bool show) const;
-	bool                    show_send(bool show) const;
-    bool                    show_eject(bool show)const;
-	bool                    show_export_removable(bool show) const;
-	bool                    get_eject_shown() const;
-    bool                    is_multifilament();
-    void                    deal_btn_sync();
-    void                    pop_sync_nozzle_and_ams_dialog();
-    void                    pop_finsish_sync_ams_dialog();
-    void                    update_mode();
-    bool                    is_collapsed();
-    void                    collapse(bool collapse);
-    void                    update_searcher();
-    void                    update_ui_from_settings();
-	bool                    show_object_list(bool show) const;
-    void                    finish_param_edit();
+        const wxString DEFAULT_PROJECT_NAME = "Untitled";
 
-    /**
-     * @brief Automatically calculates flushing volumes
-     * @param filament_idx Specifies the filament index to calculate. -1 indicates all filament indices.
-     * @param extruder_id Specifies the extruder id to calculate. -1 indicates all extruders indices.
-     */
-    void                    auto_calc_flushing_volumes(const int filament_idx = -1, const int extruder_id = -1);
-    void                    jump_to_object(ObjectDataViewModelNode* item);
-    void                    can_search();
+        // y59
+        struct Box_msg
+        {
+            std::vector<int> slot_state;
+            std::vector<int> slot_id;
+            std::vector<std::string> filament_id;
+            std::vector<std::string> filament_colors;
+            std::vector<std::string> filament_type;
+            std::string box_list_preset_name;
+            int box_count = 0;
+            int auto_reload_detect = 0;
+        };
+
+        class Sidebar : public wxPanel
+        {
+            ConfigOptionMode m_mode;
+            Button *btn_sync{nullptr};
+            ScalableButton *ams_btn{nullptr};
+            bool m_last_slice_state = false;
+            SyncNozzleAndBoxDialog *m_sna_dialog{nullptr}; // y76
+            FinishSyncAmsDialog *m_fna_dialog{nullptr};
+            std::vector<BedType> m_cur_combox_bed_types;
+            std::string m_cur_image_bed_type;
+            int m_last_combo_bedtype_count{0};
+            bool m_begin_sync_printer_status{false};
+            SyncAmsInfoDialog *m_sync_dlg{nullptr};
+            // y59
+            SyncBoxInfoDialog *m_sync_box_dlg{nullptr};
+
+            void update_sync_ams_btn_enable(wxUpdateUIEvent &e);
+
+        public:
+            enum DockingState
+            {
+                None,
+                Left,
+                Right
+            };
+            Sidebar(Plater *parent);
+            Sidebar(Sidebar &&) = delete;
+            Sidebar(const Sidebar &) = delete;
+            Sidebar &operator=(Sidebar &&) = delete;
+            Sidebar &operator=(const Sidebar &) = delete;
+            ~Sidebar();
+
+            void on_enter_image_printer_bed(wxMouseEvent &evt);
+            void on_leave_image_printer_bed(wxMouseEvent &evt);
+            void on_change_color_mode(bool is_dark);
+            void create_printer_preset();
+            void init_filament_combo(PlaterPresetComboBox **combo, const int filament_idx);
+            void remove_unused_filament_combos(const size_t current_extruder_count);
+            void set_bed_by_curr_bed_type(AppConfig *config);
+            void update_all_preset_comboboxes();
+            // void update_partplate(PartPlateList& list);
+            void update_presets(Slic3r::Preset::Type preset_type);
+            // QDS
+            const std::vector<BedType> &get_cur_combox_bed_types() { return m_cur_combox_bed_types; }
+            void update_presets_from_to(Slic3r::Preset::Type preset_type, std::string from, std::string to);
+            bool set_bed_type(const std::string &bed_type_name);
+            void save_bed_type_to_config(const std::string &bed_type_name);
+            BedType get_cur_select_bed_type();
+            std::string get_cur_select_bed_image(bool &exist);
+            void set_bed_type_accord_combox(BedType bed_type);
+            bool reset_bed_type_combox_choices(bool is_sidebar_init = false);
+            bool use_default_bed_type(bool is_qdt_preset = true);
+            void change_top_border_for_mode_sizer(bool increase_border);
+            void msw_rescale();
+            void sys_color_changed();
+            void search();
+            void jump_to_option(size_t selected);
+            void jump_to_option(const std::string &opt_key, Preset::Type type, const std::wstring &category);
+            // QDS. Add filament_added() method.
+            void on_filament_count_change(size_t num_filaments);
+            void on_filaments_delete(size_t filament_id);
+
+            void add_filament();
+            void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1); // 0 base, -1 means default
+            void change_filament(size_t from_id, size_t to_id);                                  // 0 base
+            void edit_filament();
+            void add_custom_filament(wxColour new_col);
+            bool is_new_project_in_gcode3mf();
+            // QDS
+            void on_bed_type_change(BedType bed_type);
+            void load_ams_list(MachineObject *obj);
+            std::map<int, DynamicPrintConfig> build_filament_ams_list(MachineObject *obj);
+            void sync_ams_list(bool is_from_big_sync_btn = false);
+            bool sync_extruder_list();
+            bool need_auto_sync_extruder_list_after_connect_priner(const MachineObject *obj);
+            void update_sync_status(std::shared_ptr<QDSDevice> obj); // y76
+            int get_sidebar_pos_right_x();
+            void on_size(SimpleEvent &e);
+            void on_full_screen(IntEvent &);
+            void get_big_btn_sync_pos_size(wxPoint &pt, wxSize &size);
+            void get_small_btn_sync_pos_size(wxPoint &pt, wxSize &size);
+            void set_extruder_nozzle_count(int extruder_id, int nozzle_count);
+            void enable_nozzle_count_edit(bool enable);
+            void enable_purge_mode_btn(bool enable);
+
+            // w42 //y59
+            int box_count;
+            std::vector<std::string> box_filament_id;
+            std::vector<std::string> box_filament_colors;
+            std::vector<std::string> filament_type;
+            std::vector<int> box_slot_state;
+            std::vector<int> box_slot_id;
+            std::string box_list_preset_name;
+            std::string box_list_printer_ip;
+            void sync_box_list(bool is_from_big_sync_btn = false); // y76
+            void load_box_list();
+            std::map<int, DynamicPrintConfig> build_filament_box_list(std::vector<std::string> id, std::vector<std::string> color, std::vector<int> slot_state, std::vector<int> slot_id, std::vector<std::string> type);
+
+            PlaterPresetComboBox *printer_combox();
+            ObjectList *obj_list();
+            ObjectSettings *obj_settings();
+            ObjectLayers *obj_layers();
+            wxPanel *scrolled_panel();
+            wxPanel *print_panel();
+            wxPanel *filament_panel();
+
+            ConfigOptionsGroup *og_freq_chng_params(const bool is_fff);
+            wxButton *get_wiping_dialog_button();
+            void set_flushing_volume_warning(const bool flushing_volume_modify);
+
+            // QDS
+            void enable_buttons(bool enable);
+            void set_btn_label(const ActionButtonType btn_type, const wxString &label) const;
+            bool show_reslice(bool show) const;
+            bool show_export(bool show) const;
+            bool show_send(bool show) const;
+            bool show_eject(bool show) const;
+            bool show_export_removable(bool show) const;
+            bool get_eject_shown() const;
+            bool is_multifilament();
+            void deal_btn_sync();
+            void pop_sync_nozzle_and_ams_dialog();
+            void pop_finsish_sync_ams_dialog();
+            void update_mode();
+            bool is_collapsed();
+            void collapse(bool collapse);
+            void update_searcher();
+            void update_ui_from_settings();
+            bool show_object_list(bool show) const;
+            void finish_param_edit();
+
+            /**
+             * @brief Automatically calculates flushing volumes
+             * @param filament_idx Specifies the filament index to calculate. -1 indicates all filament indices.
+             * @param extruder_id Specifies the extruder id to calculate. -1 indicates all extruders indices.
+             */
+            void auto_calc_flushing_volumes(const int filament_idx = -1, const int extruder_id = -1);
+            void jump_to_object(ObjectDataViewModelNode *item);
+            void can_search();
 #ifdef _MSW_DARK_MODE
-    void                    show_mode_sizer(bool show);
+            void show_mode_sizer(bool show);
 #endif
 
-    std::vector<PlaterPresetComboBox*>&   combos_filament();
-    void                                 clear_combos_filament_badge();
-    void                                 udpate_combos_filament_badge();
-    Search::OptionsSearcher&        get_searcher();
-    std::string&                    get_search_line();
-    void                            set_is_gcode_file(bool flag);
-    void                            update_soft_first_start_state() { m_soft_first_start = false; }
-    void                            cancel_update_3d_state() { m_update_3d_state = false; }
-    bool                            get_update_3d_state() { return m_update_3d_state; }
-    void                            update_printer_thumbnail();
+            std::vector<PlaterPresetComboBox *> &combos_filament();
+            void clear_combos_filament_badge();
+            void udpate_combos_filament_badge();
+            Search::OptionsSearcher &get_searcher();
+            std::string &get_search_line();
+            void set_is_gcode_file(bool flag);
+            void update_soft_first_start_state() { m_soft_first_start = false; }
+            void cancel_update_3d_state() { m_update_3d_state = false; }
+            bool get_update_3d_state() { return m_update_3d_state; }
+            void update_printer_thumbnail();
 
-    bool need_auto_sync_after_connect_printer() const { return m_need_auto_sync_after_connect_printer; }
-    void set_need_auto_sync_after_connect_printer(bool need_auto_sync) { m_need_auto_sync_after_connect_printer = need_auto_sync; }
+            bool need_auto_sync_after_connect_printer() const { return m_need_auto_sync_after_connect_printer; }
+            void set_need_auto_sync_after_connect_printer(bool need_auto_sync) { m_need_auto_sync_after_connect_printer = need_auto_sync; }
 
-    //y75
-    int get_combos_filament_size() { return static_cast<int>(combos_filament().size()); }
+            // y75
+            int get_combos_filament_size() { return static_cast<int>(combos_filament().size()); }
 
-private:
-    void  auto_calc_flushing_volumes_internal(const int filament_id, const int extruder_id);
+        private:
+            void auto_calc_flushing_volumes_internal(const int filament_id, const int extruder_id);
 
-private:
-    struct priv;
-    std::unique_ptr<priv> p;
+        private:
+            struct priv;
+            std::unique_ptr<priv> p;
 
-    wxBoxSizer* m_scrolled_sizer = nullptr;
-    bool            m_soft_first_start {true };
-    bool            m_is_gcode_file{ false };
-    bool            m_update_3d_state{false};
-    bool            m_need_auto_sync_after_connect_printer{false};
+            wxBoxSizer *m_scrolled_sizer = nullptr;
+            bool m_soft_first_start{true};
+            bool m_is_gcode_file{false};
+            bool m_update_3d_state{false};
+            bool m_need_auto_sync_after_connect_printer{false};
 
-    //w42
-    ScalableButton* fila_sync_btn = nullptr;
-    
-};
+            // w42
+            ScalableButton *fila_sync_btn = nullptr;
+        };
 
-class Plater: public wxPanel
-{
-    bool m_force_ban_check_volume_bbox_state_with_extruder_area{false};
-    bool m_last_is_system_preset{true};
+        class Plater : public wxPanel
+        {
+            bool m_force_ban_check_volume_bbox_state_with_extruder_area{false};
+            bool m_last_is_system_preset{true};
 
-public:
-    using fs_path = boost::filesystem::path;
+        public:
+            using fs_path = boost::filesystem::path;
 
-    Plater(wxWindow *parent, MainFrame *main_frame);
-    Plater(Plater &&) = delete;
-    Plater(const Plater &) = delete;
-    Plater &operator=(Plater &&) = delete;
-    Plater &operator=(const Plater &) = delete;
-    ~Plater() = default;
+            Plater(wxWindow *parent, MainFrame *main_frame);
+            Plater(Plater &&) = delete;
+            Plater(const Plater &) = delete;
+            Plater &operator=(Plater &&) = delete;
+            Plater &operator=(const Plater &) = delete;
+            // Destructor defined in Plater.cpp where StudioApiServer and priv are complete types
+            ~Plater();
 
-    bool Show(bool show = true);
+            bool Show(bool show = true);
 
-    bool is_project_dirty() const;
-    bool is_presets_dirty() const;
-    void set_plater_dirty(bool is_dirty);
-    void update_project_dirty_from_presets();
-    int  save_project_if_dirty(const wxString& reason);
-    void reset_project_dirty_after_save();
-    void reset_project_dirty_initial_presets();
+            bool is_project_dirty() const;
+            bool is_presets_dirty() const;
+            void set_plater_dirty(bool is_dirty);
+            void update_project_dirty_from_presets();
+            int save_project_if_dirty(const wxString &reason);
+            void reset_project_dirty_after_save();
+            void reset_project_dirty_initial_presets();
 #if ENABLE_PROJECT_DIRTY_STATE_DEBUG_WINDOW
-    void render_project_state_debug_window() const;
+            void render_project_state_debug_window() const;
 #endif // ENABLE_PROJECT_DIRTY_STATE_DEBUG_WINDOW
 
-    bool try_sync_preset_with_connected_printer(int &nozzle_diameter);
+            bool try_sync_preset_with_connected_printer(int &nozzle_diameter);
 
-    Sidebar& sidebar();
-    const Model& model() const;
-    Model& model();
-    Bed3D& bed();
-    const Print& fff_print() const;
-    Print& fff_print();
-    const SLAPrint& sla_print() const;
-    SLAPrint& sla_print();
-    BackgroundSlicingProcess &background_process();
+            Sidebar &sidebar();
+            const Model &model() const;
+            Model &model();
+            Bed3D &bed();
+            const Print &fff_print() const;
+            Print &fff_print();
+            const SLAPrint &sla_print() const;
+            SLAPrint &sla_print();
+            BackgroundSlicingProcess &background_process();
 
-    void reset_flags_when_new_or_close_project();
-    //w29
-    std::string double_to_str(const double value);
-    int new_project(bool skip_confirm = false, bool silent = false, const wxString &project_name = wxString());
-    // QDS: save & backup
-    int load_project(wxString const & filename = "", wxString const & originfile = "-");
-    int save_project(bool saveAs = false);
-    //QDS download project by project id
-    void import_model_id(wxString download_info);
-    void download_project(const wxString& project_id);
-    void request_model_download(wxString url);
-    void request_download_project(std::string project_id);
-    // QDS: check snapshot
-    bool up_to_date(bool saved, bool backup);
+            void reset_flags_when_new_or_close_project();
+            // w29
+            std::string double_to_str(const double value);
+            int new_project(bool skip_confirm = false, bool silent = false, const wxString &project_name = wxString());
+            // QDS: save & backup
+            int load_project(wxString const &filename = "", wxString const &originfile = "-");
+            int save_project(bool saveAs = false);
+            // QDS download project by project id
+            void import_model_id(wxString download_info);
+            void download_project(const wxString &project_id);
+            void request_model_download(wxString url);
+            void request_download_project(std::string project_id);
+            // QDS: check snapshot
+            bool up_to_date(bool saved, bool backup);
 
-    bool open_3mf_file(const fs::path &file_path);
-    int  get_3mf_file_count(std::vector<fs::path> paths);
-    void add_file();
-    void add_model(bool imperial_units = false, std::string fname = "");
-    void import_sl1_archive();
-    void extract_config_from_project();
-    void load_gcode();
-    void load_gcode(const wxString& filename);
-    void reload_gcode_from_disk();
-    void refresh_print();
+            bool open_3mf_file(const fs::path &file_path);
+            int get_3mf_file_count(std::vector<fs::path> paths);
+            void add_file();
+            void add_model(bool imperial_units = false, std::string fname = "");
+            void import_sl1_archive();
+            void extract_config_from_project();
+            void load_gcode();
+            void load_gcode(const wxString &filename);
+            void reload_gcode_from_disk();
+            void refresh_print();
 
-    // OrcaSlicer calibration
-    void calib_pa(const Calib_Params &params);
-    //w29
-    void calib_flowrate(int pass,double input_value = 1);
-    void calib_temp(const Calib_Params &params);
-    void calib_max_vol_speed(const Calib_Params &params);
-    void calib_retraction(const Calib_Params &params);
-    void calib_VFA(const Calib_Params &params);
+            // OrcaSlicer calibration
+            void calib_pa(const Calib_Params &params);
+            // w29
+            void calib_flowrate(int pass, double input_value = 1);
+            void calib_temp(const Calib_Params &params);
+            void calib_max_vol_speed(const Calib_Params &params);
+            void calib_retraction(const Calib_Params &params);
+            void calib_VFA(const Calib_Params &params);
 
-    // for helio slice
-    void update_helio_background_process(std::string& printer_id, std::string& material_id);
-    std::vector<std::string> get_current_filaments_preset_names();
+            // for helio slice
+            void update_helio_background_process(std::string &printer_id, std::string &material_id);
+            std::vector<std::string> get_current_filaments_preset_names();
 
-    //w29
-    std::string move_to(const Vec2d& point, double speed, double retract_length, double retract_speed, double height, double retract_lift);
-    std::string move_to(const Vec2d& point, double speed, double retract_length, double retract_speed);
-    std::string move_to(const Vec2d& point, double speed, double e);
-    std::string move_to(double height);
-    std::string set_pressure_advance(double pa);
-   
+            // w29
+            std::string move_to(const Vec2d &point, double speed, double retract_length, double retract_speed, double height, double retract_lift);
+            std::string move_to(const Vec2d &point, double speed, double retract_length, double retract_speed);
+            std::string move_to(const Vec2d &point, double speed, double e);
+            std::string move_to(double height);
+            std::string set_pressure_advance(double pa);
 
-    //QDS: add only gcode mode
-    bool is_gcode_3mf() { return m_exported_file; }
-    bool only_gcode_mode() { return m_only_gcode; }
-    void set_only_gcode(bool only_gcode) { m_only_gcode = only_gcode; }
+            // QDS: add only gcode mode
+            bool is_gcode_3mf() { return m_exported_file; }
+            bool only_gcode_mode() { return m_only_gcode; }
+            void set_only_gcode(bool only_gcode) { m_only_gcode = only_gcode; }
 
-    //QDS: add only gcode mode
-    bool using_exported_file() { return m_exported_file; }
-    void set_using_exported_file(bool exported_file) {
-        m_exported_file = exported_file;
-    }
-    bool is_empty_project();
-    bool is_multi_extruder_ams_empty();
-    // QDS
-    bool is_new_project_and_check_state() { return m_new_project_and_check_state; }
-    wxString get_project_name();
-    void update_all_plate_thumbnails(bool force_update = false);
-    void update_obj_preview_thumbnail(ModelObject *, int obj_idx, int vol_idx, std::vector<std::array<float, 4>> colors, int camera_view_angle_type);
-    void invalid_all_plate_thumbnails();
-    void force_update_all_plate_thumbnails();
+            // QDS: add only gcode mode
+            bool using_exported_file() { return m_exported_file; }
+            void set_using_exported_file(bool exported_file)
+            {
+                m_exported_file = exported_file;
+            }
+            bool is_empty_project();
+            bool is_multi_extruder_ams_empty();
+            // QDS
+            bool is_new_project_and_check_state() { return m_new_project_and_check_state; }
+            wxString get_project_name();
+            void update_all_plate_thumbnails(bool force_update = false);
+            void update_obj_preview_thumbnail(ModelObject *, int obj_idx, int vol_idx, std::vector<std::array<float, 4>> colors, int camera_view_angle_type);
+            void invalid_all_plate_thumbnails();
+            void force_update_all_plate_thumbnails();
 
-    const VendorProfile::PrinterModel * get_curr_printer_model();
-    std::map<std::string, std::string> get_bed_texture_maps();
-    int                                get_right_icon_offset_bed(int i = 0);
-    bool                               get_enable_wrapping_detection();
+            const VendorProfile::PrinterModel *get_curr_printer_model();
+            std::map<std::string, std::string> get_bed_texture_maps();
+            int get_right_icon_offset_bed(int i = 0);
+            bool get_enable_wrapping_detection();
 
-    static wxColour get_next_color_for_filament();
-    static wxString get_slice_warning_string(GCodeProcessorResult::SliceWarning& warning);
+            static wxColour get_next_color_for_filament();
+            static wxString get_slice_warning_string(GCodeProcessorResult::SliceWarning &warning);
 
-    // QDS: restore
-    std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false);
-    // To be called when providing a list of files to the GUI slic3r on command line.
-    std::vector<size_t> load_files(const std::vector<std::string>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false);
-    // to be called on drag and drop
-    bool emboss_svg(const wxString &svg_file, bool from_toolbar_or_file_menu = false);
-    bool load_svg(const wxArrayString &filenames, bool from_toolbar_or_file_menu = false);
-    bool load_same_type_files(const wxArrayString &filenames);
-    bool load_files(const wxArrayString& filenames);
-    void statistics_burial_data_once(std::string json_str);//Upload to the cloud immediately
-    void statistics_burial_data(std::string file_path);
-    void statistics_burial_data_form_mw();
-    const wxString& get_last_loaded_gcode() const { return m_last_loaded_gcode; }
+            // QDS: restore
+            std::vector<size_t> load_files(const std::vector<boost::filesystem::path> &input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig, bool ask_multi = false);
+            // To be called when providing a list of files to the GUI slic3r on command line.
+            std::vector<size_t> load_files(const std::vector<std::string> &input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig, bool ask_multi = false);
+            // to be called on drag and drop
+            bool emboss_svg(const wxString &svg_file, bool from_toolbar_or_file_menu = false);
+            bool load_svg(const wxArrayString &filenames, bool from_toolbar_or_file_menu = false);
+            bool load_same_type_files(const wxArrayString &filenames);
+            bool load_files(const wxArrayString &filenames);
+            void statistics_burial_data_once(std::string json_str); // Upload to the cloud immediately
+            void statistics_burial_data(std::string file_path);
+            void statistics_burial_data_form_mw();
+            const wxString &get_last_loaded_gcode() const { return m_last_loaded_gcode; }
 
-    void update(bool conside_update_flag = false, bool force_background_processing_update = false);
-    //QDS
-    Worker &      get_ui_job_worker();
-    const Worker &get_ui_job_worker() const;
-    void object_list_changed();
-    void stop_jobs();
-    bool is_any_job_running() const;
-    void select_view(const std::string& direction);
-    //QDS: add no_slice logic
-    void set_slice_from_slice_btn(bool flag);
-    void select_view_3D(const std::string& name, bool no_slice = true);
+            void update(bool conside_update_flag = false, bool force_background_processing_update = false);
+            // QDS
+            Worker &get_ui_job_worker();
+            const Worker &get_ui_job_worker() const;
+            void object_list_changed();
+            void stop_jobs();
+            bool is_any_job_running() const;
+            void select_view(const std::string &direction);
+            // QDS: add no_slice logic
+            void set_slice_from_slice_btn(bool flag);
+            void select_view_3D(const std::string &name, bool no_slice = true);
 
-    void reload_paint_after_background_process_apply();
-    bool is_preview_shown() const;
-    bool is_preview_loaded() const;
-    bool is_view3D_shown() const;
+            void reload_paint_after_background_process_apply();
+            bool is_preview_shown() const;
+            bool is_preview_loaded() const;
+            bool is_view3D_shown() const;
 
-    bool are_view3D_labels_shown() const;
-    void show_view3D_labels(bool show);
+            bool are_view3D_labels_shown() const;
+            void show_view3D_labels(bool show);
 
-    bool is_view3D_overhang_shown() const;
-    void show_view3D_overhang(bool show);
+            bool is_view3D_overhang_shown() const;
+            void show_view3D_overhang(bool show);
 
-    bool is_sidebar_enabled() const;
-    void enable_sidebar(bool enabled);
-    bool is_sidebar_collapsed() const;
-    void collapse_sidebar(bool show);
-    Sidebar::DockingState get_sidebar_docking_state() const;
-    void                  reset_window_layout(int width = -1);
-    // Called after the Preferences dialog is closed and the program settings are saved.
-    // Update the UI based on the current preferences.
-    void update_ui_from_settings();
+            bool is_sidebar_enabled() const;
+            void enable_sidebar(bool enabled);
+            bool is_sidebar_collapsed() const;
+            void collapse_sidebar(bool show);
+            Sidebar::DockingState get_sidebar_docking_state() const;
+            void reset_window_layout(int width = -1);
+            // Called after the Preferences dialog is closed and the program settings are saved.
+            // Update the UI based on the current preferences.
+            void update_ui_from_settings();
 
-    //QDS
-    void select_curr_plate_all();
-    void remove_curr_plate_all();
+            // QDS
+            void select_curr_plate_all();
+            void remove_curr_plate_all();
 
-    void select_all();
-    void deselect_all();
-    void exit_gizmo();
-    void remove(size_t obj_idx);
-    void reset(bool apply_presets_change = false);
-    void reset_with_confirm();
-    //QDS: return int for various result
-    int close_with_confirm(std::function<bool(bool yes_or_no)> second_check = nullptr); // QDS close project
-    //QDS: trigger a restore project event
-    void trigger_restore_project(int skip_confirm = 0);
-    bool delete_object_from_model(size_t obj_idx, bool refresh_immediately = true); // QDS support refresh immediately
-    void delete_all_objects_from_model(); //QDS delete all objects from model
-    void set_selected_visible(bool visible);
-    void remove_selected();
-    void increase_instances(size_t num = 1);
-    void decrease_instances(size_t num = 1);
-    void set_number_of_copies(/*size_t num*/);
-    void fill_bed_with_instances();
-    bool is_selection_empty() const;
-    void scale_selection_to_fit_print_volume();
-    void convert_unit(ConversionType conv_type);
+            void select_all();
+            void deselect_all();
+            void exit_gizmo();
+            void remove(size_t obj_idx);
+            void reset(bool apply_presets_change = false);
+            void reset_with_confirm();
+            // QDS: return int for various result
+            int close_with_confirm(std::function<bool(bool yes_or_no)> second_check = nullptr); // QDS close project
+            // QDS: trigger a restore project event
+            void trigger_restore_project(int skip_confirm = 0);
+            bool delete_object_from_model(size_t obj_idx, bool refresh_immediately = true); // QDS support refresh immediately
+            void delete_all_objects_from_model();                                           // QDS delete all objects from model
+            void set_selected_visible(bool visible);
+            void remove_selected();
+            void increase_instances(size_t num = 1);
+            void decrease_instances(size_t num = 1);
+            void set_number_of_copies(/*size_t num*/);
+            void fill_bed_with_instances();
+            bool is_selection_empty() const;
+            void scale_selection_to_fit_print_volume();
+            void convert_unit(ConversionType conv_type);
 
-    // QDS: replace z with plane_points
-    void cut(size_t obj_idx, size_t instance_idx, std::array<Vec3d, 4> plane_points, ModelObjectCutAttributes attributes);
+            // QDS: replace z with plane_points
+            void cut(size_t obj_idx, size_t instance_idx, std::array<Vec3d, 4> plane_points, ModelObjectCutAttributes attributes);
 
-    // QDS: segment model with CGAL
-    void segment(size_t obj_idx, size_t instance_idx, double smoothing_alpha=0.5, int segment_number=5);
-    void apply_cut_object_to_model(size_t obj_idx, const ModelObjectPtrs &cut_objects);
-    void merge(size_t obj_idx, std::vector<int> &vol_indeces);
+            // QDS: segment model with CGAL
+            void segment(size_t obj_idx, size_t instance_idx, double smoothing_alpha = 0.5, int segment_number = 5);
+            void apply_cut_object_to_model(size_t obj_idx, const ModelObjectPtrs &cut_objects);
+            void merge(size_t obj_idx, std::vector<int> &vol_indeces);
 
-    //B61
-    ThumbnailData get_thumbnailldate();
-    //B64
-    ThumbnailData get_thumbnailldate_send();
+            // B61
+            ThumbnailData get_thumbnailldate();
+            // B64
+            ThumbnailData get_thumbnailldate_send();
 
-    void send_to_printer(bool isall = false);
-    void export_gcode(bool prefer_removable);
+            void send_to_printer(bool isall = false);
+            void export_gcode(bool prefer_removable);
 
-    //y58
-    void export_gcode(const boost::filesystem::path& output_path);
+            // y58
+            void export_gcode(const boost::filesystem::path &output_path);
 
-    void export_gcode_3mf(bool export_all = false);
-    void send_gcode_finish(wxString name);
-    //y
-    void send_gcode_to_printer();
-    void send_gcode_to_printers();
+            void export_gcode_3mf(bool export_all = false);
+            void send_gcode_finish(wxString name);
+            // y
+            void send_gcode_to_printer();
+            void send_gcode_to_printers();
 
+            void export_core_3mf();
+            static TriangleMesh combine_mesh_fff(const ModelObject &mo, int instance_id, std::function<void(const std::string &)> notify_func = {});
+            void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false);
+            // QDS: remove amf
+            // void export_amf();
+            // QDS add extra param for exporting 3mf silence
+            //  QDS: backup
+            int export_3mf(const boost::filesystem::path &output_path = boost::filesystem::path(), SaveStrategy strategy = SaveStrategy::Default, int export_plate_idx = -1, Export3mfProgressFn proFn = nullptr);
 
-    void export_core_3mf();
-    static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
-    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false);
-    //QDS: remove amf
-    //void export_amf();
-    //QDS add extra param for exporting 3mf silence
-    // QDS: backup
-    int export_3mf(const boost::filesystem::path& output_path = boost::filesystem::path(), SaveStrategy strategy = SaveStrategy::Default, int export_plate_idx = -1, Export3mfProgressFn proFn = nullptr);
+            // QDS
+            void publish_project();
 
-    //QDS
-    void publish_project();
+            void reload_from_disk();
+            void replace_with_stl();
+            void reload_all_from_disk();
+            bool has_toolpaths_to_export() const;
+            void export_toolpaths_to_obj() const;
+            void reslice();
+            void stop_helio_process();
+            void feedback_helio_process(float rating, std::string commend);
+            void record_slice_preset(std::string action);
+            void reslice_SLA_supports(const ModelObject &object, bool postpone_error_messages = false);
+            void reslice_SLA_hollowing(const ModelObject &object, bool postpone_error_messages = false);
+            void reslice_SLA_until_step(SLAPrintObjectStep step, const ModelObject &object, bool postpone_error_messages = false);
 
-    void reload_from_disk();
-    void replace_with_stl();
-    void reload_all_from_disk();
-    bool has_toolpaths_to_export() const;
-    void export_toolpaths_to_obj() const;
-    void reslice();
-    void stop_helio_process();
-    void feedback_helio_process(float rating, std::string commend);
-    void record_slice_preset(std::string action);
-    void reslice_SLA_supports(const ModelObject &object, bool postpone_error_messages = false);
-    void reslice_SLA_hollowing(const ModelObject &object, bool postpone_error_messages = false);
-    void reslice_SLA_until_step(SLAPrintObjectStep step, const ModelObject &object, bool postpone_error_messages = false);
+            void clear_before_change_mesh(int obj_idx);
+            void clear_before_change_mesh(int obj_idx, int vol_idx);
+            void changed_mesh(int obj_idx);
 
-    void clear_before_change_mesh(int obj_idx);
-    void clear_before_change_mesh(int obj_idx, int vol_idx);
-    void changed_mesh(int obj_idx);
+            void changed_object(ModelObject &object);
+            void changed_object(int obj_idx);
+            void changed_objects(const std::vector<size_t> &object_idxs);
+            void schedule_background_process(bool schedule = true);
+            bool is_background_process_update_scheduled() const;
+            void suppress_background_process(const bool stop_background_process);
+            /* -1: send current gcode if not specified
+             * -2: send all gcode to target machine */
+            int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
+            void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
+            int export_config_3mf(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
+            // QDS jump to nonitor after print job finished
+            void send_calibration_job_finished(wxCommandEvent &evt);
+            void print_job_finished(wxCommandEvent &evt);
+            void send_job_finished(wxCommandEvent &evt);
+            void publish_job_finished(wxCommandEvent &evt);
+            void open_platesettings_dialog(wxCommandEvent &evt);
+            void open_filament_map_setting_dialog(wxCommandEvent &evt);
+            void on_change_color_mode(SimpleEvent &evt);
+            void eject_drive();
 
-    void changed_object(ModelObject &object);
-    void changed_object(int obj_idx);
-    void changed_objects(const std::vector<size_t>& object_idxs);
-    void schedule_background_process(bool schedule = true);
-    bool is_background_process_update_scheduled() const;
-    void suppress_background_process(const bool stop_background_process) ;
-    /* -1: send current gcode if not specified
-     * -2: send all gcode to target machine */
-    int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
-    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
-    int export_config_3mf(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
-    //QDS jump to nonitor after print job finished
-    void send_calibration_job_finished(wxCommandEvent &evt);
-    void print_job_finished(wxCommandEvent &evt);
-    void send_job_finished(wxCommandEvent& evt);
-    void publish_job_finished(wxCommandEvent& evt);
-    void open_platesettings_dialog(wxCommandEvent& evt);
-    void open_filament_map_setting_dialog(wxCommandEvent &evt);
-    void on_change_color_mode(SimpleEvent& evt);
-	void eject_drive();
+            void take_snapshot(const std::string &snapshot_name);
+            // void take_snapshot(const wxString &snapshot_name);
+            void take_snapshot(const std::string &snapshot_name, UndoRedo::SnapshotType snapshot_type);
+            // void take_snapshot(const wxString &snapshot_name, UndoRedo::SnapshotType snapshot_type);
+            size_t get_active_snapshot_time();
+            void undo();
+            void redo();
+            void undo_to(int selection);
+            void redo_to(int selection);
+            void undo_redo_to(size_t time_to_load);
+            bool undo_redo_string_getter(const bool is_undo, int idx, const char **out_text);
+            void undo_redo_topmost_string_getter(const bool is_undo, std::string &out_text);
+            int update_print_required_data(Slic3r::DynamicPrintConfig config, Slic3r::Model model, Slic3r::PlateDataPtrs plate_data_list, std::string file_name, std::string file_path);
+            bool search_string_getter(int idx, const char **label, const char **tooltip);
+            // For the memory statistics.
+            const Slic3r::UndoRedo::Stack &undo_redo_stack_main() const;
+            void clear_undo_redo_stack_main();
+            // Enter / leave the Gizmos specific Undo / Redo stack. To be used by the SLA support point editing gizmo.
+            void enter_gizmos_stack();
+            // QDS: return false if not changed
+            bool leave_gizmos_stack();
 
-    void take_snapshot(const std::string &snapshot_name);
-    //void take_snapshot(const wxString &snapshot_name);
-    void take_snapshot(const std::string &snapshot_name, UndoRedo::SnapshotType snapshot_type);
-    //void take_snapshot(const wxString &snapshot_name, UndoRedo::SnapshotType snapshot_type);
-    size_t get_active_snapshot_time();
-    void undo();
-    void redo();
-    void undo_to(int selection);
-    void redo_to(int selection);
-    void undo_redo_to(size_t time_to_load);
-    bool undo_redo_string_getter(const bool is_undo, int idx, const char** out_text);
-    void undo_redo_topmost_string_getter(const bool is_undo, std::string& out_text);
-    int update_print_required_data(Slic3r::DynamicPrintConfig config, Slic3r::Model model, Slic3r::PlateDataPtrs plate_data_list, std::string file_name, std::string file_path);
-    bool search_string_getter(int idx, const char** label, const char** tooltip);
-    // For the memory statistics.
-    const Slic3r::UndoRedo::Stack& undo_redo_stack_main() const;
-    void clear_undo_redo_stack_main();
-    // Enter / leave the Gizmos specific Undo / Redo stack. To be used by the SLA support point editing gizmo.
-    void enter_gizmos_stack();
-    // QDS: return false if not changed
-    bool leave_gizmos_stack();
+            bool on_filament_change(size_t filament_idx);
+            void on_filament_count_change(size_t extruders_count);
+            void on_filaments_delete(size_t extruders_count, size_t filament_id, int replace_filament_id = -1);
+            std::vector<std::array<float, 4>> get_extruders_colors();
+            // QDS
+            void on_bed_type_change(BedType bed_type, bool is_gcode_file = false);
 
-    bool on_filament_change(size_t filament_idx);
-    void on_filament_count_change(size_t extruders_count);
-    void on_filaments_delete(size_t extruders_count, size_t filament_id, int replace_filament_id = -1);
-    std::vector<std::array<float, 4>> get_extruders_colors();
-    // QDS
-    void on_bed_type_change(BedType bed_type,bool is_gcode_file = false);
+            bool update_filament_colors_in_full_config();
+            void config_change_notification(const DynamicPrintConfig &config, const std::string &key);
+            void on_config_change(const DynamicPrintConfig &config);
+            bool cur_selected_preset_is_system_preset();
+            void force_filament_colors_update();
+            void force_print_bed_update();
+            // On activating the parent window.
+            void on_activate();
+            std::vector<std::string> get_extruder_colors_from_plater_config(const GCodeProcessorResult *const result = nullptr) const;
+            std::vector<std::string> get_filament_colors_render_info() const;
+            std::vector<std::string> get_filament_color_render_type() const;
+            std::vector<std::string> get_colors_for_color_print(const GCodeProcessorResult *const result = nullptr) const;
+            bool is_color_size_equal() const;
 
-    bool update_filament_colors_in_full_config();
-    void config_change_notification(const DynamicPrintConfig &config, const std::string& key);
-    void on_config_change(const DynamicPrintConfig &config);
-    bool cur_selected_preset_is_system_preset();
-    void force_filament_colors_update();
-    void force_print_bed_update();
-    // On activating the parent window.
-    void on_activate();
-    std::vector<std::string> get_extruder_colors_from_plater_config(const GCodeProcessorResult* const result = nullptr) const;
-    std::vector<std::string> get_filament_colors_render_info() const;
-    std::vector<std::string> get_filament_color_render_type() const;
-    std::vector<std::string> get_colors_for_color_print(const GCodeProcessorResult* const result = nullptr) const;
-    bool is_color_size_equal() const;
+            void set_global_filament_map_mode(FilamentMapMode mode);
+            void set_global_filament_map(const std::vector<int> &filament_map);
+            void set_global_filament_volume_map(const std::vector<int> &volume_map);
+            std::vector<int> get_global_filament_map() const;
+            FilamentMapMode get_global_filament_map_mode() const;
+            std::vector<int> get_global_filament_volume_map() const;
 
-    void set_global_filament_map_mode(FilamentMapMode mode);
-    void set_global_filament_map(const std::vector<int>& filament_map);
-    void set_global_filament_volume_map(const std::vector<int>& volume_map);
-    std::vector<int> get_global_filament_map() const;
-    FilamentMapMode get_global_filament_map_mode() const;
-    std::vector<int> get_global_filament_volume_map() const;
+            void update_menus();
+            wxString get_selected_printer_name_in_combox();
+            enum class PrinterWarningType
+            {
+                NOT_CONNECTED,
+                INCONSISTENT,
+                UNINSTALL_FILAMENT,
+                EMPTY_FILAMENT
+            };
+            void pop_warning_and_go_to_device_page(wxString printer_name, PrinterWarningType type, const wxString &title);
+            bool check_printer_initialized(std::shared_ptr<QDSDevice> obj, bool only_warning = false, bool popup_warning = true); // y76
+            bool is_same_printer_for_connected_and_selected(bool popup_warning = true);
+            bool is_printer_configed_by_QDT();
+            // QDS
+            // void show_action_buttons(const bool is_ready_to_slice) const;
 
-    void update_menus();
-    wxString get_selected_printer_name_in_combox();
-    enum class PrinterWarningType {
-        NOT_CONNECTED,
-        INCONSISTENT,
-        UNINSTALL_FILAMENT,
-        EMPTY_FILAMENT
-    };
-    void pop_warning_and_go_to_device_page(wxString printer_name, PrinterWarningType type, const wxString &title);
-    bool check_printer_initialized(std::shared_ptr<QDSDevice> obj, bool only_warning = false,bool popup_warning = true);    //y76
-    bool is_same_printer_for_connected_and_selected(bool popup_warning = true);
-    bool is_printer_configed_by_QDT();
-    // QDS
-    //void show_action_buttons(const bool is_ready_to_slice) const;
+            // y49
+            wxString get_output_filename();
 
-    //y49
-    wxString get_output_filename();
+            wxString get_project_filename(const wxString &extension = wxEmptyString) const;
+            wxString get_export_gcode_filename(const wxString &extension = wxEmptyString, bool only_filename = false, bool export_all = false) const;
+            void set_project_filename(const wxString &filename);
+            void update_print_error_info(int code, std::string msg, std::string extra);
 
-    wxString get_project_filename(const wxString& extension = wxEmptyString) const;
-    wxString get_export_gcode_filename(const wxString& extension = wxEmptyString, bool only_filename = false, bool export_all = false) const;
-    void set_project_filename(const wxString& filename);
-    void update_print_error_info(int code, std::string msg, std::string extra);
+            bool is_export_gcode_scheduled() const;
 
-    bool is_export_gcode_scheduled() const;
+            const Selection &get_selection() const;
+            int get_selected_object_idx();
+            bool is_single_full_object_selection() const;
+            GLCanvas3D *canvas3D();
+            const GLCanvas3D *canvas3D() const;
+            GLCanvas3D *get_current_canvas3D(bool exclude_preview = false);
+            bool get_preview_min_max_value_of_option(int index, float &_min, float &_max);
+            int get_gcode_layers_count();
+            GLCanvas3D *get_view3D_canvas3D();
+            GLCanvas3D *get_preview_canvas3D();
+            GLCanvas3D *get_assmeble_canvas3D();
+            wxWindow *get_select_machine_dialog();
 
-    const Selection& get_selection() const;
-    int get_selected_object_idx();
-    bool is_single_full_object_selection() const;
-    GLCanvas3D* canvas3D();
-    const GLCanvas3D * canvas3D() const;
-    GLCanvas3D* get_current_canvas3D(bool exclude_preview = false);
-    bool        get_preview_min_max_value_of_option(int index, float &_min, float &_max);
-    int         get_gcode_layers_count();
-    GLCanvas3D* get_view3D_canvas3D();
-    GLCanvas3D* get_preview_canvas3D();
-    GLCanvas3D* get_assmeble_canvas3D();
-    wxWindow* get_select_machine_dialog();
+            void arrange();
+            void orient();
+            void find_new_position(const ModelInstancePtrs &instances);
+            // QDS: add job state related functions
+            void set_prepare_state(int state);
+            int get_prepare_state();
+            // QDS: add print job releated functions
+            void get_print_job_data(PrintPrepareData *data);
+            void set_print_job_plate_idx(int plate_idx);
 
-    void arrange();
-    void orient();
-    void find_new_position(const ModelInstancePtrs  &instances);
-    //QDS: add job state related functions
-    void set_prepare_state(int state);
-    int get_prepare_state();
-    //QDS: add print job releated functions
-    void get_print_job_data(PrintPrepareData* data);
-    void set_print_job_plate_idx(int plate_idx);
+            int get_send_calibration_finished_event();
+            int get_print_finished_event();
+            int get_send_finished_event();
+            int get_publish_finished_event();
 
-    int get_send_calibration_finished_event();
-    int get_print_finished_event();
-    int get_send_finished_event();
-    int get_publish_finished_event();
+            void set_current_canvas_as_dirty();
+            void unbind_canvas_event_handlers();
+            void reset_canvas_volumes();
 
-    void set_current_canvas_as_dirty();
-    void unbind_canvas_event_handlers();
-    void reset_canvas_volumes();
+            PrinterTechnology printer_technology() const;
+            const DynamicPrintConfig *config() const;
+            bool set_printer_technology(PrinterTechnology printer_technology);
 
-    PrinterTechnology   printer_technology() const;
-    const DynamicPrintConfig * config() const;
-    bool                set_printer_technology(PrinterTechnology printer_technology);
+            // QDS
+            void cut_selection_to_clipboard();
 
-    //QDS
-    void cut_selection_to_clipboard();
+            void copy_selection_to_clipboard();
+            void paste_from_clipboard();
+            // QDS: add clone logic
+            void clone_selection();
+            void center_selection();
+            void distribute_selection_y();
+            void distribute_selection_x();
+            void distribute_selection_z();
+            void align_selection_y_max();
+            void align_selection_y_min();
+            void align_selection_y_center();
+            void align_selection_x_max();
+            void align_selection_x_min();
+            void align_selection_x_center();
+            void align_selection_z_max();
+            void align_selection_z_min();
+            void align_selection_z_center();
+            void search(bool plater_is_active, Preset::Type type, wxWindow *tag, TextInput *etag, wxWindow *stag);
+            void mirror(Axis axis);
+            void split_object();
+            void split_volume();
+            void optimize_rotation();
+            // find all empty cells on the plate and won't overlap with exclusion areas
+            static std::vector<Vec2f> get_empty_cells(const Vec2f step);
 
-    void copy_selection_to_clipboard();
-    void paste_from_clipboard();
-    //QDS: add clone logic
-    void clone_selection();
-    void center_selection();
-    void distribute_selection_y();
-    void distribute_selection_x();
-    void distribute_selection_z();
-    void align_selection_y_max();
-    void align_selection_y_min();
-    void align_selection_y_center();
-    void align_selection_x_max();
-    void align_selection_x_min();
-    void align_selection_x_center();
-    void align_selection_z_max();
-    void align_selection_z_min();
-    void align_selection_z_center();
-    void search(bool plater_is_active, Preset::Type  type, wxWindow *tag, TextInput *etag, wxWindow *stag);
-    void mirror(Axis axis);
-    void split_object();
-    void split_volume();
-    void optimize_rotation();
-    // find all empty cells on the plate and won't overlap with exclusion areas
-    static std::vector<Vec2f> get_empty_cells(const Vec2f step);
+            // QDS:
+            void fill_color(int extruder_id);
 
-    //QDS:
-    void fill_color(int extruder_id);
-
-    //QDS:
-    void edit_text();
-    bool can_edit_text() const;
-    void apply_texture(ModelVolumeType type);
-    void adjust_texture_depth();
-    bool can_apply_texture() const;
-    bool can_adjust_texture_depth() const;
-    std::string get_3mf_filename() { return m_3mf_path; };
-    bool can_delete() const;
-    bool can_delete_all() const;
-    bool can_add_model() const;
-    bool can_add_plate() const;
-    bool can_delete_plate() const;
-    bool can_increase_instances() const;
-    bool can_decrease_instances() const;
-    bool can_set_instance_to_object() const;
-    bool can_fix_through_netfabb() const;
-    bool can_simplify() const;
-    bool can_split_to_objects() const;
-    bool can_split_to_volumes() const;
-    bool can_do_ui_job() const;
-    //QDS
-    bool can_cut_to_clipboard() const;
-    bool can_layers_editing() const;
-    bool can_paste_from_clipboard() const;
-    bool can_copy_to_clipboard() const;
-    bool can_undo() const;
-    bool can_redo() const;
-    bool can_reload_from_disk() const;
-    bool can_replace_with_stl() const;
-    bool can_mirror() const;
-    bool can_split(bool to_objects) const;
+            // QDS:
+            void edit_text();
+            bool can_edit_text() const;
+            void apply_texture(ModelVolumeType type);
+            void adjust_texture_depth();
+            bool can_apply_texture() const;
+            bool can_adjust_texture_depth() const;
+            std::string get_3mf_filename() { return m_3mf_path; };
+            bool can_delete() const;
+            bool can_delete_all() const;
+            bool can_add_model() const;
+            bool can_add_plate() const;
+            bool can_delete_plate() const;
+            bool can_increase_instances() const;
+            bool can_decrease_instances() const;
+            bool can_set_instance_to_object() const;
+            bool can_fix_through_netfabb() const;
+            bool can_simplify() const;
+            bool can_split_to_objects() const;
+            bool can_split_to_volumes() const;
+            bool can_do_ui_job() const;
+            // QDS
+            bool can_cut_to_clipboard() const;
+            bool can_layers_editing() const;
+            bool can_paste_from_clipboard() const;
+            bool can_copy_to_clipboard() const;
+            bool can_undo() const;
+            bool can_redo() const;
+            bool can_reload_from_disk() const;
+            bool can_replace_with_stl() const;
+            bool can_mirror() const;
+            bool can_split(bool to_objects) const;
 #if ENABLE_ENHANCED_PRINT_VOLUME_FIT
-    bool can_scale_to_print_volume() const;
+            bool can_scale_to_print_volume() const;
 #endif // ENABLE_ENHANCED_PRINT_VOLUME_FIT
 
-    //QDS:
-    bool can_fillcolor() const;
-    bool has_assmeble_view() const;
+            // QDS:
+            bool can_fillcolor() const;
+            bool has_assmeble_view() const;
 
-    void msw_rescale();
-    void sys_color_changed();
+            void msw_rescale();
+            void sys_color_changed();
 
-    // QDS
+            // QDS
 #if 0
     bool init_view_toolbar();
     void enable_view_toolbar(bool enable);
 #endif
 
-    bool init_collapse_toolbar();
+            bool init_collapse_toolbar();
 
-    const Camera& get_camera() const;
-    Camera& get_camera();
-    const Camera& get_picking_camera() const;
-    Camera& get_picking_camera();
+            const Camera &get_camera() const;
+            Camera &get_camera();
+            const Camera &get_picking_camera() const;
+            Camera &get_picking_camera();
 
-    bool force_ban_check_volume_bbox_state_with_extruder_area();
-    //QDS: partplate list related functions
-    PartPlateList& get_partplate_list();
-    void validate_current_plate(bool& model_fits, bool& validate_error);
-    //QDS: select the plate by index
-    int select_plate(int plate_index, bool need_slice = false);
-    //QDS: update progress result
-    void apply_background_progress();
-    //QDS: select the plate by hover_id
-    int select_plate_by_hover_id(int hover_id, bool right_click = false, bool isModidyPlateName = false, bool is_swap_plate = false);
-    //QDS: delete the plate, index= -1 means the current plate
-    int delete_plate(int plate_index = -1);
-    //QDS: select the sliced plate by index
-    int select_sliced_plate(int plate_index);
-    //QDS: set bed positions
-    void set_bed_position(Vec2d& pos);
-    //QDS: is the background process slicing currently
-    bool is_background_process_slicing() const;
-    //QDS: update slicing context
-    void update_slicing_context_to_current_partplate();
-    //QDS: show object info
-    void show_object_info();
-    void show_assembly_info();
+            bool force_ban_check_volume_bbox_state_with_extruder_area();
+            // QDS: partplate list related functions
+            PartPlateList &get_partplate_list();
+            void validate_current_plate(bool &model_fits, bool &validate_error);
+            // QDS: select the plate by index
+            int select_plate(int plate_index, bool need_slice = false);
+            // QDS: update progress result
+            void apply_background_progress();
+            // QDS: select the plate by hover_id
+            int select_plate_by_hover_id(int hover_id, bool right_click = false, bool isModidyPlateName = false, bool is_swap_plate = false);
+            // QDS: delete the plate, index= -1 means the current plate
+            int delete_plate(int plate_index = -1);
+            // QDS: select the sliced plate by index
+            int select_sliced_plate(int plate_index);
+            // QDS: set bed positions
+            void set_bed_position(Vec2d &pos);
+            // QDS: is the background process slicing currently
+            bool is_background_process_slicing() const;
+            // QDS: update slicing context
+            void update_slicing_context_to_current_partplate();
+            // QDS: show object info
+            void show_object_info();
+            void show_assembly_info();
 
-    //QDS Helio slice
-    int  get_helio_process_status() const;
-    void clear_helio_process_status() const;
+            // QDS Helio slice
+            int get_helio_process_status() const;
+            void clear_helio_process_status() const;
 
-    //QDS
-    bool show_publish_dialog(bool show = true);
-    //QDS: post process string object exception strings by warning types
-    void post_process_string_object_exception(StringObjectException &err);
-    void update_objects_position_when_select_preset(const std::function<void()> &select_prest);
+            // QDS
+            bool show_publish_dialog(bool show = true);
+            // QDS: post process string object exception strings by warning types
+            void post_process_string_object_exception(StringObjectException &err);
+            void update_objects_position_when_select_preset(const std::function<void()> &select_prest);
 
-    bool check_ams_status(bool is_slice_all);
-    // only check sync status and printer model id
-    bool get_machine_sync_status();
-    // check whether nozzle staus is synced with printer, extruder = -1 means check both extruder
-    bool is_extruder_stat_synced(int extruder_id = -1);
-    void update_machine_sync_status();
-    void update_filament_volume_map(int extruder_id, int volume_type);
+            bool check_ams_status(bool is_slice_all);
+            // only check sync status and printer model id
+            bool get_machine_sync_status();
+            // check whether nozzle staus is synced with printer, extruder = -1 means check both extruder
+            bool is_extruder_stat_synced(int extruder_id = -1);
+            void update_machine_sync_status();
+            void update_filament_volume_map(int extruder_id, int volume_type);
 
-    void show_wrapping_detect_dialog_if_necessary();
+            void show_wrapping_detect_dialog_if_necessary();
 
 #if ENABLE_ENVIRONMENT_MAP
-    void init_environment_texture();
-    unsigned int get_environment_texture_id() const;
+            void init_environment_texture();
+            unsigned int get_environment_texture_id() const;
 #endif // ENABLE_ENVIRONMENT_MAP
 
-    const BuildVolume& build_volume() const;
+            const BuildVolume &build_volume() const;
 
-    // QDS
-    //const GLToolbar& get_view_toolbar() const;
-    //GLToolbar& get_view_toolbar();
+            // QDS
+            // const GLToolbar& get_view_toolbar() const;
+            // GLToolbar& get_view_toolbar();
 
-    const GLToolbar& get_collapse_toolbar() const;
-    GLToolbar& get_collapse_toolbar();
-    int get_collapse_toolbar_size();
-    void update_preview_bottom_toolbar();
-    void update_preview_moves_slider();
-    void enable_preview_moves_slider(bool enable);
+            const GLToolbar &get_collapse_toolbar() const;
+            GLToolbar &get_collapse_toolbar();
+            int get_collapse_toolbar_size();
+            void update_preview_bottom_toolbar();
+            void update_preview_moves_slider();
+            void enable_preview_moves_slider(bool enable);
 
 #if 0
     void update_partplate();
 #endif
 
-    void reset_gcode_toolpaths();
-    void reset_last_loaded_gcode() { m_last_loaded_gcode = ""; }
+            void reset_gcode_toolpaths();
+            void reset_last_loaded_gcode() { m_last_loaded_gcode = ""; }
 
-    const Mouse3DController& get_mouse3d_controller() const;
-    Mouse3DController& get_mouse3d_controller();
+            const Mouse3DController &get_mouse3d_controller() const;
+            Mouse3DController &get_mouse3d_controller();
 
-    //QDS: update when switch muilti_extruder printer
-    void update_flush_volume_matrix(size_t old_nozzle_size, size_t new_nozzle_size);
-    //QDS: add bed exclude area
-	void set_bed_shape() const;
-    void set_bed_shape(const Pointfs       &shape,
-                       const Pointfs       &exclude_area,
-                       const Pointfs       &wrapping_exclude_area,
-                       const double         printable_height,
-                       std::vector<Pointfs> extruder_areas,
-                       std::vector<double>  extruder_heights,
-                       const std::string   &custom_texture,
-                       const std::string   &custom_model,
-                       bool                 force_as_custom = false) const;
+            // QDS: update when switch muilti_extruder printer
+            void update_flush_volume_matrix(size_t old_nozzle_size, size_t new_nozzle_size);
+            // QDS: add bed exclude area
+            void set_bed_shape() const;
+            void set_bed_shape(const Pointfs &shape,
+                               const Pointfs &exclude_area,
+                               const Pointfs &wrapping_exclude_area,
+                               const double printable_height,
+                               std::vector<Pointfs> extruder_areas,
+                               std::vector<double> extruder_heights,
+                               const std::string &custom_texture,
+                               const std::string &custom_model,
+                               bool force_as_custom = false) const;
 
-	const NotificationManager* get_notification_manager() const;
-	NotificationManager* get_notification_manager();
-    DailyTipsWindow* get_dailytips() const;
-    //QDS: show message in status bar
-    void show_status_message(std::string s);
+            const NotificationManager *get_notification_manager() const;
+            NotificationManager *get_notification_manager();
+            DailyTipsWindow *get_dailytips() const;
+            // QDS: show message in status bar
+            void show_status_message(std::string s);
 
-    void init_notification_manager();
+            void init_notification_manager();
 
-    void bring_instance_forward();
+            void bring_instance_forward();
 
-    bool need_update() const;
-    void set_need_update(bool need_update);
+            bool need_update() const;
+            void set_need_update(bool need_update);
 
-    // ROII wrapper for suppressing the Undo / Redo snapshot to be taken.
-	class SuppressSnapshots
-	{
-	public:
-		SuppressSnapshots(Plater *plater) : m_plater(plater)
-		{
-			m_plater->suppress_snapshots();
-		}
-		~SuppressSnapshots()
-		{
-			m_plater->allow_snapshots();
-		}
-	private:
-		Plater *m_plater;
-	};
+            // ROII wrapper for suppressing the Undo / Redo snapshot to be taken.
+            class SuppressSnapshots
+            {
+            public:
+                SuppressSnapshots(Plater *plater) : m_plater(plater)
+                {
+                    m_plater->suppress_snapshots();
+                }
+                ~SuppressSnapshots()
+                {
+                    m_plater->allow_snapshots();
+                }
 
-    // RAII wrapper for taking an Undo / Redo snapshot while disabling the snapshot taking by the methods called from inside this snapshot.
-	class TakeSnapshot
-	{
-	public:
-        TakeSnapshot(Plater *plater, const std::string &snapshot_name) : m_plater(plater)
-        {
-			m_plater->take_snapshot(snapshot_name);
-			m_plater->suppress_snapshots();
-		}
-		/*TakeSnapshot(Plater *plater, const wxString &snapshot_name) : m_plater(plater)
-		{
-			m_plater->take_snapshot(snapshot_name);
-			m_plater->suppress_snapshots();
-		}*/
-        TakeSnapshot(Plater* plater, const std::string& snapshot_name, UndoRedo::SnapshotType snapshot_type) : m_plater(plater)
-        {
-            m_plater->take_snapshot(snapshot_name, snapshot_type);
-            m_plater->suppress_snapshots();
-        }
-        /*TakeSnapshot(Plater *plater, const wxString &snapshot_name, UndoRedo::SnapshotType snapshot_type) : m_plater(plater)
-        {
-            m_plater->take_snapshot(snapshot_name, snapshot_type);
-            m_plater->suppress_snapshots();
-        }*/
+            private:
+                Plater *m_plater;
+            };
 
-		~TakeSnapshot()
-		{
-			m_plater->allow_snapshots();
-		}
-	private:
-		Plater *m_plater;
-	};
+            // RAII wrapper for taking an Undo / Redo snapshot while disabling the snapshot taking by the methods called from inside this snapshot.
+            class TakeSnapshot
+            {
+            public:
+                TakeSnapshot(Plater *plater, const std::string &snapshot_name) : m_plater(plater)
+                {
+                    m_plater->take_snapshot(snapshot_name);
+                    m_plater->suppress_snapshots();
+                }
+                /*TakeSnapshot(Plater *plater, const wxString &snapshot_name) : m_plater(plater)
+                {
+                    m_plater->take_snapshot(snapshot_name);
+                    m_plater->suppress_snapshots();
+                }*/
+                TakeSnapshot(Plater *plater, const std::string &snapshot_name, UndoRedo::SnapshotType snapshot_type) : m_plater(plater)
+                {
+                    m_plater->take_snapshot(snapshot_name, snapshot_type);
+                    m_plater->suppress_snapshots();
+                }
+                /*TakeSnapshot(Plater *plater, const wxString &snapshot_name, UndoRedo::SnapshotType snapshot_type) : m_plater(plater)
+                {
+                    m_plater->take_snapshot(snapshot_name, snapshot_type);
+                    m_plater->suppress_snapshots();
+                }*/
 
-    // QDS: limit to single snapshot taking by the methods called from inside
-    // this snapshot.
-    class SingleSnapshot
-    {
-    public:
-        SingleSnapshot(Plater *plater) : m_plater(plater)
-        {
-            m_plater->single_snapshots_enter(this);
-        }
+                ~TakeSnapshot()
+                {
+                    m_plater->allow_snapshots();
+                }
 
-        ~SingleSnapshot() { m_plater->single_snapshots_leave(this); }
+            private:
+                Plater *m_plater;
+            };
 
-        bool check(bool modify)
-        {
-            if (token && (this->modify || !modify)) return false;
-            token = true;
-            this->modify = modify;
-            return true;
-        }
+            // QDS: limit to single snapshot taking by the methods called from inside
+            // this snapshot.
+            class SingleSnapshot
+            {
+            public:
+                SingleSnapshot(Plater *plater) : m_plater(plater)
+                {
+                    m_plater->single_snapshots_enter(this);
+                }
 
-    private:
-        Plater *m_plater;
-        bool    token = false;
-        bool    modify = false;
-    };
+                ~SingleSnapshot() { m_plater->single_snapshots_leave(this); }
 
-    bool inside_snapshot_capture();
+                bool check(bool modify)
+                {
+                    if (token && (this->modify || !modify))
+                        return false;
+                    token = true;
+                    this->modify = modify;
+                    return true;
+                }
 
-    void toggle_render_statistic_dialog();
-    bool is_render_statistic_dialog_visible() const;
+            private:
+                Plater *m_plater;
+                bool token = false;
+                bool modify = false;
+            };
 
-    void toggle_non_manifold_edges();
-    bool is_show_non_manifold_edges();
-    void toggle_text_cs();
-    bool is_show_text_cs();
-    void toggle_show_wireframe();
-    bool is_show_wireframe() const;
-    void enable_wireframe(bool status);
-    bool is_wireframe_enabled() const;
+            bool inside_snapshot_capture();
 
-	// Wrapper around wxWindow::PopupMenu to suppress error messages popping out while tracking the popup menu.
-	bool PopupMenu(wxMenu *menu, const wxPoint& pos = wxDefaultPosition);
-    bool PopupMenu(wxMenu *menu, int x, int y) { return this->PopupMenu(menu, wxPoint(x, y)); }
+            void toggle_render_statistic_dialog();
+            bool is_render_statistic_dialog_visible() const;
 
-    //QDS: add popup logic for table object
-    bool PopupObjectTable(int object_id, int volume_id, const wxPoint& position);
-    //QDS: popup selection at default position
-    bool PopupObjectTableBySelection();
+            void toggle_non_manifold_edges();
+            bool is_show_non_manifold_edges();
+            void toggle_text_cs();
+            bool is_show_text_cs();
+            void toggle_show_wireframe();
+            bool is_show_wireframe() const;
+            void enable_wireframe(bool status);
+            bool is_wireframe_enabled() const;
 
-    // get same Plater/ObjectList menus
-    wxMenu* plate_menu();
-    wxMenu* object_menu();
-    wxMenu* part_menu();
-    wxMenu* text_part_menu();
-    wxMenu* svg_part_menu();
-    wxMenu* cut_connector_menu();
-    wxMenu* sla_object_menu();
-    wxMenu* default_menu();
-    wxMenu* instance_menu();
-    wxMenu* layer_menu();
-    wxMenu* multi_selection_menu();
-    wxMenu* assemble_multi_selection_menu();
-    wxMenu* filament_action_menu(int active_filament_menu_id);
-    int     GetPlateIndexByRightMenuInLeftUI();
-    void    SetPlateIndexByRightMenuInLeftUI(int);
-    static bool has_illegal_filename_characters(const wxString& name);
-    static bool has_illegal_filename_characters(const std::string& name);
-    static void show_illegal_characters_warning(wxWindow* parent);
+            // Wrapper around wxWindow::PopupMenu to suppress error messages popping out while tracking the popup menu.
+            bool PopupMenu(wxMenu *menu, const wxPoint &pos = wxDefaultPosition);
+            bool PopupMenu(wxMenu *menu, int x, int y) { return this->PopupMenu(menu, wxPoint(x, y)); }
 
+            // QDS: add popup logic for table object
+            bool PopupObjectTable(int object_id, int volume_id, const wxPoint &position);
+            // QDS: popup selection at default position
+            bool PopupObjectTableBySelection();
 
-    std::string get_preview_only_filename() { return m_preview_only_filename; };
+            // get same Plater/ObjectList menus
+            wxMenu *plate_menu();
+            wxMenu *object_menu();
+            wxMenu *part_menu();
+            wxMenu *text_part_menu();
+            wxMenu *svg_part_menu();
+            wxMenu *cut_connector_menu();
+            wxMenu *sla_object_menu();
+            wxMenu *default_menu();
+            wxMenu *instance_menu();
+            wxMenu *layer_menu();
+            wxMenu *multi_selection_menu();
+            wxMenu *assemble_multi_selection_menu();
+            wxMenu *filament_action_menu(int active_filament_menu_id);
+            int GetPlateIndexByRightMenuInLeftUI();
+            void SetPlateIndexByRightMenuInLeftUI(int);
+            static bool has_illegal_filename_characters(const wxString &name);
+            static bool has_illegal_filename_characters(const std::string &name);
+            static void show_illegal_characters_warning(wxWindow *parent);
 
-    bool last_arrange_job_is_finished()
-    {
-        bool prevRunning = false;
-        return m_arrange_running.compare_exchange_strong(prevRunning, true);
-    };
-    std::atomic<bool> m_arrange_running{false};
-    void              reset_check_status() { m_check_status = 0; }
+            std::string get_preview_only_filename() { return m_preview_only_filename; };
 
-    void mark_plate_toolbar_image_dirty();
-    bool is_plate_toolbar_image_dirty() const;
-    void clear_plate_toolbar_image_dirty();
+            bool last_arrange_job_is_finished()
+            {
+                bool prevRunning = false;
+                return m_arrange_running.compare_exchange_strong(prevRunning, true);
+            };
+            std::atomic<bool> m_arrange_running{false};
+            void reset_check_status() { m_check_status = 0; }
 
-    //y
-    void resetUploadCount();
-    //y58
-    int getUploadCount();
-    void setUploadCount(int uploadcount);
-    int getInterval();
-    void setInterval(int interval);
-    //y65
-    bool is_can_change_color();
+            void mark_plate_toolbar_image_dirty();
+            bool is_plate_toolbar_image_dirty() const;
+            void clear_plate_toolbar_image_dirty();
 
-    //y59
-    Box_msg box_msg;
+            // y
+            void resetUploadCount();
+            // y58
+            int getUploadCount();
+            void setUploadCount(int uploadcount);
+            int getInterval();
+            void setInterval(int interval);
+            // y65
+            bool is_can_change_color();
 
-    //y61
+            // y59
+            Box_msg box_msg;
+
+            // y61
 #if QDT_RELEASE_TO_PUBLIC
-    GUI::Box_info current_box_info;
-    GUI::Box_info get_cur_box_info() { return current_box_info; };
+            GUI::Box_info current_box_info;
+            GUI::Box_info get_cur_box_info() { return current_box_info; };
 #endif
 
-private:
-    struct priv;
-    std::unique_ptr<priv> p;
-    std::string           m_3mf_path;
-    // Set true during PopupMenu() tracking to suppress immediate error message boxes.
-    // The error messages are collected to m_tracking_popup_menu_error_message instead and these error messages
-    // are shown after the pop-up dialog closes.
-    bool 	 m_tracking_popup_menu = false;
-    wxString m_tracking_popup_menu_error_message;
+        private:
+            struct priv;
+            std::unique_ptr<priv> p;
+            std::string m_3mf_path;
+            // Set true during PopupMenu() tracking to suppress immediate error message boxes.
+            // The error messages are collected to m_tracking_popup_menu_error_message instead and these error messages
+            // are shown after the pop-up dialog closes.
+            bool m_tracking_popup_menu = false;
+            wxString m_tracking_popup_menu_error_message;
 
-    wxString m_last_loaded_gcode;
-    //QDS: add only gcode mode
-    bool m_only_gcode { false };//just for .gcode file not for .gcode.3mf
-    bool m_exported_file { false };
-    bool skip_thumbnail_invalid { false };
-    bool m_loading_project {false };
-    bool m_new_project_and_check_state{false};
-    std::string m_preview_only_filename;
-    int m_valid_plates_count { 0 };
-    int m_check_status = 0; // 0 not check, 1 check success, 2 check failed
-    bool m_b_plate_toolbar_image_dirty{ true };
+            wxString m_last_loaded_gcode;
+            // QDS: add only gcode mode
+            bool m_only_gcode{false}; // just for .gcode file not for .gcode.3mf
+            bool m_exported_file{false};
+            bool skip_thumbnail_invalid{false};
+            bool m_loading_project{false};
+            bool m_new_project_and_check_state{false};
+            std::string m_preview_only_filename;
+            int m_valid_plates_count{0};
+            int m_check_status = 0; // 0 not check, 1 check success, 2 check failed
+            bool m_b_plate_toolbar_image_dirty{true};
 
-    void suppress_snapshots();
-    void allow_snapshots();
-    // QDS: single snapshot
-    void single_snapshots_enter(SingleSnapshot *single);
-    void single_snapshots_leave(SingleSnapshot *single);
-    // QDS: add project slice related functions
-    int start_next_slice();
+            // NexusSlicer Studio API — local HTTP server for VS Code extension bridge
+            std::unique_ptr<class StudioApiServer> m_studio_api_server;
 
-    //w29
-    void _calib_pa_line(const Calib_Params& params);
-    void _calib_pa_pattern(const Calib_Params &params);
-    void _calib_pa_tower(const Calib_Params &params);
-    void _calib_pa_select_added_objects();
+            void suppress_snapshots();
+            void allow_snapshots();
+            // QDS: single snapshot
+            void single_snapshots_enter(SingleSnapshot *single);
+            void single_snapshots_leave(SingleSnapshot *single);
+            // QDS: add project slice related functions
+            int start_next_slice();
 
-    void on_filament_map_mode_change();
-    friend class SuppressBackgroundProcessingUpdate;
-    //y
-    std::thread m_sendThread;
-    std::chrono::system_clock::time_point m_time_p;
-    //w29
-    GCodeWriter m_writer;
-    void cut_horizontal(size_t obj_idx, size_t instance_idx, double z, ModelObjectCutAttributes attributes);
-};
+            // w29
+            void _calib_pa_line(const Calib_Params &params);
+            void _calib_pa_pattern(const Calib_Params &params);
+            void _calib_pa_tower(const Calib_Params &params);
+            void _calib_pa_select_added_objects();
 
-class SuppressBackgroundProcessingUpdate
-{
-public:
-    SuppressBackgroundProcessingUpdate();
-    ~SuppressBackgroundProcessingUpdate();
-private:
-    bool m_was_scheduled;
-};
+            void on_filament_map_mode_change();
+            friend class SuppressBackgroundProcessingUpdate;
+            // y
+            std::thread m_sendThread;
+            std::chrono::system_clock::time_point m_time_p;
+            // w29
+            GCodeWriter m_writer;
+            void cut_horizontal(size_t obj_idx, size_t instance_idx, double z, ModelObjectCutAttributes attributes);
+        };
 
-std::vector<int> get_min_flush_volumes(const DynamicPrintConfig &full_config, size_t nozzle_id);
-std::string      check_boolean_possible(const std::vector<const ModelVolume *> &volumes, csg::BooleanFailReason& fail_reason);
+        class SuppressBackgroundProcessingUpdate
+        {
+        public:
+            SuppressBackgroundProcessingUpdate();
+            ~SuppressBackgroundProcessingUpdate();
 
-Preset *get_printer_preset(const MachineObject *obj);
-//y76
-Preset *get_printer_preset(std::shared_ptr<QDSDevice> obj);
+        private:
+            bool m_was_scheduled;
+        };
 
-wxArrayString get_all_camera_view_type();
+        std::vector<int> get_min_flush_volumes(const DynamicPrintConfig &full_config, size_t nozzle_id);
+        std::string check_boolean_possible(const std::vector<const ModelVolume *> &volumes, csg::BooleanFailReason &fail_reason);
 
+        Preset *get_printer_preset(const MachineObject *obj);
+        // y76
+        Preset *get_printer_preset(std::shared_ptr<QDSDevice> obj);
 
-} // namespace GUI
+        wxArrayString get_all_camera_view_type();
+
+    } // namespace GUI
 } // namespace Slic3r
-

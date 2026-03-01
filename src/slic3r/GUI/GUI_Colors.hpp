@@ -1,10 +1,10 @@
 #pragma once
 
-
 #include "imgui/imgui.h"
 #include <array>
 
-enum RenderCol_ {
+enum RenderCol_
+{
     RenderCol_3D_Background = 0,
     RenderCol_Plate_Unselected,
     RenderCol_Plate_Selected,
@@ -32,24 +32,27 @@ enum RenderCol_ {
 
 typedef int RenderCol;
 
-namespace Slic3r {
+namespace Slic3r
+{
 
-class RenderColor {
-public:
-    static ImVec4      colors[RenderCol_Count];
+    class RenderColor
+    {
+    public:
+        static ImVec4 colors[RenderCol_Count];
 
-    // Apply the Dark Forge brand palette to the 3D viewport colour table.
-    // Call once from OpenGLManager::init() after GL context is established.
-    static void        init_dark_forge();
-};
-const char* GetRenderColName(RenderCol idx);
-inline std::array<float, 4> GLColor(ImVec4 color) {
-    return {color.x, color.y, color.z, color.w };
+        // Apply the Dark Forge brand palette to the 3D viewport colour table.
+        // Call once from OpenGLManager::init() after GL context is established.
+        static void init_dark_forge();
+    };
+    const char *GetRenderColName(RenderCol idx);
+    inline std::array<float, 4> GLColor(ImVec4 color)
+    {
+        return {color.x, color.y, color.z, color.w};
+    }
+
+    inline ImVec4 IMColor(std::array<float, 4> color)
+    {
+        return ImVec4(color[0], color[1], color[2], color[3]);
+    }
+
 }
-
-inline ImVec4 IMColor(std::array<float, 4> color) {
-    return ImVec4(color[0], color[1], color[2], color[3]);
-}
-
-}
-

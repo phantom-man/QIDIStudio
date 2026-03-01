@@ -462,6 +462,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/InstanceCheck.hpp
     GUI/Search.cpp
     GUI/Search.hpp
+    GUI/StudioApiServer.hpp
+    GUI/StudioApiServer.cpp
     GUI/FilamentGroupPopup.hpp
     GUI/FilamentGroupPopup.cpp
     GUI/NotificationManager.cpp
