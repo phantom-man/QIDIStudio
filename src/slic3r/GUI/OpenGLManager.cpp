@@ -4,6 +4,7 @@
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "3DScene.hpp"
+#include "GUI_Colors.hpp"  // Dark Forge: RenderColor::init_dark_forge()
 
 #include "libslic3r/Platform.hpp"
 #include "slic3r/GUI/GLTexture.hpp"
@@ -427,6 +428,9 @@ bool OpenGLManager::init_gl(bool popup_error)
                     wxMessageBox(message, _L("Error loading shaders"), wxOK | wxICON_ERROR);
                 }
             }
+            // Apply Dark Forge brand colours to the 3D viewport colour table
+            RenderColor::init_dark_forge();
+            BOOST_LOG_TRIVIAL(info) << "Dark Forge viewport colours applied.";
         }
 
 #ifdef _WIN32

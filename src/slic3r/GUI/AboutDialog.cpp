@@ -5,6 +5,7 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include "QidiTheme.hpp"  // Dark Forge brand palette — single source of truth
 #include "format.hpp"
 #include "Widgets/Button.hpp"
 
@@ -215,7 +216,7 @@ AboutDialog::AboutDialog()
         wxDefaultSize, /*wxCAPTION*/wxDEFAULT_DIALOG_STYLE)
 {
     SetFont(wxGetApp().normal_font());
-	SetBackgroundColour(*wxWHITE);
+    SetBackgroundColour(wxGetApp().dark_mode() ? QidiTheme::BACKGROUND() : *wxWHITE);
 
     std::string icon_path = (boost::format("%1%/images/QIDIStudioTitle.ico") % resources_dir()).str();
     SetIcon(wxIcon(encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
@@ -259,20 +260,20 @@ AboutDialog::AboutDialog()
         #endif
         version_font.SetPointSize(FromDIP(16));
         version->SetFont(version_font);
-        version->SetForegroundColour(wxColour("#FFFFFD"));
-        version->SetBackgroundColour(wxColour("#303ab2"));
+        version->SetForegroundColour(wxGetApp().dark_mode() ? QidiTheme::TEXT_PRIMARY() : wxColour("#FFFFFD"));
+        version->SetBackgroundColour(wxGetApp().dark_mode() ? QidiTheme::SURFACE_ELEVATED() : wxColour("#303ab2"));
         vesizer->Add(version, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, FromDIP(5));
 #if QDT_INTERNAL_TESTING
         wxString plugin_version = wxString::Format("Plugin Version: %s", wxGetApp().getAgent() ? wxGetApp().getAgent()->get_version() : "");
         wxStaticText *plugin_version_text = new wxStaticText(this, wxID_ANY, plugin_version, wxDefaultPosition, wxDefaultSize);
-        plugin_version_text->SetForegroundColour(wxColour("#FFFFFE"));
-        plugin_version_text->SetBackgroundColour(wxColour("#303ab2"));
+        plugin_version_text->SetForegroundColour(wxGetApp().dark_mode() ? QidiTheme::TEXT_PRIMARY() : wxColour("#FFFFFE"));
+        plugin_version_text->SetBackgroundColour(wxGetApp().dark_mode() ? QidiTheme::SURFACE_ELEVATED() : wxColour("#303ab2"));
         vesizer->Add(plugin_version_text, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, FromDIP(5));
 
         wxString build_time = wxString::Format("Build Time: %s", std::string(SLIC3R_BUILD_TIME));
         wxStaticText* build_time_text = new wxStaticText(this, wxID_ANY, build_time, wxDefaultPosition, wxDefaultSize);
-        build_time_text->SetForegroundColour(wxColour("#FFFFFE"));
-        build_time_text->SetBackgroundColour(wxColour("#303ab2"));
+        build_time_text->SetForegroundColour(wxGetApp().dark_mode() ? QidiTheme::TEXT_PRIMARY() : wxColour("#FFFFFE"));
+        build_time_text->SetBackgroundColour(wxGetApp().dark_mode() ? QidiTheme::SURFACE_ELEVATED() : wxColour("#303ab2"));
         vesizer->Add(build_time_text, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, FromDIP(5));
 #endif
         vesizer->Add(0, 0, 1, wxEXPAND, FromDIP(5));
@@ -296,8 +297,8 @@ AboutDialog::AboutDialog()
     for (int i = 0; i < text_list.size(); i++)
     {
         auto staticText = new wxStaticText( this, wxID_ANY, wxEmptyString,wxDefaultPosition,wxSize(FromDIP(520), -1), wxALIGN_LEFT );
-        staticText->SetForegroundColour(wxColour(107, 107, 107));
-        staticText->SetBackgroundColour(*wxWHITE);
+        staticText->SetForegroundColour(wxGetApp().dark_mode() ? QidiTheme::TEXT_SECONDARY() : wxColour(107, 107, 107));
+        staticText->SetBackgroundColour(wxGetApp().dark_mode() ? QidiTheme::BACKGROUND() : *wxWHITE);
         staticText->SetMinSize(wxSize(FromDIP(520), -1));
         staticText->SetFont(Label::Body_12);
         if (is_zh) {
@@ -332,9 +333,15 @@ AboutDialog::AboutDialog()
     copyright_hor_sizer->Add(copyright_ver_sizer, 0, wxLEFT, FromDIP(20));
 
     wxStaticText *html_text = new wxStaticText(this, wxID_ANY, "Copyright(C) 2021-2025 QIDI All Rights Reserved", wxDefaultPosition, wxDefaultSize);
-    html_text->SetForegroundColour(wxColour(107, 107, 107));
+    html_text->SetForegroundColour(wxGetApp().dark_mode() ? QidiTheme::TEXT_SECONDARY() : wxColour(107, 107, 107));
 
     copyright_ver_sizer->Add(html_text, 0, wxALL , 0);
+
+    // NexusSlicer tagline
+    wxStaticText *tagline_text = new wxStaticText(this, wxID_ANY, QidiTheme::TAGLINE, wxDefaultPosition, wxDefaultSize);
+    tagline_text->SetForegroundColour(wxGetApp().dark_mode() ? QidiTheme::ACCENT_CYAN() : wxColour("#303ab2"));
+    tagline_text->SetFont(tagline_text->GetFont().MakeItalic());
+    copyright_ver_sizer->Add(tagline_text, 0, wxTOP, FromDIP(4));
 
     m_html = new wxHtmlWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHW_SCROLLBAR_NEVER /*NEVER*/);
       {
