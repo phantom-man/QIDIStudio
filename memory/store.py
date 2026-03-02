@@ -200,23 +200,30 @@ def batch_upsert(rows: list[dict]) -> tuple[int, int]:
     try:
         table.delete(f"topic IN ({in_clause})")
     except Exception:
-        # Older lancedb may not support IN; fall back silently — add() dedupes by topic
-        pass
+        # GCS LanceDB may reject large IN clauses — fall back to per-row deletes.
+        # This is slower but guarantees no row accumulation over repeated runs.
+        for esc_topic in escaped:
+            try:
+                table.delete(f"topic = '{esc_topic}'")
+            except Exception:
+                pass
 
     # ── 3. Build all rows and write in a single add() call ────────────────
     all_rows = []
     for r, vec in zip(valid, vectors):
-        all_rows.append({
-            "id": r.get("id") or str(uuid.uuid4()),
-            "date": r.get("date") or today,
-            "category": (r.get("category") or "general").strip(),
-            "topic": r["topic"].strip(),
-            "decision": (r.get("decision") or "").strip(),
-            "rationale": (r.get("rationale") or "").strip(),
-            "content": (r.get("content") or r.get("decision") or "").strip(),
-            "source": (r.get("source") or "unknown"),
-            "vector": vec.tolist(),
-        })
+        all_rows.append(
+            {
+                "id": r.get("id") or str(uuid.uuid4()),
+                "date": r.get("date") or today,
+                "category": (r.get("category") or "general").strip(),
+                "topic": r["topic"].strip(),
+                "decision": (r.get("decision") or "").strip(),
+                "rationale": (r.get("rationale") or "").strip(),
+                "content": (r.get("content") or r.get("decision") or "").strip(),
+                "source": (r.get("source") or "unknown"),
+                "vector": vec.tolist(),
+            }
+        )
 
     table.add(all_rows)
     return len(all_rows), skipped

@@ -27,6 +27,35 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
+# ── Compaction flag ───────────────────────────────────────────────────────
+# Written by precompact_hook.ps1 when VS Code is about to compact the context.
+# Detected here on every UserPromptSubmit so the agent is reminded to write
+# learnings even after context has already been lost and a new session started.
+# Deleted by extract.py after a successful knowledge-base sync.
+_COMPACTION_FLAG = Path(__file__).parent / "_compaction_pending.txt"
+
+
+def _compaction_warning() -> str:
+    """Return a high-priority banner if a compaction flag is pending."""
+    if not _COMPACTION_FLAG.exists():
+        return ""
+    ts = _COMPACTION_FLAG.read_text(encoding="utf-8").strip()
+    return (
+        "\n"
+        "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+        "  CONTEXT COMPACTION OCCURRED — SESSION LEARNINGS PENDING   \n"
+        "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+        f"  Compaction flagged at: {ts}\n"
+        "  The conversation summary above contains the full prior session.\n"
+        "  RIGHT NOW, before doing anything else:\n"
+        "  1. Read the summary and extract new learnings.\n"
+        "  2. Append rows to .github/copilot-instructions.md  \n"
+        "     ## Session Learnings Log table.\n"
+        "  3. Run: .\\memory_env\\Scripts\\python.exe memory\\extract.py\n"
+        "     (this syncs LanceDB + archives + clears the table + removes this banner)\n"
+        "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+    )
+
 
 # ── Formatters ────────────────────────────────────────────────────────────
 
@@ -219,6 +248,9 @@ def main() -> None:
     # --prompt (hook path) and --query (manual path) are equivalent
     query_text = (args.prompt or args.query or "").strip()
 
+    # Prepend compaction banner if flag exists (fires every prompt until extract.py clears it)
+    compaction_banner = _compaction_warning()
+
     context = ""
     try:
         from memory.store import get_all, query_similar, count as store_count
@@ -268,7 +300,9 @@ def main() -> None:
     output = {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
-            "additionalContext": context,
+            "additionalContext": (
+                (compaction_banner + context) if compaction_banner else context
+            ),
         }
     }
     print(json.dumps(output))

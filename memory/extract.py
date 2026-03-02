@@ -412,6 +412,7 @@ def prune_learnings_from_instructions() -> tuple[int, int, int]:
 
     # Load all topics from LanceDB in one shot — avoids N round trips of query_similar()
     from memory.store import get_all
+
     all_lancedb = get_all()
     lancedb_topics = {(r.get("topic") or "").strip().lower() for r in all_lancedb}
 
@@ -514,6 +515,31 @@ def main() -> None:
     deduped = list(seen.values())
     print(f"After dedup        : {len(deduped)}")
 
+    # ── Prune verified learnings FIRST — before indexing ────────────────
+    # IMPORTANT: prune must run before sync_to_lancedb so that section chunks
+    # capture the already-cleaned file, not the fat unpruned table.
+    # If we indexed first, the stale 145k-char Session Learnings Log chunk
+    # would persist in GCS and match almost every prompt, consuming huge context.
+    print("\nPruning verified learnings from source files before indexing...")
+    verified, kept, archived = prune_learnings_from_instructions()
+    print(f"  Archive path: {ARCHIVE_PATH}")
+
+    # ── Re-read source files after pruning so section chunks are slim ────
+    # Rebuild all_rows from the now-pruned files
+    all_rows = []
+    for path, prefix in sources:
+        chunks = extract_sections(path, prefix)
+        all_rows.extend(chunks)
+        learnings = extract_learnings_table(path, f"{prefix}/learnings")
+        if learnings:
+            all_rows.extend(learnings)
+
+    seen = {}
+    for r in all_rows:
+        seen[r["topic"]] = r
+    deduped = list(seen.values())
+    print(f"\nPost-prune rows to sync: {len(deduped)}")
+
     print(
         "\nSyncing to LanceDB (this loads the embedding model — ~15s on first run)..."
     )
@@ -526,10 +552,11 @@ def main() -> None:
     n = store_count()
     print(f"  Total in store   : {n}")
 
-    # ── Prune verified learnings from copilot-instructions ────────────────
-    print("\nPruning verified learnings from copilot-instructions.md...")
-    verified, kept, archived = prune_learnings_from_instructions()
-    print(f"  Archive path: {ARCHIVE_PATH}")
+    # Clear compaction flag if present — learnings are now in LanceDB
+    flag = REPO_ROOT / "memory" / "_compaction_pending.txt"
+    if flag.exists():
+        flag.unlink()
+        print("  Compaction flag cleared.")
 
     print("\nDone.")
 

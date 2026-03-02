@@ -6,6 +6,12 @@ $py = Join-Path $repo 'memory_env\Scripts\python.exe'
 
 Add-Content -Path $log -Value "$ts [PreCompact] fired"
 
+# Write compaction flag so inject.py banners every subsequent prompt until
+# the agent runs extract.py (which deletes the flag).
+$flag = Join-Path $repo 'memory\_compaction_pending.txt'
+Set-Content -Path $flag -Value $ts -Encoding UTF8
+Add-Content -Path $log -Value "$ts [PreCompact] compaction flag written: $flag"
+
 # NOTE: We do NOT run extract.py here before emitting the instruction.
 # Reason: extract.py would index the file BEFORE the agent writes new learnings,
 # missing everything from the current session. Instead, the agent instruction below
@@ -13,9 +19,9 @@ Add-Content -Path $log -Value "$ts [PreCompact] fired"
 
 # ── AGENT INSTRUCTION ───────────────────────────────────────────────────────
 @{
-    hookSpecificOutput = @{
-        hookEventName     = "PreCompact"
-        additionalContext = @"
+  hookSpecificOutput = @{
+    hookEventName     = "PreCompact"
+    additionalContext = @"
 CONTEXT COMPACTION IMMINENT. Do these steps NOW via tool calls before context is lost:
 
 STEP 1 — WRITE LEARNINGS
@@ -35,5 +41,5 @@ STEP 3 — COMMIT
   git add -A
   git commit --allow-empty -m "docs: pre-compact session learnings [$date]"
 "@
-    }
+  }
 } | ConvertTo-Json -Compress
