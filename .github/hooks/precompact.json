@@ -1,3 +1,18 @@
 {
-  "hooks": {}
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "windows": "powershell.exe -ExecutionPolicy Bypass -File \"C:\\Users\\User\\source\\repos\\QIDIStudio\\.github\\hooks\\prompt_submit_hook.ps1\"",
+        "command": "powershell -ExecutionPolicy Bypass -File \".github/hooks/prompt_submit_hook.ps1\""
+      }
+    ],
+    "PreCompact": [
+      {
+        "type": "command",
+        "windows": "powershell.exe -ExecutionPolicy Bypass -File \"C:\\Users\\User\\source\\repos\\QIDIStudio\\.github\\hooks\\precompact_hook.ps1\"",
+        "command": "powershell -ExecutionPolicy Bypass -File \".github/hooks/precompact_hook.ps1\""
+      }
+    ]
+  }
 }
