@@ -304,17 +304,27 @@ def count() -> int:
 
 def maintenance(
     compact: bool = True,
-    vacuum_days: int = 7,
+    vacuum_days: int = 0,
 ) -> dict:
-    """Compact small GCS fragments and prune old table versions.
+    """Compact small GCS fragments and optionally prune old table versions.
 
-    Run once daily (Cloud Function / cron) to control GCS storage costs.
+    GCS storage costs for this knowledge base are negligible — the full version
+    history is small and deliberately preserved for Time Travel / audit purposes.
+    compact_files() is safe to run periodically (merges tiny fragment files for
+    better read performance).
+
+    ╔══════════════════════════════════════════════════════════════════════════╗
+    ║  WARNING — DO NOT VACUUM WITHOUT CONSULTING THE REPO OWNER FIRST.       ║
+    ║  vacuum() permanently deletes historical GCS objects and makes those    ║
+    ║  table versions unrecoverable.  This should happen at most once a year  ║
+    ║  and only after explicit sign-off.  The default keeps vacuum disabled.  ║
+    ╚══════════════════════════════════════════════════════════════════════════╝
 
     Args:
-        compact:     Merge small fragment files into larger ones (improves
-                     read performance on GCS when many tiny adds have occurred).
-        vacuum_days: Delete table versions older than this many days from GCS.
-                     Set to 0 to skip vacuuming.  Minimum safe value is 1.
+        compact:     Merge small fragment files into larger ones (safe, reversible).
+        vacuum_days: Permanently delete GCS objects for versions older than this
+                     many days.  Default 0 = DISABLED.  Do not enable without
+                     consulting the repo owner — data loss is irreversible.
 
     Returns dict with keys: version (int), compacted (bool), vacuumed (bool).
     """
@@ -329,6 +339,8 @@ def maintenance(
             print(f"[maintenance] compact_files failed: {exc}")
 
     if vacuum_days > 0:
+        # ── CONSULT REPO OWNER BEFORE ENABLING ────────────────────────────────
+        # Vacuuming permanently removes GCS objects. Only run after sign-off.
         try:
             table.vacuum(older_than=timedelta(days=vacuum_days))
             result["vacuumed"] = True
