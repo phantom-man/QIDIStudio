@@ -334,11 +334,14 @@ def extract_learnings_table(path: Path, source: str) -> list[dict]:
 
 def sync_to_lancedb(rows: list[dict]) -> tuple[int, int]:
     """
-    Full-replace sync: deletes ALL store rows first, then adds current rows.
+    Scoped-replace sync: deletes only document-sourced rows, then adds current rows.
 
-    Using replace_all=True eliminates orphan rows that accumulate when section
-    headings are renamed or removed from source docs. Every extract.py run
-    produces a clean snapshot of exactly the current knowledge base.
+    Agent-written rows (source LIKE 'agents/%') are intentionally preserved across
+    every extract run — they represent gleaned findings from the agent fleet and
+    must not be wiped by routine knowledge base rebuilds.
+
+    Using replace_all=True (scoped to non-agent sources) still eliminates orphan
+    doc rows that accumulate when section headings are renamed or removed.
     """
     from memory.store import batch_upsert
 
@@ -523,17 +526,21 @@ def main() -> None:
             if not topic or not decision:
                 continue
             rationale = (r.get("rationale") or "").strip()
-            category = (r.get("category") or "").strip() or _infer_category(topic, decision)
+            category = (r.get("category") or "").strip() or _infer_category(
+                topic, decision
+            )
             dt = (r.get("date") or "").strip() or None
-            archive_rows.append({
-                "topic": topic,
-                "decision": decision,
-                "rationale": rationale,
-                "content": f"**{topic}**\n{decision}\n\nRationale: {rationale}",
-                "category": category,
-                "date": dt,
-                "source": "archive/learnings",
-            })
+            archive_rows.append(
+                {
+                    "topic": topic,
+                    "decision": decision,
+                    "rationale": rationale,
+                    "content": f"**{topic}**\n{decision}\n\nRationale: {rationale}",
+                    "category": category,
+                    "date": dt,
+                    "source": "archive/learnings",
+                }
+            )
         if archive_rows:
             print(f"  {archive_path.name:<35} archived : {len(archive_rows)}")
             all_rows.extend(archive_rows)
@@ -577,17 +584,21 @@ def main() -> None:
             if not topic or not decision:
                 continue
             rationale = (r.get("rationale") or "").strip()
-            category = (r.get("category") or "").strip() or _infer_category(topic, decision)
+            category = (r.get("category") or "").strip() or _infer_category(
+                topic, decision
+            )
             dt = (r.get("date") or "").strip() or None
-            archive_rows.append({
-                "topic": topic,
-                "decision": decision,
-                "rationale": rationale,
-                "content": f"**{topic}**\n{decision}\n\nRationale: {rationale}",
-                "category": category,
-                "date": dt,
-                "source": "archive/learnings",
-            })
+            archive_rows.append(
+                {
+                    "topic": topic,
+                    "decision": decision,
+                    "rationale": rationale,
+                    "content": f"**{topic}**\n{decision}\n\nRationale: {rationale}",
+                    "category": category,
+                    "date": dt,
+                    "source": "archive/learnings",
+                }
+            )
     if archive_rows:
         all_rows.extend(archive_rows)
 

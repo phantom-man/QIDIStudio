@@ -205,13 +205,24 @@ def batch_upsert(rows: list[dict], replace_all: bool = False) -> tuple[int, int]
 
     # ── 2. Delete rows ───────────────────────────────────────────────────────
     if replace_all:
-        # Full table rebuild — delete everything so orphan rows from old doc versions
-        # don't accumulate. Safe because we're about to re-add all current rows.
+        # Scoped rebuild — delete only document-sourced rows so that agent-written
+        # rows (source LIKE 'agents/%') are NEVER wiped by a routine extract run.
+        # Agent contributions are permanent unless explicitly deleted by topic.
         try:
-            table.delete("id IS NOT NULL")
+            table.delete("source NOT LIKE 'agents/%'")
         except Exception:
             try:
-                table.delete("1 = 1")
+                # Fallback: read the table and delete non-agent rows one by one.
+                # Slower but preserves agent rows even if LIKE predicate fails.
+                existing = table.to_arrow().to_pylist()
+                for row in existing:
+                    src = str(row.get("source", ""))
+                    if not src.startswith("agents/") and row.get("topic"):
+                        esc = row["topic"].replace("'", "''")
+                        try:
+                            table.delete(f"topic = '{esc}'")
+                        except Exception:
+                            pass
             except Exception:
                 pass
     else:

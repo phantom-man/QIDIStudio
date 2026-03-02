@@ -275,7 +275,7 @@ def reindex_memory() -> str:
 
 # ── Tool sets per agent ───────────────────────────────────────────────────────
 
-RESEARCHER_TOOLS = [memory_read, file_read, file_search, tavily_search]
+RESEARCHER_TOOLS = [memory_read, memory_write, file_read, file_search, tavily_search]
 BUILDER_TOOLS = [memory_read, file_read, file_search, run_command]
 VERIFIER_TOOLS = [memory_read, file_read, file_search]
 SCRIBE_TOOLS = [memory_read, memory_write, file_read, run_command, reindex_memory]
