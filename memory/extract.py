@@ -507,6 +507,37 @@ def main() -> None:
             print(f"  {path.name:<35} learnings: {len(learnings)}")
             all_rows.extend(learnings)
 
+    # Index the archive as a permanent learnings store.
+    # These rows survive the prune cycle — once a learning is archived here, it
+    # stays in LanceDB permanently (replace_all rebuilds from this file each run).
+    # Note: parse the entire archive file directly (no "## Session Learnings Log"
+    # heading exists; the table is the whole file content).
+    archive_rows: list[dict] = []
+    archive_path = REPO_ROOT / "memory" / "session_learnings_archive.md"
+    if archive_path.exists():
+        archive_text = archive_path.read_text(encoding="utf-8")
+        archive_parsed = _parse_learnings_table(archive_text)
+        for r in archive_parsed:
+            topic = (r.get("topic") or "").strip()
+            decision = (r.get("decision") or "").strip()
+            if not topic or not decision:
+                continue
+            rationale = (r.get("rationale") or "").strip()
+            category = (r.get("category") or "").strip() or _infer_category(topic, decision)
+            dt = (r.get("date") or "").strip() or None
+            archive_rows.append({
+                "topic": topic,
+                "decision": decision,
+                "rationale": rationale,
+                "content": f"**{topic}**\n{decision}\n\nRationale: {rationale}",
+                "category": category,
+                "date": dt,
+                "source": "archive/learnings",
+            })
+        if archive_rows:
+            print(f"  {archive_path.name:<35} archived : {len(archive_rows)}")
+            all_rows.extend(archive_rows)
+
     print(f"\nTotal rows to sync: {len(all_rows)}")
 
     # Deduplicate by topic (last wins)
@@ -534,6 +565,31 @@ def main() -> None:
         learnings = extract_learnings_table(path, f"{prefix}/learnings")
         if learnings:
             all_rows.extend(learnings)
+
+    # Re-read archive AFTER prune — prune may have appended new rows to it.
+    archive_rows = []
+    if archive_path.exists():
+        archive_text = archive_path.read_text(encoding="utf-8")
+        archive_parsed = _parse_learnings_table(archive_text)
+        for r in archive_parsed:
+            topic = (r.get("topic") or "").strip()
+            decision = (r.get("decision") or "").strip()
+            if not topic or not decision:
+                continue
+            rationale = (r.get("rationale") or "").strip()
+            category = (r.get("category") or "").strip() or _infer_category(topic, decision)
+            dt = (r.get("date") or "").strip() or None
+            archive_rows.append({
+                "topic": topic,
+                "decision": decision,
+                "rationale": rationale,
+                "content": f"**{topic}**\n{decision}\n\nRationale: {rationale}",
+                "category": category,
+                "date": dt,
+                "source": "archive/learnings",
+            })
+    if archive_rows:
+        all_rows.extend(archive_rows)
 
     seen = {}
     for r in all_rows:
