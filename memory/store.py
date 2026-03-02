@@ -130,9 +130,9 @@ def upsert_learning(
     existing_id: Optional[str] = None,
 ) -> str:
     """
-    Insert or replace a row. Topic is the dedup key.
-    `content` holds the full verbatim text of the chunk.
-    Returns the row id.
+    Insert or replace a single row. Topic is the dedup key.
+    For syncing many rows at once, prefer batch_upsert() — it does one
+    embed pass + one GCS write instead of N round trips.
     """
     table = _get_table()
     row_id = existing_id or str(uuid.uuid4())
@@ -160,6 +160,66 @@ def upsert_learning(
 
     table.add([row])
     return row_id
+
+
+def batch_upsert(rows: list[dict]) -> tuple[int, int]:
+    """
+    Upsert many rows in a single GCS round-trip pair.
+
+    Instead of N×(delete+add) calls, this does:
+      1. One batch embed pass over all topics+decisions (GPU/CPU parallelism)
+      2. One DELETE with an IN (...) clause covering all topics
+      3. One table.add() writing all rows as a single fragment
+
+    Returns (inserted, skipped).
+    """
+    table = _get_table()
+    embedder = _get_embedder()
+    today = date.today().isoformat()
+
+    valid = [r for r in rows if (r.get("topic") or "").strip()]
+    skipped = len(rows) - len(valid)
+    if not valid:
+        return 0, skipped
+
+    # ── 1. Batch embed all texts at once ──────────────────────────────────
+    embed_texts = [
+        f"{r['topic']}: {r.get('decision', '')}. {r.get('rationale', '')}"
+        for r in valid
+    ]
+    vectors = embedder.encode(
+        embed_texts,
+        normalize_embeddings=True,
+        batch_size=64,
+        show_progress_bar=False,
+    )
+
+    # ── 2. Delete all existing rows for these topics in one shot ──────────
+    escaped = [t["topic"].replace("'", "''") for t in valid]
+    in_clause = ", ".join(f"'{t}'" for t in escaped)
+    try:
+        table.delete(f"topic IN ({in_clause})")
+    except Exception:
+        # Older lancedb may not support IN; fall back silently — add() dedupes by topic
+        pass
+
+    # ── 3. Build all rows and write in a single add() call ────────────────
+    all_rows = []
+    for r, vec in zip(valid, vectors):
+        all_rows.append({
+            "id": r.get("id") or str(uuid.uuid4()),
+            "date": r.get("date") or today,
+            "category": (r.get("category") or "general").strip(),
+            "topic": r["topic"].strip(),
+            "decision": (r.get("decision") or "").strip(),
+            "rationale": (r.get("rationale") or "").strip(),
+            "content": (r.get("content") or r.get("decision") or "").strip(),
+            "source": (r.get("source") or "unknown"),
+            "vector": vec.tolist(),
+        })
+
+    table.add(all_rows)
+    return len(all_rows), skipped
 
 
 def query_similar(

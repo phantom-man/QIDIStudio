@@ -333,29 +333,20 @@ def extract_learnings_table(path: Path, source: str) -> list[dict]:
 
 
 def sync_to_lancedb(rows: list[dict]) -> tuple[int, int]:
-    """Upsert all rows. Returns (inserted, skipped)."""
-    from memory.store import upsert_learning
+    """
+    Batch-upsert all rows in a single GCS write pair.
 
-    inserted = skipped = 0
-    for row in rows:
-        topic = (row.get("topic") or "").strip()
-        if not topic:
-            skipped += 1
-            continue
-        try:
-            upsert_learning(
-                topic=topic,
-                decision=(row.get("decision") or "").strip(),
-                rationale=(row.get("rationale") or "").strip(),
-                category=(row.get("category") or "general").strip(),
-                source=(row.get("source") or "unknown"),
-                learning_date=row.get("date"),
-                content=(row.get("content") or "").strip(),
-            )
-            inserted += 1
-        except Exception as e:
-            print(f"  [WARN] Failed to upsert '{topic[:60]}': {e}", file=sys.stderr)
-            skipped += 1
+    Old approach: N × (table.delete + table.add) = 400+ GCS round trips for 200 rows.
+    New approach: one batch embed → one IN-delete → one table.add = ~3 GCS ops total.
+    """
+    from memory.store import batch_upsert
+
+    try:
+        inserted, skipped = batch_upsert(rows)
+    except Exception as e:
+        print(f"  [ERROR] batch_upsert failed: {e}", file=sys.stderr)
+        inserted, skipped = 0, len(rows)
+    return inserted, skipped
 
 
 # ── Learnings pruning (verify → archive → remove from copilot-instructions) ──
@@ -401,7 +392,7 @@ def prune_learnings_from_instructions() -> tuple[int, int, int]:
 
     text = INSTRUCTIONS_PATH.read_text(encoding="utf-8")
     match = re.search(
-        r"(## Session Learnings Log\n+\| Date.*?\n\|[-: |]+\n)((?:\|.*?\n)+)",
+        r"(## Session Learnings Log[\s\S]*?\| Date.*?\n\|[-: |]+\n)((?:\|.*?\n)+)",
         text,
         re.DOTALL,
     )
@@ -419,6 +410,11 @@ def prune_learnings_from_instructions() -> tuple[int, int, int]:
 
     already_archived = _load_archive_topics()
 
+    # Load all topics from LanceDB in one shot — avoids N round trips of query_similar()
+    from memory.store import get_all
+    all_lancedb = get_all()
+    lancedb_topics = {(r.get("topic") or "").strip().lower() for r in all_lancedb}
+
     verified: list[dict] = []
     not_found: list[dict] = []
 
@@ -426,12 +422,7 @@ def prune_learnings_from_instructions() -> tuple[int, int, int]:
         topic = row.get("topic", "").strip()
         if not topic:
             continue
-        # Check LanceDB: search for this exact topic
-        hits = query_similar(topic, n=3)
-        found = any(
-            (h.get("topic") or "").strip().lower() == topic.lower() for h in hits
-        )
-        if found:
+        if topic.lower() in lancedb_topics:
             verified.append(row)
         else:
             not_found.append(row)
