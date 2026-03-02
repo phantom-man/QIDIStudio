@@ -50,8 +50,8 @@ $EXCLUDES = @(
     "--exclude", ".venv/**",
     "--exclude", "memory_env/**",
     "--exclude", "bpy_env/**",
-    "--exclude", "build/**",
-    "--exclude", "data/lancedb/**"           # backed up separately via GCS replication
+    "--exclude", "build/**"
+    # data/lancedb excluded from repo — store is on GCS (gs://qidistudio-lancedb/lancedb)
 )
 
 $RCLONE_FLAGS = @(

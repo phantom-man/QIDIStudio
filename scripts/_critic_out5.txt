@@ -1,0 +1,56 @@
+========================================================================
+  AI TEXTURE CRITIC REPORT
+========================================================================
+  Model    : C:\Users\User\source\repos\3DPrinting\VacuumNozzle\STL\vacuum_nozzle_lower.3mf
+  Stages   : 3
+  Topology : REVOLUTION  (projection=lscm)
+  Overall  : FAIL
+========================================================================
+
+  ERRORS (1)
+  --------------------------------------------------------------------
+  [1] [post_displace] Degenerate UV island detected: max_stretch = 72518.1 (threshold 50.0). At least one face collapsed to a point in UV space.
+      Root cause : A polygon collapsed to zero area in UV space. Common causes:
+  (a) Extremely thin/sliver triangles on the original mesh
+  (b) UV island scaled to effectively zero by the tile normalisation
+  (c) Degenerate geometry in the source STL (overlapping verts not welded)
+      Remediation: 1. Verify weld ran: check 'Welded: NΓåÆM verts' in the pipeline log.    If beforeΓëêafter, STL has no duplicates but may have actual slivers.
+2. Run 'Select ΓåÆ Select All by Trait ΓåÆ Non Manifold' in Blender to identify slivers.
+3. Increase weld distance from 0.001 to 0.01 mm in _apply_displacement_blender()    bmesh.ops.remove_doubles(dist=0.001) ΓåÆ dist=0.01
+
+  WARNINGS (1)
+  --------------------------------------------------------------------
+  [1] [post_displace] UV underscaled: mean_stretch = 7.194 > 3.0
+      Root cause : UV scale calibration overestimated mm/UV-unit ratio. The texture pattern will repeat too frequently ΓÇö very fine tile.
+      Remediation: Decrease --tile-size argument (e.g. from 15mm to 8mm) OR verify that the mesh is in correct-scale millimetres, not metres.
+
+  INFO (3)
+  --------------------------------------------------------------------
+  [I] [post_weld] Weld ratio: 7235/7235 verts (100.0% retained). Very few duplicate vertices removed.
+  [I] [post_classify] Topology: class=REVOLUTION  projection=lscm  full_surface=True  sharp=8.3%  z_ratio=5.952  K_std=0.0179  ╧ç=0
+  [I] [beauty] Skin beauty: GOOD (score=0.656, S=0.427, H_s=11.71).  Tile size hint: 5.0 mm.
+
+  --------------------------------------------------------------------
+  AESTHETIC QUALITY (Reber 2004 / Leder 2004 / Johnston 2022)
+  --------------------------------------------------------------------
+  Skin             : C:\QIDISrc\QIDIStudio\install_dir\resources\assets\armadillo_plates\armadillo_plates_01.png
+  Symmetry Score   : 0.4265  (target > 0.90)
+  Spectral Entropy : 11.7094 bits  (target > 4.0)
+  Beauty Score     : 0.6559  [GOOD]
+  Tile size hint   : 5.0 mm  (from skin dominant freq ΓÇö override auto_params if very different)
+
+========================================================================
+  BIBLIOGRAPHY (mathematical foundations of this analysis):
+  L├⌐vy 2002    ΓÇö LSCM: Least Squares Conformal Maps for UV
+  Sander 2001  ΓÇö L2 stretch metric for UV quality evaluation
+  Reuter 2006  ΓÇö Shape DNA: spectral geometry fingerprinting
+  Crane 2024   ΓÇö Discrete Differential Geometry (CMU 15-458)
+  Taubin 1995  ΓÇö Non-shrinking Laplacian smoothing (seam blend)
+  Chazal 2009  ΓÇö Euler characteristic & topological invariants
+  Reber 2004   ΓÇö Processing Fluency ΓåÆ aesthetic pleasure
+  Leder 2004   ΓÇö B(s,╧â) model of aesthetic appreciation
+  Johnston 2022 ΓÇö Symmetry as simplicity bias (Nature Comms 13:1858)
+========================================================================
+
+  Report written to: scripts\debug_runs\20260301_181625\vacuum_nozzle_lower\snapshots\ai_texture_critic_report.txt
+EXIT:1

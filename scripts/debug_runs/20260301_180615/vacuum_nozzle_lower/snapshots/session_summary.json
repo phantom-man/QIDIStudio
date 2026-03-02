@@ -1,0 +1,95 @@
+{
+  "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+  "stages": [
+    {
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+      "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+      "timestamp": "2026-03-01T18:06:16",
+      "stage": "post_weld",
+      "mesh_class": "UNKNOWN",
+      "features": {},
+      "projection": "unknown",
+      "full_surface": null,
+      "seam_angle_deg": null,
+      "geometry": {
+        "verts": 7235,
+        "polys": 14470,
+        "bbox_mm": [
+          42.0,
+          42.0,
+          250.0
+        ]
+      },
+      "heatmap_png": null,
+      "weld_before": 7235,
+      "weld_after": 7235
+    },
+    {
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+      "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+      "timestamp": "2026-03-01T18:06:17",
+      "stage": "post_classify",
+      "mesh_class": "REVOLUTION",
+      "features": {
+        "sharp_fraction": 0.082930200414651,
+        "z_ratio": 5.9523809523809526,
+        "curvature_std": 0.017902105909999667,
+        "euler_characteristic": 0
+      },
+      "projection": "lscm",
+      "full_surface": true,
+      "seam_angle_deg": 30.0,
+      "geometry": {
+        "verts": 7235,
+        "polys": 14470,
+        "bbox_mm": [
+          42.0,
+          42.0,
+          250.0
+        ]
+      },
+      "heatmap_png": null,
+      "resolved_projection": "cylinder"
+    },
+    {
+      "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+      "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+      "timestamp": "2026-03-01T18:06:18",
+      "stage": "post_displace",
+      "mesh_class": "REVOLUTION",
+      "features": {
+        "sharp_fraction": 0.082930200414651,
+        "z_ratio": 5.9523809523809526,
+        "curvature_std": 0.017902105909999667,
+        "euler_characteristic": 0
+      },
+      "projection": "cylinder",
+      "full_surface": true,
+      "seam_angle_deg": 30.0,
+      "geometry": {
+        "verts": 173640,
+        "polys": 173640,
+        "bbox_mm": [
+          43.27,
+          43.44,
+          250.72
+        ]
+      },
+      "heatmap_png": null,
+      "strength_mm": 1.25,
+      "tile_size_mm": 25.0,
+      "mode": "modifier",
+      "coords": "UV(cylinder)",
+      "uv_stretch": {
+        "n_faces": 154656,
+        "mean_stretch": 7.1942,
+        "max_stretch": 72518.0692,
+        "std_stretch": 546.2292,
+        "high_energy_frac": 0.4328,
+        "n_high_energy_faces": 66932,
+        "dirichlet_energy": 2.072,
+        "n_excluded_endcaps": 18984
+      }
+    }
+  ]
+}

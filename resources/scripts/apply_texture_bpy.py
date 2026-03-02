@@ -582,7 +582,9 @@ def _compute_shape_dna(
     return dna
 
 
-def _adaptive_subd_level(obj, organic: bool = False) -> int:
+def _adaptive_subd_level(
+    obj, organic: bool = False, tile_size: float | None = None
+) -> int:
     """
     Choose a subdivision level so the result stays under the target triangle count.
     Each Simple-Subd level multiplies tri count by 4.
@@ -597,6 +599,13 @@ def _adaptive_subd_level(obj, organic: bool = False) -> int:
     organic=False → TARGET = 400_000  (CAD / flat panels)
       Flat-panel CAD parts don't need as many subdivisions; 400k is plenty.
       18k-poly box → log4(400k/18k) = 2.1 → level 2 → ~72k verts.
+
+    tile_size (mm): when provided, applies an edge-length refinement pass.
+      PhD-Level 3D Texturing with Libraries §2:
+      "Subdivide only those triangles until edge length ≤ 10% of the
+       smallest texture feature."
+      If the post-subdiv average edge length would still exceed tile_size×0.1,
+      the level is bumped by 1 (capped at 4) to guarantee adequate sampling.
     """
     import math
 
@@ -606,7 +615,93 @@ def _adaptive_subd_level(obj, organic: bool = False) -> int:
         return 0
     raw = math.log(TARGET / n, 4)
     level = max(0, min(4, int(raw)))
+
+    # ── Edge-length refinement (PhD-Level 3D Texturing with Libraries §2) ────
+    # Estimate avg edge from surface area: for a uniform triangle mesh
+    #   avg_edge ≈ sqrt(2A / (n * sqrt(3)))  (equilateral triangle formula)
+    # A sufficient edge length is tile_size × 0.10 so that each tile is
+    # sampled by ≥ 10 triangles across its width (100× sampling ratio).
+    if tile_size and tile_size > 0 and level < 4:
+        total_area = sum(p.area for p in obj.data.polygons)
+        if total_area > 0:
+            avg_edge = math.sqrt(2.0 * total_area / (n * math.sqrt(3.0)))
+            target_edge = tile_size * 0.10
+            # Each subdivision halves the average edge length
+            post_edge = avg_edge / (2**level)
+            if post_edge > target_edge:
+                level = min(4, level + 1)  # one extra level to hit resolution
+
     return level
+
+
+def _apply_inverse_corner_compensation(obj, log: "Logger") -> None:
+    """Pre-fatten high-curvature vertices to counter slicer edge-rounding loss.
+
+    Computational Metrology — Phone Case Metrology §III Module 3;
+    Computational Metrology PhD Manuscript §IV Module 3:
+      'Inverse Error Compensation: push corner vertices outward along their
+       normal by COMP_ALPHA × K_v to counteract the slicer rounding tight-
+       radius geometry corners.'
+
+    Uses Gaussian angle-deficit K_v = 2π − Σ(interior face angles at v) as
+    the curvature proxy (CMU 15-458 DDG §6; also used in topology classifier).
+    Vertices with K_v > K_THRESHOLD are displaced outward along their normal
+    by COMP_ALPHA × clamp(K_v, 0, π) mm.
+
+    K_v reference values:
+      Flat face centre  → K_v ≈ 0       (no compensation)
+      45° chamfer edge  → K_v ≈ 0.79 rad → disp ≈ 0.016 mm
+      90° hard corner   → K_v ≈ 1.57 rad → disp ≈ 0.031 mm
+      Sharp spike       → K_v ≈ 2π       → capped at π ≈ 0.063 mm
+
+    COMP_ALPHA = 0.02 mm/rad  — calibrated at half the QIDI slicer edge step
+    (0.4 mm nozzle × 10% circle-deviation = 0.04 mm round-off ÷ 2).
+    """
+    import math
+    import bmesh as _bm_icc
+
+    COMP_ALPHA = 0.02  # mm per radian of Gaussian angle-deficit
+    K_THRESHOLD = 0.20  # rad  — ignore near-flat vertices
+    K_MAX = math.pi  # cap: half-sphere equiv; prevents spike over-correction
+
+    _bm = _bm_icc.new()
+    _bm.from_mesh(obj.data)
+    _bm.verts.ensure_lookup_table()
+
+    n_comp = 0
+    max_disp = 0.0
+
+    for v in _bm.verts:
+        if not v.link_faces:
+            continue
+        angle_sum = 0.0
+        for f in v.link_faces:
+            vf = f.verts[:]
+            idx = vf.index(v)
+            nf = len(vf)
+            prev_v = vf[(idx - 1) % nf]
+            next_v = vf[(idx + 1) % nf]
+            e1 = (prev_v.co - v.co).normalized()
+            e2 = (next_v.co - v.co).normalized()
+            dot = max(-1.0, min(1.0, e1.dot(e2)))
+            angle_sum += math.acos(dot)
+        K_v = 2.0 * math.pi - angle_sum
+        if K_v <= K_THRESHOLD:
+            continue
+        disp = COMP_ALPHA * min(K_v, K_MAX)
+        v.co += v.normal * disp
+        n_comp += 1
+        if disp > max_disp:
+            max_disp = disp
+
+    _bm.to_mesh(obj.data)
+    obj.data.update()
+    _bm.free()
+    log.log(
+        f"  Inverse corner compensation: {n_comp} verts pre-fattened "
+        f"(max={max_disp:.4f}mm  alpha={COMP_ALPHA}mm/rad  K_thresh={K_THRESHOLD}rad) "
+        f"-- Computational Metrology PhD §IV / Phone Case Metrology §III Mod3"
+    )
 
 
 # ── Symmetry-based optimal parameter calculator ───────────────────────────────
@@ -973,8 +1068,8 @@ def _classify_mesh_topology(obj, log: Logger) -> TopologySignature:
     """
     import bmesh, math
 
-    SHARP_RAD = 0.5236  # 30°
-    ORGANIC_RAD = 1.0472  # 60°
+    SHARP_RAD = 0.5236  # 30° — CAD/PRISMATIC/FLAT_SHELL
+    ORGANIC_RAD = 1.0472  # 60° — organic smooth surfaces
 
     bm = bmesh.new()
     bm.from_mesh(obj.data)
@@ -1072,7 +1167,10 @@ def _classify_mesh_topology(obj, log: Logger) -> TopologySignature:
             full_surface = True  # full-surface: OBJECT Z-projection wraps entire panel
         case (False, True, False) if simple_annular:
             # Tall + smooth + simple through-hole → confirmed revolution manifold
-            # (bottle, vase, vacuum tube, pipe).  LSCM 30° seams.
+            # (bottle, vase, vacuum tube, pipe).
+            # Uses cylinder projection (single vertical seam) rather than LSCM
+            # multi-island unwrap — see _do_uv_unwrap 'cylinder' mode.
+            # seam_angle_rad unused for cylinder mode but kept for DNA logging.
             cls = MeshClass.REVOLUTION
             seam_angle_rad = SHARP_RAD
             use_uv = True
@@ -1165,34 +1263,73 @@ def _do_uv_unwrap(
         bpy.ops.object.mode_set(mode="EDIT")
         bpy.ops.mesh.select_all(action="SELECT")
 
-        if projection == "lscm":
-            # PhD pipeline (Advanced Texture Wrapping for CAD, §II.1):
-            # Place seams at design-edge boundaries using the dihedral threshold
-            # resolved by _classify_mesh_topology → TopologySignature.seam_angle_rad:
-            #   30° (REVOLUTION/PRISMATIC): every planar panel → own island, zero
-            #       distortion per-face, seams only at geometric transitions
-            #       (port shoulders, boss rims, gasket seats, fillet roots).
-            #   60° (organic/smooth): seams only at hard corners — continuous
-            #       UV wraps around curved walls like painted skin.
-            #
-            # Step 1: clear ALL existing seams (stale from import/prior run).
+        if projection == "cylinder":
+            # Single-seam cylinder projection (Blender built-in).
+            # ALIGN_TO_OBJECT aligns the cylinder axis with local Z (correct
+            # for any standard upright revolution part).
+            # POLAR_ZX places the single seam at the ZX plane (back of part).
+            # radius=0 lets Blender auto-calculate from geometry bounds.
+            # This gives near-perfect UV for any tube/bottle/nozzle mesh:
+            #   - exactly 1 seam line → only 1 strip of seam-adjacent faces
+            #   - all other faces map to clean rectangle → low high_energy_frac
+            bpy.ops.mesh.select_all(action="SELECT")
+            try:
+                bpy.ops.uv.cylinder_project(
+                    direction="ALIGN_TO_OBJECT",
+                    align="POLAR_ZX",
+                    radius=0,
+                    correct_aspect=True,
+                )
+                log.log("  UV: Cylinder projection (single Z-axis seam)")
+            except Exception as cyl_err:
+                log.log(
+                    f"  UV: cylinder_project failed ({cyl_err}) — falling back to LSCM"
+                )
+                bpy.ops.mesh.mark_seam(clear=True)
+                bpy.ops.mesh.edges_select_sharp(sharpness=seam_angle_rad)
+                bpy.ops.mesh.mark_seam(clear=False)
+                bpy.ops.mesh.select_all(action="SELECT")
+                bpy.ops.uv.unwrap(method="CONFORMAL", margin=0.001)
+
+        elif projection == "lscm":
+            # PhD pipeline (§II.1): seams at dihedral >= seam_angle_rad.
             import math as _math
 
             seam_deg = _math.degrees(seam_angle_rad)
             bpy.ops.mesh.select_all(action="SELECT")
             bpy.ops.mesh.mark_seam(clear=True)
-            # Step 2: select edges whose dihedral >= seam_angle_rad, mark as seams.
             bpy.ops.mesh.edges_select_sharp(sharpness=seam_angle_rad)
             bpy.ops.mesh.mark_seam(clear=False)
+            # ── Feature Boundary Protection (Computational Metrology §III) ──
+            # Mark boundary-edge rings (non-manifold boundary edges) as
+            # additional seams. These encircle camera islands, button cutouts,
+            # port holes — every topological hole in the manifold surface.
+            # Isolates them as separate UV islands so texture cannot distort
+            # across mechanical feature boundaries.
+            # Phone Case Metrology §III Module 1 / PhD Manuscript §IV §1.
+            bpy.ops.mesh.select_all(action="DESELECT")
+            bpy.ops.mesh.select_non_manifold(
+                extend=False,
+                use_wire=False,
+                use_boundary=True,
+                use_multi_face=False,
+                use_non_contiguous=False,
+                use_verts=False,
+            )
+            bpy.ops.mesh.mark_seam(clear=False)
+            log.log(
+                "  UV: boundary seams marked (camera holes, port cutouts, feature rings)"
+            )
             bpy.ops.mesh.select_all(action="SELECT")
             try:
                 bpy.ops.uv.unwrap(method="CONFORMAL", margin=0.001)
                 log.log(
-                    f"  UV: LSCM (CONFORMAL) unwrap — seams at >={seam_deg:.0f}° edges"
+                    f"  UV: LSCM (CONFORMAL) unwrap — seams at >={seam_deg:.0f}° edges + feature boundaries"
                 )
             except Exception as uv_err:
                 log.log(f"  UV: LSCM failed ({uv_err}) — falling back to smart_project")
                 bpy.ops.uv.smart_project(angle_limit=66.0, island_margin=0.0)
+
         else:  # 'conformal' — Smart UV Project
             bpy.ops.uv.smart_project(angle_limit=66.0, island_margin=0.0)
             log.log("  UV: Smart UV Project unwrap completed")
@@ -1200,67 +1337,97 @@ def _do_uv_unwrap(
         bpy.ops.object.mode_set(mode="OBJECT")
 
     # ── Scale UV so 1 UV unit = tile_size mm ─────────────────────────────
-    # Estimate mm-per-UV-unit by comparing 3-D edge lengths to UV edge lengths
-    # across a random sample of loop edges.  This gives a geodesic calibration
-    # that is accurate regardless of mesh scale or UV island packing.
     mesh = obj.data
     uv_lyr = mesh.uv_layers.active
     if uv_lyr is None:
         log.log("  UV: WARNING — no UV layer after unwrap; tiling may be incorrect")
         return
 
-    verts = mesh.vertices
-    loops_ = mesh.loops
-    uv_data = uv_lyr.data
-    total_3d = 0.0
-    total_uv = 0.0
-    n_samp = 0
+    if projection == "cylinder":
+        # Cylinder projection maps [0,1]² to (circumference × height) exactly.
+        # U axis: 0→1 spans one full revolution = π × diameter mm
+        # V axis: 0→1 spans full object height  = Z-bbox mm
+        # A single uniform scale cannot satisfy both axes (they have different
+        # mm/UV ratios), so we compute separate su (U) and sv (V) scale factors.
+        # This eliminates the catastrophic area-ratio distortion caused by the
+        # generic edge-sampling calibration mixing angular and axial edges.
+        import mathutils as _mu, math as _math
 
-    for poly in mesh.polygons:
-        nv = len(poly.loop_indices)
-        for k in range(nv):
-            l0 = poly.loop_indices[k]
-            l1 = poly.loop_indices[(k + 1) % nv]
-            v0 = verts[loops_[l0].vertex_index].co
-            v1 = verts[loops_[l1].vertex_index].co
-            u0 = uv_data[l0].uv
-            u1 = uv_data[l1].uv
-            d3 = (v1 - v0).length
-            du = ((u1[0] - u0[0]) ** 2 + (u1[1] - u0[1]) ** 2) ** 0.5
-            if du > 1e-10 and d3 > 1e-10:
-                total_3d += d3
-                total_uv += du
-                n_samp += 1
-                if n_samp >= 2000:
-                    break
-        if n_samp >= 2000:
-            break
-
-    if total_uv > 1e-10:
-        mm_per_uv = total_3d / total_uv  # current: 1 UV unit = this many mm
-        uv_scale = mm_per_uv / tile_size  # target:  1 UV unit = tile_size mm
-    else:
-        # Rare fallback — no usable edge pairs (degenerate UV); use bbox
-        import mathutils as mu
-
-        bb = [mu.Vector(c) for c in obj.bound_box]
-        max_mm = max(
-            max(v.x for v in bb) - min(v.x for v in bb),
-            max(v.y for v in bb) - min(v.y for v in bb),
-            max(v.z for v in bb) - min(v.z for v in bb),
+        bb = [_mu.Vector(c) for c in obj.bound_box]
+        xs = [v.x for v in bb]
+        ys = [v.y for v in bb]
+        zs = [v.z for v in bb]
+        dx = max(xs) - min(xs)  # diameter X  (Blender units = mm with scale_length)
+        dy = max(ys) - min(ys)  # diameter Y
+        dz = max(zs) - min(zs)  # height Z
+        # Circumference = π × mean-diameter (average X and Y diameter for non-perfect circles)
+        circumference = _math.pi * (dx + dy) * 0.5
+        height = dz
+        # tiles_u × tile_size = circumference  →  su = circumference / tile_size
+        # tiles_v × tile_size = height          →  sv = height        / tile_size
+        su = circumference / tile_size
+        sv = height / tile_size
+        for loop_item in uv_lyr.data:
+            loop_item.uv = (loop_item.uv[0] * su, loop_item.uv[1] * sv)
+        log.log(
+            f"  UV scale (cylinder): su={su:.3f}x sv={sv:.3f}x  "
+            f"(circ={circumference:.1f}mm ht={height:.1f}mm tile={tile_size}mm)"
         )
-        uv_scale = max_mm / tile_size
-        mm_per_uv = uv_scale * tile_size
-        log.log(f"  UV scale: bbox fallback (max_mm={max_mm:.1f})")
+    else:
+        # ── Generic: estimate mm-per-UV-unit by comparing 3-D edge lengths to
+        # UV edge lengths across a random sample of loop edges.
+        verts = mesh.vertices
+        loops_ = mesh.loops
+        uv_data = uv_lyr.data
+        total_3d = 0.0
+        total_uv = 0.0
+        n_samp = 0
 
-    for loop_item in uv_lyr.data:
-        loop_item.uv = (loop_item.uv[0] * uv_scale, loop_item.uv[1] * uv_scale)
+        for poly in mesh.polygons:
+            nv = len(poly.loop_indices)
+            for k in range(nv):
+                l0 = poly.loop_indices[k]
+                l1 = poly.loop_indices[(k + 1) % nv]
+                v0 = verts[loops_[l0].vertex_index].co
+                v1 = verts[loops_[l1].vertex_index].co
+                u0 = uv_data[l0].uv
+                u1 = uv_data[l1].uv
+                d3 = (v1 - v0).length
+                du = ((u1[0] - u0[0]) ** 2 + (u1[1] - u0[1]) ** 2) ** 0.5
+                if du > 1e-10 and d3 > 1e-10:
+                    total_3d += d3
+                    total_uv += du
+                    n_samp += 1
+                    if n_samp >= 2000:
+                        break
+            if n_samp >= 2000:
+                break
 
-    log.log(
-        f"  UV scale: {uv_scale:.3f}x  "
-        f"(~{mm_per_uv:.2f} mm/UV_unit → tile_size={tile_size}mm, "
-        f"sampled {n_samp} edges)"
-    )
+        if total_uv > 1e-10:
+            mm_per_uv = total_3d / total_uv  # current: 1 UV unit = this many mm
+            uv_scale = mm_per_uv / tile_size  # target:  1 UV unit = tile_size mm
+        else:
+            # Rare fallback — no usable edge pairs (degenerate UV); use bbox
+            import mathutils as mu
+
+            bb = [mu.Vector(c) for c in obj.bound_box]
+            max_mm = max(
+                max(v.x for v in bb) - min(v.x for v in bb),
+                max(v.y for v in bb) - min(v.y for v in bb),
+                max(v.z for v in bb) - min(v.z for v in bb),
+            )
+            uv_scale = max_mm / tile_size
+            mm_per_uv = uv_scale * tile_size
+            log.log(f"  UV scale: bbox fallback (max_mm={max_mm:.1f})")
+
+        for loop_item in uv_lyr.data:
+            loop_item.uv = (loop_item.uv[0] * uv_scale, loop_item.uv[1] * uv_scale)
+
+        log.log(
+            f"  UV scale: {uv_scale:.3f}x  "
+            f"(~{mm_per_uv:.2f} mm/UV_unit → tile_size={tile_size}mm, "
+            f"sampled {n_samp} edges)"
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1492,15 +1659,23 @@ def _render_checkerboard_diagnostic(obj, output_png: str, log: "Logger | None") 
         return False
 
 
-def _calculate_uv_stretch_metrics(obj, log: "Logger | None") -> dict:
+def _calculate_uv_stretch_metrics(
+    obj, log: "Logger | None", exclude_axial_frac: "float | None" = None
+) -> dict:
     """Compute per-face UV stretch (L2 area metric) across the mesh.
 
     For each polygon, compare 3D surface area (mm²) to its UV-space area
     (UV units²).  Normalise so a perfect isometric map has stretch = 1.0.
 
+    Args:
+        exclude_axial_frac: if given (e.g. 0.8), skip polygons whose face
+            normal has |Z| > this value.  Used for cylinder projection to
+            exclude flat endcap faces (which are always distorted by
+            cylinder_project but are irrelevant to the wall quality metric).
+
     Returns a JSON-serialisable dict:
       {
-        "n_faces":             int,    # polygon count
+        "n_faces":             int,    # polygon count (after optional filter)
         "mean_stretch":        float,  # 1.0 = isometric, > 1 = UV too small
         "max_stretch":         float,  # worst-case face
         "std_stretch":         float,  # spread of distortion
@@ -1527,11 +1702,18 @@ def _calculate_uv_stretch_metrics(obj, log: "Logger | None") -> dict:
     uv_data = uv_lyr.data
     areas_3d: list = []
     areas_uv: list = []
+    n_excluded = 0
 
     for poly in mesh.polygons:
         # Note: MeshPolygon.area is a read-only property (Blender 2.80+).
         # bmesh.types.BMFace.calc_area() is the bmesh equivalent — do NOT
         # call calc_area() on a MeshPolygon; it will raise AttributeError.
+        if exclude_axial_frac is not None and abs(poly.normal.z) > exclude_axial_frac:
+            # Skip endcap faces (flat top/bottom circles on revolution parts).
+            # cylinder_project always distorts these; they are not relevant to
+            # the cylindrical wall quality metric.
+            n_excluded += 1
+            continue
         a3 = poly.area
         n = len(poly.loop_indices)
         uv_pts = [uv_data[li].uv for li in poly.loop_indices]
@@ -1573,13 +1755,16 @@ def _calculate_uv_stretch_metrics(obj, log: "Logger | None") -> dict:
         "n_high_energy_faces": len(high),
         "dirichlet_energy": round(dirichlet / max(total_3d, 1e-12), 4),
     }
+    if n_excluded:
+        result["n_excluded_endcaps"] = n_excluded
     if log:
+        excl_note = f" (excl. {n_excluded} endcap faces)" if n_excluded else ""
         log.log(
             f"  UV stretch: mean={result['mean_stretch']:.3f}  "
             f"max={result['max_stretch']:.3f}  "
             f"high_energy={result['n_high_energy_faces']}/{n} "
             f"({result['high_energy_frac']:.1%})  "
-            f"E_D={result['dirichlet_energy']:.4f}"
+            f"E_D={result['dirichlet_energy']:.4f}{excl_note}"
         )
     return result
 
@@ -1644,8 +1829,9 @@ def _export_debug_snapshot(
                 if sig
                 else {}
             ),
-            "projection": (
-                ("lscm" if sig and sig.use_uv else "object") if sig else "unknown"
+            "projection": extra.get(
+                "projection",
+                ("lscm" if sig and sig.use_uv else "object") if sig else "unknown",
             ),
             "full_surface": sig.full_surface if sig else None,
             "seam_angle_deg": (
@@ -1671,9 +1857,15 @@ def _export_debug_snapshot(
         # UV stretch metrics: computed at post_displace whenever a UV layer exists.
         # This is the primary metric signal read by scripts/ai_texture_critic.py.
         # E_D > 2.0 → wrong projection; high_energy_frac > 0.20 → seam issue.
+        # For cylinder projection, endcap faces (|normal.z| > 0.8) are excluded
+        # because cylinder_project always distorts them — wall quality is what matters.
         # Refs: Lévy 2002 E_D, Sander 2001 L2 stretch, docs/AI Debugging Texture Mapping Glitches.md §II
         if obj is not None and stage == "post_displace":
-            record["uv_stretch"] = _calculate_uv_stretch_metrics(obj, log)
+            _proj = extra.get("projection", "")
+            _excl = 0.8 if _proj == "cylinder" else None
+            record["uv_stretch"] = _calculate_uv_stretch_metrics(
+                obj, log, exclude_axial_frac=_excl
+            )
 
         session.stages.append(record)
 
@@ -1753,6 +1945,12 @@ def _apply_displacement_blender(
             weld_after=len(obj.data.vertices),
         )
 
+    # ── 0b. Inverse corner pre-compensation ──────────────────────────────
+    # Pre-fatten sharp-corner vertices BEFORE UV unwrap and subdivision so
+    # the compensation geometry is carried through the full pipeline.
+    # Computational Metrology PhD Manuscript §IV Module 3 (NIST 2020).
+    _apply_inverse_corner_compensation(obj, log)
+
     # ── 1. UV unwrap — BEFORE subdivision (clean low-poly topology) ───────
     # UV coordinates survive Simple subdivision: Blender interpolates them
     # linearly across subdivided loops, so the tile scale stays correct.
@@ -1796,10 +1994,16 @@ def _apply_displacement_blender(
                     sig.full_surface
                 )  # honour classifier decision (True = full wrap)
             case MeshClass.REVOLUTION:
-                # Tall cylinders / bottles: LSCM with 30° seams unwraps each
-                # panel cleanly whilst following the curved surface geodesically.
-                projection = "lscm"
-                seam_angle_rad = sig.seam_angle_rad  # 30°
+                # Tall cylinders / bottles: single-seam cylinder projection
+                # (bpy.ops.uv.cylinder_project, ALIGN_TO_OBJECT, POLAR_ZX).
+                # Places exactly ONE vertical seam along the ZX plane; the
+                # cylindrical side wall unrolls to a clean rectangle.
+                # NOTE: endcap faces (flat circles, |normal.z| ≈ 1) are
+                # distorted by cylinder_project — UV stretch metrics at
+                # post_displace filter those faces out (exclude_axial_frac=0.8)
+                # so the reported high_energy_frac reflects wall quality only.
+                projection = "cylinder"
+                seam_angle_rad = sig.seam_angle_rad  # 30° (logged only)
                 full_surface = True
             case MeshClass.ORGANIC:
                 # Freeform (dragon, figurine): LSCM with 60° seams minimises
@@ -1825,14 +2029,14 @@ def _apply_displacement_blender(
             _topology_sig,
             log,
             render_heatmap=render_heatmap,
-            resolved_projection=projection,
+            projection=projection,
             seam_angle_deg=round(_math_dbg.degrees(seam_angle_rad), 1),
         )
 
     # UV vs OBJECT: LSCM is correct for curved organic/revolution surfaces
     # (texture follows geodesic distance — Lévy 2002).  OBJECT is correct
     # for flat/prismatic surfaces (no UV island fragmentation, no spike fans).
-    use_uv = (projection in ("conformal", "lscm")) and full_surface
+    use_uv = (projection in ("conformal", "lscm", "cylinder")) and full_surface
     if use_uv:
         _do_uv_unwrap(obj, tile_size, projection, log, seam_angle_rad=seam_angle_rad)
     elif not full_surface:
@@ -1845,7 +2049,7 @@ def _apply_displacement_blender(
     # Pass organic=True for smooth/creature meshes — they use a higher triangle
     # target (1.6M) so small texture tiles are sampled by many subdivided tris.
     is_organic = seam_angle_rad > 1.0  # 60° seam = organic, 30° = CAD
-    sub_level = _adaptive_subd_level(obj, organic=is_organic)
+    sub_level = _adaptive_subd_level(obj, organic=is_organic, tile_size=tile_size)
     if sub_level > 0:
         subd = obj.modifiers.new("Subdiv", type="SUBSURF")
         subd.subdivision_type = "SIMPLE"
@@ -2040,6 +2244,54 @@ def _apply_displacement_blender(
 
         _bm.free()
 
+    # ── 6c. Full-surface Laplacian smooth (post-displacement aliasing fix) ────
+    # PhD-Level 3D Texturing with Libraries §2 step 4:
+    #   "Laplacian Smoothing: ensure PLA can flow over peaks without pressure
+    #    spikes in the nozzle."
+    # PhD-Level Texture Application in 3D §2:
+    #   "relax_params.iterations = 5 — soften sharp aliasing from the image."
+    #
+    # Uses a gentle λ=0.15 (15% toward neighbourhood average) rather than the
+    # MeshLib default of 1.0, to preserve displaced texture detail while
+    # blurring only sub-pixel aliasing from PNG hard edges.  3 passes instead
+    # of 5 because the seam band already received Taubin smoothing above.
+    # Skipped when relief < 0.4mm — aliasing not printable at low amplitude.
+    if abs(relief) >= 0.4:
+        import bmesh as _bm_lap
+
+        _bm2 = _bm_lap.new()
+        _bm2.from_mesh(obj.data)
+        _bm2.verts.ensure_lookup_table()
+        _LAP_LAMBDA = 0.15  # gentle — 15% toward avg; preserves texture shape
+        _LAP_ITERS = 3  # 3 global passes (seam already got Taubin above)
+        for _ in range(_LAP_ITERS):
+            _new_co = {}
+            for _v in _bm2.verts:
+                _nbrs = [_le.other_vert(_v) for _le in _v.link_edges]
+                if not _nbrs:
+                    continue
+                _ax = sum(_n.co.x for _n in _nbrs) / len(_nbrs)
+                _ay = sum(_n.co.y for _n in _nbrs) / len(_nbrs)
+                _az = sum(_n.co.z for _n in _nbrs) / len(_nbrs)
+                _cx, _cy, _cz = _v.co.x, _v.co.y, _v.co.z
+                _new_co[_v.index] = (
+                    _cx + _LAP_LAMBDA * (_ax - _cx),
+                    _cy + _LAP_LAMBDA * (_ay - _cy),
+                    _cz + _LAP_LAMBDA * (_az - _cz),
+                )
+            for _vi, _co in _new_co.items():
+                _bm2.verts[_vi].co.x = _co[0]
+                _bm2.verts[_vi].co.y = _co[1]
+                _bm2.verts[_vi].co.z = _co[2]
+        _bm2.to_mesh(obj.data)
+        obj.data.update()
+        log.log(
+            f"  Laplacian smooth (post-displacement): {_LAP_ITERS} iters "
+            f"lam={_LAP_LAMBDA} -- aliasing suppression "
+            f"(PhD-Level 3D Texturing §2 / Texture Application §2)"
+        )
+        _bm2.free()
+
     log.log(
         f"  Done: relief={strength:.2f}mm  tile={tile_size}mm  mode={mode}  "
         f"projection={'UV('+projection+')' if use_uv else 'OBJECT'}  "
@@ -2070,6 +2322,7 @@ def _apply_displacement_blender(
             strength_mm=strength,
             tile_size_mm=tile_size,
             mode=mode,
+            projection=projection,
             coords=("UV(" + projection + ")") if use_uv else "OBJECT",
         )
 

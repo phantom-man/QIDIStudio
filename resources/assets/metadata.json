@@ -1,0 +1,195 @@
+{
+    "_comment": "Per-category default tile_mm and relief_mm for QIDIStudio skin gallery. tile_mm = size of one texture repeat in mm on the part surface. relief_mm = displacement amplitude in mm.",
+    "categories": {
+        "armadillo_plates": {
+            "tile_mm": 15.0,
+            "relief": 1.0,
+            "label": "Armadillo Plates",
+            "group": "Organic"
+        },
+        "bark_texture": {
+            "tile_mm": 15.0,
+            "relief": 1.5,
+            "label": "Bark Texture",
+            "group": "Natural"
+        },
+        "brick_pattern": {
+            "tile_mm": 30.0,
+            "relief": 1.5,
+            "label": "Brick Pattern",
+            "group": "Geometric"
+        },
+        "carbon_fiber": {
+            "tile_mm": 4.0,
+            "relief": 0.3,
+            "label": "Carbon Fiber",
+            "group": "Industrial"
+        },
+        "celtic_knotwork": {
+            "tile_mm": 20.0,
+            "relief": 0.8,
+            "label": "Celtic Knotwork",
+            "group": "Geometric"
+        },
+        "chainmail": {
+            "tile_mm": 8.0,
+            "relief": 0.5,
+            "label": "Chainmail",
+            "group": "Industrial"
+        },
+        "chain_link": {
+            "tile_mm": 12.0,
+            "relief": 0.6,
+            "label": "Chain Link",
+            "group": "Industrial"
+        },
+        "circuit_board": {
+            "tile_mm": 12.0,
+            "relief": 0.4,
+            "label": "Circuit Board",
+            "group": "Geometric"
+        },
+        "cobblestone": {
+            "tile_mm": 25.0,
+            "relief": 1.8,
+            "label": "Cobblestone",
+            "group": "Natural"
+        },
+        "coral_texture": {
+            "tile_mm": 12.0,
+            "relief": 1.2,
+            "label": "Coral Texture",
+            "group": "Natural"
+        },
+        "crocodile_skin": {
+            "tile_mm": 14.0,
+            "relief": 1.0,
+            "label": "Crocodile Skin",
+            "group": "Organic"
+        },
+        "diamond_knurl": {
+            "tile_mm": 5.0,
+            "relief": 0.4,
+            "label": "Diamond Knurl",
+            "group": "Industrial"
+        },
+        "dragon_scales": {
+            "tile_mm": 16.0,
+            "relief": 1.2,
+            "label": "Dragon Scales",
+            "group": "Organic"
+        },
+        "feather_pattern": {
+            "tile_mm": 12.0,
+            "relief": 0.6,
+            "label": "Feather Pattern",
+            "group": "Organic"
+        },
+        "fish_scales": {
+            "tile_mm": 10.0,
+            "relief": 0.7,
+            "label": "Fish Scales",
+            "group": "Organic"
+        },
+        "hammered_metal": {
+            "tile_mm": 6.0,
+            "relief": 0.8,
+            "label": "Hammered Metal",
+            "group": "Industrial"
+        },
+        "herringbone": {
+            "tile_mm": 15.0,
+            "relief": 0.8,
+            "label": "Herringbone",
+            "group": "Geometric"
+        },
+        "honeycomb": {
+            "tile_mm": 10.0,
+            "relief": 0.6,
+            "label": "Honeycomb",
+            "group": "Geometric"
+        },
+        "lava_rock": {
+            "tile_mm": 14.0,
+            "relief": 1.5,
+            "label": "Lava Rock",
+            "group": "Natural"
+        },
+        "leather_pebble": {
+            "tile_mm": 8.0,
+            "relief": 0.5,
+            "label": "Leather Pebble",
+            "group": "Organic"
+        },
+        "moroccan_tiles": {
+            "tile_mm": 20.0,
+            "relief": 1.0,
+            "label": "Moroccan Tiles",
+            "group": "Geometric"
+        },
+        "pine_cone_scales": {
+            "tile_mm": 18.0,
+            "relief": 1.2,
+            "label": "Pine Cone Scales",
+            "group": "Natural"
+        },
+        "reptile_scales": {
+            "tile_mm": 12.0,
+            "relief": 0.8,
+            "label": "Reptile Scales",
+            "group": "Organic"
+        },
+        "riveted_metal": {
+            "tile_mm": 10.0,
+            "relief": 0.8,
+            "label": "Riveted Metal",
+            "group": "Industrial"
+        },
+        "shark_skin": {
+            "tile_mm": 6.0,
+            "relief": 0.4,
+            "label": "Shark Skin",
+            "group": "Organic"
+        },
+        "voronoi_cells": {
+            "tile_mm": 12.0,
+            "relief": 0.7,
+            "label": "Voronoi Cells",
+            "group": "Geometric"
+        },
+        "wood_grain": {
+            "tile_mm": 20.0,
+            "relief": 0.5,
+            "label": "Wood Grain",
+            "group": "Natural"
+        },
+        "woven_basket": {
+            "tile_mm": 10.0,
+            "relief": 0.5,
+            "label": "Woven Basket",
+            "group": "Geometric"
+        }
+    },
+    "variant_labels": [
+        "Coarse · Flat",
+        "Coarse · Bevel",
+        "Coarse · Dome",
+        "Coarse · Sharp",
+        "Coarse · Micro",
+        "Medium · Flat",
+        "Medium · Bevel",
+        "Medium · Dome",
+        "Medium · Sharp",
+        "Medium · Micro",
+        "Fine · Flat",
+        "Fine · Bevel",
+        "Fine · Dome",
+        "Fine · Sharp",
+        "Fine · Micro",
+        "Ultra · Flat",
+        "Ultra · Bevel",
+        "Ultra · Dome",
+        "Ultra · Sharp",
+        "Ultra · Micro"
+    ]
+}

@@ -1,0 +1,26 @@
+{
+  "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower.3mf",
+  "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+  "timestamp": "2026-03-01T18:43:47",
+  "stage": "post_classify",
+  "mesh_class": "REVOLUTION",
+  "features": {
+    "sharp_fraction": 0.082930200414651,
+    "z_ratio": 5.9523809523809526,
+    "curvature_std": 0.017902105909999667,
+    "euler_characteristic": 0
+  },
+  "projection": "cylinder",
+  "full_surface": true,
+  "seam_angle_deg": 30.0,
+  "geometry": {
+    "verts": 7235,
+    "polys": 14470,
+    "bbox_mm": [
+      42.0,
+      42.0,
+      250.0
+    ]
+  },
+  "heatmap_png": null
+}

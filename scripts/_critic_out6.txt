@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "C:\Users\User\source\repos\QIDIStudio\scripts\ai_texture_critic.py", line 914, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\User\source\repos\QIDIStudio\scripts\ai_texture_critic.py", line 902, in main
+    report = analyse_session(str(json_path))
+  File "C:\Users\User\source\repos\QIDIStudio\scripts\ai_texture_critic.py", line 776, in analyse_session
+    _analyse_stage(stage_data, report)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\source\repos\QIDIStudio\scripts\ai_texture_critic.py", line 607, in _analyse_stage
+    _analyse_uv_stretch(stage_data, report)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\source\repos\QIDIStudio\scripts\ai_texture_critic.py", line 267, in _analyse_uv_stretch
+    if max_s > _degen_limit:
+               ^^^^^^^^^^^^
+NameError: name '_degen_limit' is not defined. Did you mean: '_ed_limit'?
+EXIT:1

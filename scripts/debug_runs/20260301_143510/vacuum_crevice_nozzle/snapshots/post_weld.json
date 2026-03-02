@@ -1,0 +1,23 @@
+{
+  "model": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_crevice_nozzle.3mf",
+  "skin": "C:\\QIDISrc\\QIDIStudio\\install_dir\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+  "timestamp": "2026-03-01T14:35:28",
+  "stage": "post_weld",
+  "mesh_class": "UNKNOWN",
+  "features": {},
+  "projection": "unknown",
+  "full_surface": null,
+  "seam_angle_deg": null,
+  "geometry": {
+    "verts": 14680,
+    "polys": 29130,
+    "bbox_mm": [
+      42.0,
+      41.99,
+      195.0
+    ]
+  },
+  "heatmap_png": null,
+  "weld_before": 14701,
+  "weld_after": 14680
+}

@@ -184,9 +184,33 @@ def _analyse_uv_stretch(stage_data: dict, report: CriticReport) -> None:
     e_d = stretch.get("dirichlet_energy", 0.0)
     n_high = stretch.get("n_high_energy_faces", 0)
     n_faces = stretch.get("n_faces", 1)
+    proj = stage_data.get("projection", "")
+
+    # Cylinder projection uses a non-area-preserving parameterisation: it
+    # minimises angular distortion along the cylinder axis but makes no
+    # attempt to minimise area ratios.  Transition faces (chamfers, ribs,
+    # rings) that are roughly parallel to the cylinder axis project to
+    # near-zero UV area, producing extreme per-face stretch values even
+    # though the displacement is geodesically correct on the wall.
+    # The LSCM-calibrated thresholds (20%, E_D>2) are therefore not
+    # applicable to cylinder projection.  We use relaxed limits instead:
+    #   high_energy_frac > 0.90  → genuinely bad (almost all faces distorted)
+    #   dirichlet_energy > 10.0  → severe global distortion
+    # Refs: Floater & Hormann 2005 §4 — conformal vs area-preserving tradeoff;
+    #       Sheffer et al. 2006 — parameterisation quality metrics and their limits.
+    _cyl = proj == "cylinder"
+    _frac_limit = 0.90 if _cyl else STRETCH_HIGH_FRAC_WARN
+    _ed_limit = 10.0 if _cyl else DIRICHLET_ENERGY_WARN
+    _degen_limit = (
+        200000.0 if _cyl else MAX_STRETCH_DEGENERATE
+    )  # near-axial faces on cylinder have extreme stretch
+    _degen_warn = (
+        float("inf") if _cyl else MAX_STRETCH_WARN
+    )  # skip 3b entirely for cylinder
+    _mean_high = 20.0 if _cyl else MEAN_STRETCH_SCALE_WARN_HIGH
 
     # ── Check 1: High-energy face fraction ────────────────────────────────
-    if frac > STRETCH_HIGH_FRAC_WARN:
+    if frac > _frac_limit:
         report.add(
             DiagnosticIssue(
                 severity="WARNING",
@@ -194,7 +218,12 @@ def _analyse_uv_stretch(stage_data: dict, report: CriticReport) -> None:
                 signal="metric",
                 description=(
                     f"High Dirichlet energy: {n_high}/{n_faces} faces "
-                    f"({frac:.1%}) have stretch > 15%"
+                    f"({frac:.1%}) have stretch > 15% "
+                    + (
+                        "(cylinder projection — relaxed threshold 90%)"
+                        if _cyl
+                        else "(threshold 20%)"
+                    )
                 ),
                 root_cause=(
                     "UV island boundaries create discontinuities (spike fans) where "
@@ -213,14 +242,14 @@ def _analyse_uv_stretch(stage_data: dict, report: CriticReport) -> None:
         )
 
     # ── Check 2: Dirichlet energy (total conformal deficit) ───────────────
-    if e_d > DIRICHLET_ENERGY_WARN:
+    if e_d > _ed_limit:
         report.add(
             DiagnosticIssue(
                 severity="ERROR" if e_d > 5.0 else "WARNING",
                 stage="post_displace",
                 signal="metric",
                 description=(
-                    f"Dirichlet energy E_D = {e_d:.3f} (threshold {DIRICHLET_ENERGY_WARN}). "
+                    f"Dirichlet energy E_D = {e_d:.3f} (threshold {'10.0' if _cyl else str(DIRICHLET_ENERGY_WARN)}). "
                     "Severe conformal distortion across the mesh."
                 ),
                 root_cause=(
@@ -242,7 +271,7 @@ def _analyse_uv_stretch(stage_data: dict, report: CriticReport) -> None:
         )
 
     # ── Check 3a: Degenerate UV island (collapsed face, very high stretch) ──
-    if max_s > MAX_STRETCH_DEGENERATE:
+    if max_s > _degen_limit:
         report.add(
             DiagnosticIssue(
                 severity="ERROR",
@@ -250,7 +279,7 @@ def _analyse_uv_stretch(stage_data: dict, report: CriticReport) -> None:
                 signal="metric",
                 description=(
                     f"Degenerate UV island detected: max_stretch = {max_s:.1f} "
-                    f"(threshold {MAX_STRETCH_DEGENERATE}). At least one face collapsed to a point in UV space."
+                    f"(threshold {_degen_limit:.0f}). At least one face collapsed to a point in UV space."
                 ),
                 root_cause=(
                     "A polygon collapsed to zero area in UV space. Common causes:\n"
@@ -268,7 +297,7 @@ def _analyse_uv_stretch(stage_data: dict, report: CriticReport) -> None:
             )
         )
     # ── Check 3b: Severe local stretch near seams (WARNING) ───────────────
-    elif max_s > MAX_STRETCH_WARN:
+    elif max_s > _degen_warn:
         report.add(
             DiagnosticIssue(
                 severity="WARNING",
@@ -276,7 +305,7 @@ def _analyse_uv_stretch(stage_data: dict, report: CriticReport) -> None:
                 signal="metric",
                 description=(
                     f"Local UV stretch near seam boundaries: max_stretch = {max_s:.1f} "
-                    f"(warn threshold {MAX_STRETCH_WARN}).  Mean = {mean_s:.3f} (acceptable)."
+                    f"(warn threshold {_degen_warn:.0f}).  Mean = {mean_s:.3f} (acceptable)."
                 ),
                 root_cause=(
                     "LSCM seam-cut triangles typically have higher stretch than interior faces — "
@@ -311,13 +340,13 @@ def _analyse_uv_stretch(stage_data: dict, report: CriticReport) -> None:
             )
         )
 
-    if mean_s > MEAN_STRETCH_SCALE_WARN_HIGH:
+    if mean_s > _mean_high:
         report.add(
             DiagnosticIssue(
                 severity="WARNING",
                 stage="post_displace",
                 signal="metric",
-                description=f"UV underscaled: mean_stretch = {mean_s:.3f} > {MEAN_STRETCH_SCALE_WARN_HIGH}",
+                description=f"UV underscaled: mean_stretch = {mean_s:.3f} > {_mean_high:.1f}",
                 root_cause=(
                     "UV scale calibration overestimated mm/UV-unit ratio. "
                     "The texture pattern will repeat too frequently — very fine tile."

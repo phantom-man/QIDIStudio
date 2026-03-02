@@ -47,7 +47,7 @@ def analyze_surface_quality(frame):
 
 \# The Bridge: Sending data back to Klipper  
 def send_to_klipper(adjustments):  
- url \= "http://localhost:7125/printer/gcode/script"  
+ url \= "<http://localhost:7125/printer/gcode/script>"  
  gcode \= f"AI_REFLEXIVE_ADJUST FLOW={adjustments\['flow'\]} SPEED={adjustments\['speed'\]}"  
  requests.post(url, params={'script': gcode})
 

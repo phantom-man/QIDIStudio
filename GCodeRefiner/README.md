@@ -1,10 +1,16 @@
 # GCode Refiner
 
-Feature-aware GCode post-processor for 3D printing on the Qidi Q2.
+Feature-aware, use-case-driven GCode post-processor for 3D printing.
 
 Reads a `.gcode` file, detects **feature types** from slicer comment markers
-(`; TYPE:OUTER_WALL` etc.), and injects parameter overrides (temperature, fan,
-acceleration) optimized for the active filament + nozzle + geometry combination.
+(`; TYPE:OUTER_WALL` etc.), then applies **three layers of optimization** in order:
+
+1. **Nozzle + material profile** — base temperature, speed, fan, flow envelope
+2. **Use-case rules** — per-feature overrides for your specific goal
+3. **AMEO live loop** — real-time fine-tuning during the print (Klipper/Moonraker)
+
+The Refiner handles stage 1 + 2 (pre-print, applied to the `.gcode` file).
+AMEO handles stage 3 (live, via Moonraker API). See `docs/AMEO-Technical-Reference.md §14`.
 
 ---
 
@@ -13,28 +19,31 @@ acceleration) optimized for the active filament + nozzle + geometry combination.
 ### As QIDISlicer Post-Processing Script (recommended)
 
 1. Open QIDIStudio → Printer Settings → Custom G-code → **Post-processing scripts**
-2. Add this line:
+2. Add:
    ```
-   "C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe" "C:\Users\User\source\repos\3DPrinting\GCodeRefiner\refiner.py" --rules m2_gear --verbose
+   "<python>" "<path_to>/GCodeRefiner/refiner.py" --rules <use_case>
    ```
-3. Save to your Q2 0.4 nozzle printer preset (or a process preset per-project)
-4. Slice as normal — the refiner runs automatically on every export
+3. Save to your printer preset for the active nozzle + a process preset per use case.
+4. Slice as normal — the refiner runs automatically on every export.
 
 QIDISlicer passes the gcode file path as the last argument automatically.
-The script modifies the file **in-place** (same path, same filename).
+The script modifies the file **in-place** (same file, no extra copy).
 
 ### Standalone CLI
 
 ```powershell
-# Standard run
-& "C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe" refiner.py input.gcode --rules m2_gear --profile asa_gf_04mm
+# Apply watertight rules with CHT 0.4 + PLA-HS profile
+python refiner.py print.gcode --profile pla_hs_cht_04mm --rules watertight
 
-# Dry run (no file changes — shows what would be injected)
-& "C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe" refiner.py input.gcode --rules m2_gear --dry-run --verbose
+# Fine detail on ASA-GF
+python refiner.py part.gcode --profile asa_gf_04mm --rules fine_detail
 
-# List available profiles and rules
-& "C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe" refiner.py --list-profiles
-& "C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe" refiner.py --list-rules
+# Dry run — see what would be injected
+python refiner.py print.gcode --rules m2_gear --dry-run --verbose
+
+# List what's available
+python refiner.py --list-profiles
+python refiner.py --list-rules
 ```
 
 ---
@@ -42,116 +51,179 @@ The script modifies the file **in-place** (same path, same filename).
 ## Installation
 
 ```powershell
-# Install GcodeTools (required for feature detection)
-& "C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe" -m pip install GcodeTools
+# Install GcodeTools (optional — advanced flow-rate analysis)
+pip install GcodeTools
 
-# Verify
-& "C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe" -c "import GcodeTools; print('GcodeTools OK')"
+# Verify (core refiner works without it via raw comment parser fallback)
+python -c "import GcodeTools; print('GcodeTools OK')"
 ```
 
-> **Note:** The core refiner works without GcodeTools using raw slicer comment
-> parsing. GcodeTools is used for advanced flow-rate analysis features.
+---
+
+## Use-Case Catalog (`rules/`)
+
+Choose **one use case per print** based on what you're optimising for.
+
+| Rule file        | Use case              | Key tradeoff               | Best for                                 |
+| ---------------- | --------------------- | -------------------------- | ---------------------------------------- |
+| `m2_gear.py`     | Precision gears (M2+) | Geometry fidelity vs time  | Involute gears, sprockets, worm gears    |
+| `watertight.py`  | Fluid-tight vessels   | No perimeter gaps vs speed | Tanks, enclosures, planters, soap dishes |
+| `fine_detail.py` | Surface resolution    | Accuracy vs time           | Miniatures, figurines, jewellery masters |
+| `structural.py`  | Load-bearing strength | Layer bonding vs cooling   | Brackets, clips, hinges, mounts          |
+| `fast_draft.py`  | Geometry verification | Time vs quality            | Fit checks, prototype iteration          |
+
+### Choosing a use case
+
+```
+Is dimensional accuracy the primary goal?
+  ├─ Yes, at the 0.1mm level (gear teeth, threads) → m2_gear
+  ├─ Yes, on the visible surface (figurine, embossed text) → fine_detail
+  └─ Yes, on the OD/ID for fit check → fast_draft (good enough for fit)
+
+Is the print functional / structural?
+  ├─ Must hold load or not crack → structural
+  └─ Must seal against liquid or air → watertight
+
+Is this a throw-away prototype?
+  └─ Yes → fast_draft
+```
 
 ---
 
-## Available Profiles (`profiles/`)
+## Nozzle + Material Profiles (`profiles/`)
 
-| File | Filament | Nozzle | Description |
-|------|---------|--------|-------------|
-| `asa_gf_04mm.py` | ASA-GF (Fibreheart) | 0.4mm hardened steel | Qidi Q2 base envelope |
+Profile naming: `{material_id}_{nozzle_shortname}.py`
+Where `material_id` matches the Material Registry in `AMEO-Technical-Reference.md §8`
+and the nozzle matches the Nozzle Registry in `§9`.
+
+| Profile file             | Filament                 | Nozzle                 | Status     |
+| ------------------------ | ------------------------ | ---------------------- | ---------- |
+| `asa_gf_04mm.py`         | Siraya Fibreheart ASA-GF | 0.4mm hardened steel   | ✅ Active  |
+| `pla_hs_cht_04mm.py`     | PLA-HS (Anycubic/Bambu)  | CHT Diamond 0.4mm (V6) | ⬜ Pending |
+| `pla_hs_bimetal_08mm.py` | PLA-HS                   | Bimetal DLC 0.8mm (V6) | ⬜ Pending |
+| `petg_cht_04mm.py`       | PETG (eSUN/Bambu)        | CHT Diamond 0.4mm (V6) | ⬜ Pending |
+| `abs_qidi_04mm.py`       | ABS (Bambu)              | QIDI stock 0.4mm       | ⬜ Pending |
+
+**QIDISlicer tip:** Create one printer profile preset per nozzle, one process preset per use case.
+The `--profile` arg goes in the printer preset; the `--rules` arg goes in the process preset.
 
 ---
 
-## Available Rule Sets (`rules/`)
+## What Gets Injected
 
-| File | Use Case | Key Optimizations |
-|------|---------|-------------------|
-| `m2_gear.py` | M2 module involute gears | Slow outer walls (20mm/s), fan=0% on perimeters, +5°C tooth surfaces |
+For each `; TYPE:...` feature transition, the refiner injects before the first move:
 
----
+```
+M104 S<temp>     — nozzle temperature (only when changing)
+M106 S<0-255>    — fan speed (or M107 for off)
+M204 P<accel>    — print acceleration
+M221 S<pct>      — flow rate percentage
+```
 
-## What the Refiner Does
+Then the `F` parameter in every `G1` move within that feature block is rewritten
+to the rule-specified speed (mm/s → mm/min conversion).
 
-For each feature type transition (detected from `; TYPE:...` slicer comments):
+Injection is **delta-only**: if a value hasn't changed vs the previous injection,
+the command is skipped. No redundant commands polluting the file.
 
-1. **Injects temperature command** (`M104`) if the rule overrides nozzle temp
-2. **Injects fan command** (`M106`/`M107`) if the rule overrides fan speed
-3. **Injects acceleration command** (`M204`) if the rule overrides accel
-4. **Modifies `F` parameter** in G1 move lines if the rule overrides print speed
+### Example: `m2_gear` on `OUTER_WALL`
 
-Injection only happens when a value *changes* — no redundant commands.
-
-### Example: M2 Gear Injections
-
-For `; TYPE:OUTER_WALL` (gear tooth surfaces):
 ```gcode
 ; TYPE:OUTER_WALL
 M104 S275 ; refiner: M2 outer wall: slow + hot + no fan
-M107 ; refiner: M2 outer wall: slow + hot + no fan
+M107      ; refiner: M2 outer wall: slow + hot + no fan
 M204 P1000 ; refiner: M2 outer wall: slow + hot + no fan
-G1 X... Y... E... F1200         ; (was F2400, now limited to 20mm/s = 1200mm/min)
+G1 X... Y... E... F1200   ; was F2400 (40mm/s) → now 1200 (20mm/s)
 ```
 
-For `; TYPE:BRIDGE`:
+### Example: `watertight` on `BRIDGE`
+
 ```gcode
 ; TYPE:BRIDGE
-M104 S265 ; refiner: M2 bridge: max fan, under-extrude
-M106 S255 ; refiner: M2 bridge: max fan, under-extrude
-M204 P1500 ; refiner: M2 bridge: max fan, under-extrude
+M104 S<nominal> ; refiner: watertight bridge: max fan, slow, under-extrude
+M106 S255       ; 100% fan
+M204 P500
+M221 S95        ; 95% flow
+G1 ... F900     ; 15mm/s
 ```
 
 ---
 
-## Adding New Rule Sets
-
-Copy `rules/m2_gear.py` to `rules/my_rules.py` and edit the `OVERRIDES` dict.
-The only required interface is:
+## Architecture: How Rule Files Work
 
 ```python
-def get_override(move_type: str, layer: int, profile: object) -> dict | None:
-    """Return dict with speed_mm_s, nozzle_temp, fan, flow_ratio, accel, comment
-    or None to use profile defaults."""
-    ...
+# Every rule file must expose this function:
+def get_override(feature_type: str, layer: int, profile: object) -> dict | None:
+    """
+    feature_type: canonical string e.g. "OUTER_WALL", "BRIDGE", "SPARSE_INFILL"
+    layer:        current layer number (0-based)
+    profile:      the loaded profile module (access SPEED_OUTER_WALL etc. as attributes)
+
+    Return a dict with any subset of:
+        speed_mm_s : float     — print speed (mm/s)
+        nozzle_temp: int       — hotend temp (°C)
+        fan        : int       — fan 0–255
+        flow_ratio : float     — flow multiplier (1.0 = 100%)
+        accel      : int       — M204 acceleration (mm/s²)
+        comment    : str       — appended to injected command comments
+
+    Return None → use profile defaults for this feature (no injection).
+    """
 ```
 
-Then use `--rules my_rules` in the CLI or post-processing script entry.
+Rule files can compute values **relative to the profile** (e.g. `profile.SPEED_OUTER_WALL * 0.5`)
+so they remain nozzle- and filament-agnostic. The parameter resolution chain is:
+
+```
+Rule override → Profile default → Slicer default
+```
+
+### Adding a new use case
+
+```powershell
+# Copy a similar rule as a starting point
+Copy-Item rules\structural.py rules\my_new_case.py
+
+# Edit OVERRIDES dict and get_override() in my_new_case.py
+# Then use it:
+python refiner.py print.gcode --rules my_new_case
+```
 
 ---
 
-## Planned Extensions
+## AMEO Integration
 
-- `rules/tr8x2_screw.py` — TR8×2 lead screw threads (slower flanks, 15mm/s outer, 0.10mm layer height advisory)
-- `rules/fine_detail.py` — General fine-feature rule (anything requiring sub-0.5mm feature fidelity)
-- `rules/structural_asa.py` — Maximum bonding strength (fan=0 everywhere, slow everywhere)
-- Flow ratio injection via GcodeTools `block.move.set_flowrate()` once API stabilizes
-- pyGCodeDecode integration for velocity simulation pre-analysis pass
+The Refiner and AMEO are complementary, not competing:
+
+```
+Slice → Refiner (offline, file) → Print → AMEO live loop (online, Klipper)
+```
+
+- Refiner: sets the _intended_ parameters for each feature type
+- AMEO: adjusts _actual_ flow% and speed% in real-time based on vision feedback
+
+The same nozzle and material IDs used in `AMEO_LOAD NOZZLE=<id> MATERIAL=<id>`
+(Klipper start-gcode) match the profile naming convention here.
+
+See `docs/AMEO-Technical-Reference.md §14` for the full integration map.
 
 ---
 
-## Slicer Configuration Notes
+## Slicer Settings that Refiner _assumes_
 
-### QIDIStudio / OrcaSlicer Feature Labels
+The Refiner tunes parameters but cannot change slicer structure. Set these in QIDISlicer first:
 
-Ensure **`Label objects`** is enabled in Printer Settings if you want per-object
-feature detection. For plain feature-type detection (speed/temp per feature),
-this is not required.
-
-The refiner reads the standard `; TYPE:...` comment markers that QIDIStudio and
-OrcaSlicer emit. These are always present regardless of `Label objects` setting.
-
-### Required Slicer Settings for ASA-GF Gears
-
-Set these in the slicer BEFORE the refiner runs (refiner only tunes, not replaces):
-- `layer_height`: `0.15` (recommended) or `0.1` for ultra-fine
-- `wall_loops`: 4–6 (fills most of M2 tooth cross-section)
-- `sparse_infill_density`: 80–100% for structural gears
-- `sparse_infill_pattern`: `concentric` (100%-compatible, avoids cubic swap bug)
-- `wall_generator`: `arachne` (fills thin tooth tips)
-- `detect_thin_wall`: `1`
+| Setting           | Gears    | Watertight      | Fine detail | Structural | Fast draft |
+| ----------------- | -------- | --------------- | ----------- | ---------- | ---------- |
+| Wall loops        | 4–6      | ≥ 4             | 3–4         | ≥ 4        | 1–2        |
+| Top/bottom layers | 4        | ≥ 5             | 4           | 4          | 2          |
+| Infill %          | 80–100   | 25–40           | 20–40       | ≥ 40       | 10         |
+| Layer height      | 0.1–0.15 | 0.2             | 0.05–0.1    | 0.2        | 0.25–0.3   |
+| Wall generator    | Arachne  | Classic/Arachne | Arachne     | Classic    | Classic    |
 
 ---
 
 ## Research Notes
 
 See [gcode_research.md](gcode_research.md) for full survey of existing tools,
-architecture decisions, and M2 gear optimization data.
+architecture decisions, and M2 gear optimisation data.

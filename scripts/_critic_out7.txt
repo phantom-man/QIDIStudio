@@ -1,0 +1,45 @@
+========================================================================
+  AI TEXTURE CRITIC REPORT
+========================================================================
+  Model    : C:\Users\User\source\repos\3DPrinting\VacuumNozzle\STL\vacuum_nozzle_lower.3mf
+  Stages   : 3
+  Topology : REVOLUTION  (projection=lscm)
+  Overall  : WARN
+========================================================================
+
+  WARNINGS (1)
+  --------------------------------------------------------------------
+  [1] [post_displace] Local UV stretch near seam boundaries: max_stretch = 72518.1 (warn threshold 5.0).  Mean = 7.194 (acceptable).
+      Root cause : LSCM seam-cut triangles typically have higher stretch than interior faces ΓÇö this is expected for cylindrical/revolution meshes with 30┬░ seam angles. max_stretch 72518 << 50 (degenerate threshold), so no UV collapse.
+      Remediation: If texture shows visible tiling at seam lines, reduce seam_angle_rad from 30┬░ to 20┬░ in _classify_mesh_topology() for REVOLUTION meshes to create more, smaller islands with lower per-island stretch.
+
+  INFO (3)
+  --------------------------------------------------------------------
+  [I] [post_weld] Weld ratio: 7235/7235 verts (100.0% retained). Very few duplicate vertices removed.
+  [I] [post_classify] Topology: class=REVOLUTION  projection=lscm  full_surface=True  sharp=8.3%  z_ratio=5.952  K_std=0.0179  ╧ç=0
+  [I] [beauty] Skin beauty: GOOD (score=0.656, S=0.427, H_s=11.71).  Tile size hint: 5.0 mm.
+
+  --------------------------------------------------------------------
+  AESTHETIC QUALITY (Reber 2004 / Leder 2004 / Johnston 2022)
+  --------------------------------------------------------------------
+  Skin             : C:\QIDISrc\QIDIStudio\install_dir\resources\assets\armadillo_plates\armadillo_plates_01.png
+  Symmetry Score   : 0.4265  (target > 0.90)
+  Spectral Entropy : 11.7094 bits  (target > 4.0)
+  Beauty Score     : 0.6559  [GOOD]
+  Tile size hint   : 5.0 mm  (from skin dominant freq ΓÇö override auto_params if very different)
+
+========================================================================
+  BIBLIOGRAPHY (mathematical foundations of this analysis):
+  L├⌐vy 2002    ΓÇö LSCM: Least Squares Conformal Maps for UV
+  Sander 2001  ΓÇö L2 stretch metric for UV quality evaluation
+  Reuter 2006  ΓÇö Shape DNA: spectral geometry fingerprinting
+  Crane 2024   ΓÇö Discrete Differential Geometry (CMU 15-458)
+  Taubin 1995  ΓÇö Non-shrinking Laplacian smoothing (seam blend)
+  Chazal 2009  ΓÇö Euler characteristic & topological invariants
+  Reber 2004   ΓÇö Processing Fluency ΓåÆ aesthetic pleasure
+  Leder 2004   ΓÇö B(s,╧â) model of aesthetic appreciation
+  Johnston 2022 ΓÇö Symmetry as simplicity bias (Nature Comms 13:1858)
+========================================================================
+
+  Report written to: scripts\debug_runs\20260301_181625\vacuum_nozzle_lower\snapshots\ai_texture_critic_report.txt
+EXIT:1

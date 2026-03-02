@@ -1,0 +1,35 @@
+Imports OK
+Cases: ['vacuum_nozzle_lower', 'vacuum_crevice_nozzle']
+run_dir: C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs\20260301_173721
+
+[1/2] vacuum_nozzle_lower
+  running Blender...
+  rc=0
+  validating snapshots...
+  hint...
+  result: PASS ù PASS ù classified as REVOLUTION (expected REVOLUTION), no DNA mismatch.
+  serialisation check...
+  serialisation OK
+  appended to all_results
+
+[2/2] vacuum_crevice_nozzle
+  running Blender...
+  rc=0
+  validating snapshots...
+  hint...
+  result: PASS ù PASS ù classified as PRISMATIC (expected PRISMATIC), no DNA mismatch.
+  serialisation check...
+  serialisation OK
+  appended to all_results
+
+=== Writing reports ===
+Writing JSON to C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs\20260301_173721\ai_debug_report.json
+JSON written OK
+Writing TXT to C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs\20260301_173721\ai_debug_report.txt
+TXT written OK
+
+=== Done ===
+Overall: ALL PASS
+
+Output saved to: C:\Users\User\source\repos\QIDIStudio\scripts\_mini_out.txt
+EXIT:0

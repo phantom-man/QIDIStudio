@@ -1,0 +1,4 @@
+Found existing installation: cadquery-ocp 7.8.1.1.post1
+Uninstalling cadquery-ocp-7.8.1.1.post1:
+  Successfully uninstalled cadquery-ocp-7.8.1.1.post1
+

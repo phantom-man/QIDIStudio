@@ -4,7 +4,8 @@ scripts/view_texture_parts.py — Display all 4 texture-modified STL parts.
 Backends (auto-selection order):
   1. pyvista        — interactive 3D, already installed, opens its own window
   2. matplotlib     — static 4-up subplots, always works
-  3. ocp_vscode     — VS Code OCP CAD Viewer (requires working build123d/OCP)
+
+  (OCP/build123d removed — cadquery-ocp uninstalled to fix pyvista VTK conflict)
 
 Usage:
     Auto (pyvista if installed, else matplotlib):
@@ -17,8 +18,8 @@ Usage:
 
 Parts displayed (4 texture_modifier STLs):
     - protection-poco-x6         (phone case,    PRISMATIC/OBJECT)
-    - elvish_tpu_inner           (TPU insert,    FREEFORM/LSCM)
-    - vacuum_nozzle_lower        (vacuum nozzle, REVOLUTION/LSCM)
+    - elvish_tpu_inner           (TPU insert,    FLAT_SHELL/OBJECT)
+    - vacuum_nozzle_lower        (vacuum nozzle, REVOLUTION/CYLINDER)
     - vacuum_crevice_nozzle      (crevice tool,  PRISMATIC/OBJECT)
 
 Requires: cadquery-ocp-novtk==7.9.3.1  (OCP 7.9 API — TopoDS.Vertex)
@@ -54,7 +55,7 @@ PARTS = {
         / "elvish_tpu_inner_texture_modifier.stl",
         "color": (0.35, 0.80, 0.45),  # soft green
         "alpha": 0.85,
-        "label": "Elvish TPU Inner (FREEFORM/LSCM)",
+        "label": "Elvish TPU Inner (FLAT_SHELL/OBJECT)",
     },
     "vacuum_nozzle_lower": {
         "path": STL_BASE
@@ -63,7 +64,7 @@ PARTS = {
         / "vacuum_nozzle_lower_texture_modifier.stl",
         "color": (0.95, 0.68, 0.22),  # amber
         "alpha": 0.85,
-        "label": "Vacuum Nozzle Lower (REVOLUTION/LSCM)",
+        "label": "Vacuum Nozzle Lower (REVOLUTION/CYLINDER)",
     },
     "vacuum_crevice_nozzle": {
         "path": STL_BASE
@@ -84,29 +85,18 @@ OCP_PORT = 3939  # default OCP CAD Viewer websocket port
 
 def _has_pyvista() -> bool:
     try:
-        import pyvista.plotting  # noqa: F401  # triggers DLL load — catches cadquery_vtk conflict
+        import pyvista.plotting  # noqa: F401
 
         return True
     except Exception:
         return False
 
 
-_BUILD123D_IMPORT_ERROR: str | None = None
+_BUILD123D_IMPORT_ERROR: str | None = None  # kept for --ocp error path
 
 
 def _has_build123d() -> bool:
-    global _BUILD123D_IMPORT_ERROR
-    try:
-        import build123d  # noqa: F401
-        from build123d import import_stl  # noqa: F401
-
-        _BUILD123D_IMPORT_ERROR = None
-        return True
-    except Exception as exc:
-        import traceback
-
-        _BUILD123D_IMPORT_ERROR = traceback.format_exc()
-        return False
+    return False  # cadquery-ocp uninstalled; OCP path disabled
 
 
 def _has_trimesh() -> bool:
@@ -384,14 +374,7 @@ def main() -> None:
         show_pyvista()
         return
 
-    # Auto mode: prefer OCP (in-VS-Code) → pyvista → matplotlib
-    if _has_build123d():
-        try:
-            show_ocp()
-            return
-        except Exception as exc:
-            print(f"OCP backend failed ({exc}) — falling back to pyvista\n")
-
+    # Auto mode: pyvista → matplotlib  (OCP is opt-in via --ocp only)
     if _has_pyvista():
         try:
             show_pyvista()

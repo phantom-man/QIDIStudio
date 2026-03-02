@@ -1,0 +1,41 @@
+
+======================================================================
+  QIDIStudio AI Debug Pipeline  ù  run 20260301_184338
+  Blender : C:\Program Files\Blender Foundation\Blender 5.0\blender.exe
+  Skin    : C:\QIDISrc\QIDIStudio\install_dir\resources\assets\armadillo_plates\armadillo_plates_01.png
+  Cases   : 4
+  Output  : C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs\20260301_184338
+======================================================================
+
+[1/4] poco_x6_phone_case
+         model    : C:\Users\User\source\repos\3DPrinting\PhoneCase\STL\protection-poco-x6.3mf
+         expected : FLAT_SHELL
+         running Blender... rc=0
+         result   : PASS ù PASS ù classified as FLAT_SHELL (expected FLAT_SHELL), no DNA mismatch.
+
+[2/4] elvish_tpu_inner
+         model    : C:\Users\User\source\repos\3DPrinting\PhoneCase\STL\elvish_tpu_inner.3mf
+         expected : FLAT_SHELL
+         running Blender... rc=0
+         result   : PASS ù PASS ù classified as FLAT_SHELL (expected FLAT_SHELL), no DNA mismatch.
+
+[3/4] vacuum_nozzle_lower
+         model    : C:\Users\User\source\repos\3DPrinting\VacuumNozzle\STL\vacuum_nozzle_lower.3mf
+         expected : REVOLUTION
+         running Blender... rc=0
+         result   : PASS ù PASS ù classified as REVOLUTION (expected REVOLUTION), no DNA mismatch.
+
+[4/4] vacuum_crevice_nozzle
+         model    : C:\Users\User\source\repos\3DPrinting\VacuumNozzle\STL\vacuum_crevice_nozzle.3mf
+         expected : PRISMATIC
+         running Blender... rc=0
+         result   : PASS ù PASS ù classified as PRISMATIC (expected PRISMATIC), no DNA mismatch.
+
+DEBUG: writing reports...
+
+Reports written:
+  C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs\20260301_184338\ai_debug_report.json
+  C:\Users\User\source\repos\QIDIStudio\scripts\debug_runs\20260301_184338\ai_debug_report.txt
+
+Overall: ALL PASS
+DONE

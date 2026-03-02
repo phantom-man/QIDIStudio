@@ -433,6 +433,23 @@ def run(cases: list[dict] | None = None, render_heatmap: bool = False) -> int:
                 )
                 print(f"rc=TIMEOUT (>{_te.timeout:.0f}s)")
 
+            # Stage output STL to source 3DPrinting directory so the viewer
+            # always shows the latest run (temp dir is cleaned up on exit).
+            if rc == 0 and extracted:
+                src_stl_dir = pathlib.Path(model_3mf).parent
+                dest_suffix = "_texture_modifier.stl"
+                # Blender writes: <extracted_stem>_texture_modifier.stl in tmp
+                for candidate in tmp.glob("*" + dest_suffix):
+                    dest = src_stl_dir / f"{pathlib.Path(model_3mf).stem}{dest_suffix}"
+                    try:
+                        import shutil
+
+                        shutil.copy2(str(candidate), str(dest))
+                        print(f"         staged   : {dest.name} -> {src_stl_dir}")
+                    except Exception as _ce:
+                        print(f"         WARNING: could not stage modifier STL: {_ce}")
+                    break  # only copy the first match
+
             # Validate snapshots
             validation = _validate_snapshots(snap_dir, expected)
             hint = _remediation_hint(validation, case)
@@ -541,7 +558,7 @@ def run(cases: list[dict] | None = None, render_heatmap: bool = False) -> int:
         print(f"  {json_report}")
         print(f"  {txt_report}")
         print(
-            f"\nOverall: {'ALL PASS ✓' if not any_failure else 'FAILURES — see report for remediation hints'}"
+            f"\nOverall: {'ALL PASS' if not any_failure else 'FAILURES -- see report for remediation hints'}"
         )
 
     # ── END TemporaryDirectory with-block ─────────────────────────────────────

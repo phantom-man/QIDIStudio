@@ -1,128 +1,143 @@
-# QIDIStudio Copilot Instructions
+# QIDIStudio Copilot — Session Bootstrap
 
-## Agent behavior constraints (ENFORCED — do not override)
+You are **GitHub Copilot**, engineering AI for the **QIDIStudio** fork.
+Repo  : `C:\Users\User\source\repos\QIDIStudio\`  
+GitHub: `phantom-man/QIDIStudio`
+Model : Claude Sonnet 4.6
 
-- **Never call `list_dir`, `read_file`, `file_search`, `grep_search`, `semantic_search`, or any file-enumeration tool proactively at session start.** Only invoke these tools when explicitly required to complete a task the user has stated.
-- **Never enumerate or read anything inside `data/`, `data/lancedb/`, or any LanceDB directory.** These directories contain thousands of binary files that will immediately exhaust the context window.
-- **Do not "orient yourself" to the workspace by reading files unless the user's request specifically requires it.**
-- Wait for the user to state a task before touching any tool.
+---
 
-## Scope and mental model
+## YOUR KNOWLEDGE IS IN LanceDB, NOT IN THIS FILE
 
-- This repo is a QIDIStudio fork (C++ slicer app + Python Blender texture pipeline + local AI/memory tooling).
-- Core app code lives in `src/`; texture/displacement pipeline lives in `resources/scripts/apply_texture_bpy.py` and is called from `src/slic3r/GUI/Plater.cpp`.
-- `resources/` is runtime-critical: many GUI and calibration paths resolve via `Slic3r::resources_dir()` (`src/libslic3r/utils.cpp`).
+The **UserPromptSubmit** hook has already called `memory/inject.py` before this prompt arrived.  
+Look above — you should see `━━━ QIDISTUDIO KNOWLEDGE BASE ━━━`.
 
-## High-impact architecture boundaries
-
-- C++ UI integration: texture actions (`apply_texture`, `adjust_texture_depth`) in `src/slic3r/GUI/Plater.cpp` export mesh -> run Blender -> reimport STL -> update volume + sidecar metadata.
-- Python pipeline strategy: `_classify_mesh_topology()` drives projection mode (`object` vs `lscm`) using mesh features and `MeshClass`; avoid part-name heuristics.
-- Debug telemetry contract: `--debug-snapshots` writes stage JSON + `session_summary.json`; downstream analyzers (`scripts/ai_texture_critic.py`) depend on these field names.
-- Agent tooling boundary: `agents/orchestrator.py` is a LangGraph supervisor (director -> parallel researcher/builder/verifier/scribe); memory injection is in `memory/inject.py`.
-
-## Build and test workflow (Windows-first)
-
-- CMake on Windows is constrained (`CMakeLists.txt` rejects versions >= 4.0 for MSVC/WIN32).
-- Default optional targets are OFF: `SLIC3R_BUILD_TESTS`, `SLIC3R_BUILD_SANDBOXES`, `SLIC3R_PERL_XS`.
-- Enable C++ tests by configuring with `-DSLIC3R_BUILD_TESTS=ON`, then run `ctest` from the build tree.
-- Typical debug config uses `scripts/debug_build.ps1` (RelWithDebInfo + ASan, separate build/install dirs).
-
-## Blender texture pipeline workflow
-
-- Blender executable discovery uses `QIDI_BLENDER_EXE` first (`Plater.cpp`, `scripts/run_texture_pipeline.ps1`).
-- Current C++ behavior is fail-fast when Blender is missing (no `bpy_env` fallback in `find_bpy_python()` path).
-- For standalone pipeline repro use `scripts/run_texture_pipeline.ps1`; use `-Debug` to wait for debugpy attach.
-- Use `scripts/ai_debug_pipeline.py` to regression-check mesh classification behavior across known 3MF cases.
-
-## Resource-path convention (do not break)
-
-- The app consumes scripts/resources from install-time `resources/`; dev workflow uses an NTFS junction created by `scripts/dev_setup.ps1`.
-- If texture script edits appear ignored after a clean build, re-run `scripts/dev_setup.ps1` before changing C++.
-
-## Practical editing rules for this codebase
-
-- Keep C++/Python contracts stable: output markers (`SKIN_OUTPUT:`), sidecar `.texture.json` keys, and snapshot JSON schema are consumed cross-component.
-- Prefer surgical edits near existing strategy points (`MeshClass` match/case, `Plater.cpp` texture command assembly) over introducing parallel paths.
-- Preserve PowerShell script portability for this repo’s workflow scripts; avoid non-ASCII punctuation in quoted strings.
-
-## Useful entry points
-
-- `src/slic3r/GUI/Plater.cpp` — Blender command invocation and mesh replacement flow.
-- `resources/scripts/apply_texture_bpy.py` — topology classifier, unwrap/projection, debug snapshot export.
-- `scripts/run_texture_pipeline.ps1` — standalone Blender runner.
-- `scripts/ai_debug_pipeline.py` / `scripts/ai_texture_critic.py` — autonomous debugging and quality diagnostics.
-- `agents/orchestrator.py` / `memory/inject.py` — local agent fleet and LanceDB context injection.
-
-## Agent fleet protocol
-
-Full protocol: `docs/AGENT_PROTOCOL.md` — read it before invoking any sub-agent.
-
-**When to invoke the fleet** (use `agents/orchestrator.run(request, thread_id?)`):
-
-- Live web research needed (library API, upstream commit check, external bug lookup) → `researcher`
-- Complex multi-file C++/Python/CMake implementation → `builder` + `verifier`
-- Session learnings to persist in LanceDB → `scribe`
-- Any combination of the above in one logical task → full fleet (director decomposes automatically)
-
-**When NOT to invoke the fleet**:
-
-- Single-file reads/edits → direct tools
-- Git operations → GitKraken tools
-- Question answered by the LanceDB manifest already in context → answer directly
-- Anything satisfiable in ≤ 3 tool calls → do it directly
-
-**How to invoke** (in a Python code snippet or terminal):
-
-```python
-import sys; sys.path.insert(0, r'C:\Users\User\source\repos\QIDIStudio')
-from agents.orchestrator import run
-print(run("your request", thread_id="slug-001"))
+**If you see it:** knowledge base is loaded. Proceed.  
+**If you do NOT see it:** run this in the `scripts` terminal, then read the output:
+```powershell
+& 'C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe' memory/inject.py
 ```
 
-**Thread ID convention**: `<scope>-<slug>-<nnn>` e.g. `texture-lscm-fix-001`  
-**Auth**: Vertex AI ADC (not API key) — `gcloud auth application-default login`  
-**Memory venv**: `memory_env\Scripts\python.exe` for all memory/agent commands
+---
 
-## External docs/tools
+## Memory Commands
 
-- Use Context7 for up-to-date third-party library docs before changing dependency APIs.
+> All memory commands use the **universal memory venv**: `memory_env\Scripts\python.exe`
+
+| Purpose | Command |
+|---------|---------|
+| Compact manifest (all topics) | `memory_env\Scripts\python.exe memory/inject.py` |
+| Full text dump (everything verbatim) | `memory_env\Scripts\python.exe memory/inject.py --full` |
+| Semantic search | `memory_env\Scripts\python.exe memory/inject.py --query "cmake build"` |
+| Re-index docs to LanceDB | `memory_env\Scripts\python.exe memory/extract.py` |
+| Push prompt to LangSmith Hub | `memory_env\Scripts\python.exe memory/push_prompt.py` |
+| Push ALL agent prompts to Hub | `memory_env\Scripts\python.exe agents/push_all_prompts.py` |
+| Re-install deps | `.\memory_env\Scripts\python.exe -m pip install -r memory\requirements.txt` |
+| Run agent fleet | `memory_env\Scripts\python.exe agents/orchestrator.py "your request"` |
+
+---
+
+## ⚡ ALWAYS PARALLEL — NON-NEGOTIABLE
+
+These rules are **mandatory**. Violating them is the #1 performance problem.
+
+### Parallelism Rules
+
+1. **NEVER use `captureOutput: true`** on terminal commands. They block until the shell
+   closes. Instead: pipe to a file (`2>&1 | Tee-Object out.txt`) then `read_file` it.
+
+2. **NEVER wait sequentially** for unrelated operations. Fire all independent tool calls
+   in a single `<function_calls>` block. If calls don't depend on each other, they run together.
+
+3. **NEVER poll a terminal** more than once. If you need output, write it to a file,
+   move on to other work, and come back to read the file as a separate step.
+
+4. **Delegate blocking work to `runSubagent`.** If a task involves: running a build,
+   waiting on a long install, reading many files, or doing research — spawn a subagent.
+   You are the director. You keep your context clean.
+
+5. **Multi-step tasks: plan first, execute in parallel batches.**
+   Use `manage_todo_list` to lay out the plan, then execute all non-dependent steps
+   in the same tool call block.
+
+6. **Sub-agents get full context upfront.** Load them heavy with everything they need.
+   No back-and-forth. Trust LanceDB to hold the detail.
+
+### Agent Fleet (sub-agents for heavy tasks)
+
+| Agent | Purpose | Key Capability |
+|-------|---------|----------------|
+| `researcher` | Technical research, documentation deep-dives | Gemini + Google Search |
+| `builder` | C++ / Python / CMake implementation | Gemini + Code Execution |
+| `verifier` | Code review, bug-pattern check | Gemini, structured verdict |
+| `scribe` | Memory sync, knowledge base write | LanceDB tools |
+
+Invoke via: `memory_env\Scripts\python.exe agents/orchestrator.py "task description"`
+
+---
+
+## Minimal Reference (in case memory is unavailable)
+
+- **Build source**: `C:\QIDISrc\QIDIStudio\build\`  
+- **Install dir** : `C:\QIDISrc\QIDIStudio\install_dir\`  
+- **bpy script**  : `resources\scripts\apply_texture_bpy.py`  
+- **Blender**     : `C:\Program Files\Blender Foundation\Blender 5.0\blender.exe`  
+- **Memory venv** : `memory_env\Scripts\python.exe` (LangSmith + LanceDB + sentence-transformers — use for ALL memory commands)
+- **Python 3.13** : `C:\Users\User\AppData\Local\Programs\Python\Python313\python.exe` (general scripts, NOT memory)
+- **Python 3.11** : `bpy_env\Scripts\python.exe` (Blender bpy pip package, not for general use)
+
+**Build command:**
+```powershell
+Set-Location C:\QIDISrc\QIDIStudio\build
+cmake --build . --target install --config Release -- /m:16 2>&1 | Tee-Object build_out.txt; echo "DONE" >> build_out.txt
+```
+
+---
 
 ## Session Learnings Log
 
-Canonical table lives in `memory/langsmith_prompt.md §7`. Append new rows here **and** there after every significant session. Run `python memory/extract.py` then commit.
+Append rows here — `memory/extract.py` auto-indexes them into LanceDB.
 
-| Date       | Category         | Topic                                      | Decision                                                                                                                                                                                                                      | Rationale                                                                                                      |
-| ---------- | ---------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --- | ---------- | ---------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| 2026-02-28 | build_system     | C++ standard not globally enforced         | No `CMAKE_CXX_STANDARD` on GUI target; `libslic3r` sets C++17 only under GCC condition; fix: add `set(CMAKE_CXX_STANDARD 20)` + `CMAKE_CXX_STANDARD_REQUIRED ON` + `CMAKE_CXX_EXTENSIONS OFF` after `project()`               | Without explicit standard MSVC may silently compile at C++14 default; C++20 features break without warning     |
-| 2026-02-28 | build_system     | C++20 safe on MSVC 2022; C++26 not         | MSVC 2022 17.x has complete C++20 and mostly-complete C++23; C++26 (contracts P2900, static reflection P2996, `std::simd` P1928, `inplace_vector` P0843) has zero MSVC support                                                | Do NOT set `cxx_std_26` in production builds; C++23 acceptable for new files only                              |
-| 2026-02-28 | architecture     | Modernization score 43/100                 | Codebase scored 43/100; documented in `docs/CPP_MODERNIZATION_SCORE.md` and §21 of `docs/QIDISTUDIO_KNOWLEDGE.md`                                                                                                             | Baseline for tracking C++ modernization roadmap progress                                                       |
-| 2026-02-28 | cpp_gotcha       | boost::thread in GCodeSender obsolete      | `src/libslic3r/GCodeSender.cpp:110` uses `boost::thread`; replace with `std::jthread` (C++20) for automatic join + `std::stop_token` cancellation                                                                             | `std::jthread` eliminates manual join/detach RAII boilerplate; `boost::thread` redundant on C++20              |
-| 2026-02-28 | cpp_gotcha       | No RAII GL wrappers; raw GLuint members    | All GL objects are raw `GLuint` members; add `GLResource.hpp` with `template<auto Creator, auto Deleter>` + Rule of Five + `std::exchange(o.id, 0)` move pattern (~50 lines)                                                  | Prevents GL resource leaks; single template covers all GL object types                                         |
-| 2026-02-28 | cpp_gotcha       | Non-DSA OpenGL throughout                  | All GL uses legacy bind-to-modify (`glBindBuffer`+`glBufferData`); DSA (`glNamedBufferData`) available on GL 4.5 (hardware since 2012)                                                                                        | DSA eliminates bind-state boilerplate and reduces GL state mutation bugs                                       |
-| 2026-02-28 | cpp_gotcha       | No SIMD geometry; use Google Highway       | BVH, slice-plane, UV compute all scalar; use Google Highway (Chromium/libjxl); `std::simd`/`<simd>` P1928 have zero production compiler support                                                                               | Highway portable across AVX2/NEON/SVE; never use `std::simd` until C++26 compilers ship                        |
-| 2026-02-28 | cpp_gotcha       | std::ranges views no MSVC vectorization    | Dan Lemire Oct 2025: `views::filter\|transform` chained pipelines break contiguous-iterator contract on MSVC x64; `ranges::sort`/`ranges::find` algorithm overloads are fine                                                  | Avoid chained view pipelines in mesh compute hot paths                                                         |
-| 2026-02-28 | cpp_gotcha       | std::expected available now                | `std::expected<T,E>` (C++23) supported on MSVC VS2022 17.3+, GCC 12+, Clang 16+; codebase has 3 incompatible error styles (bool, exception, -1.0f sentinel)                                                                   | Adopt `std::expected` for all new parse/IO functions                                                           |
-| 2026-02-28 | cpp_gotcha       | Move ctors need noexcept for vector        | `std::vector` falls back to copy on realloc if move ctor is not `noexcept`; verify `TriangleMesh`, `ModelObject`, `ModelVolume` move ctors                                                                                    | Silently causes O(n) copy on every vector growth in mesh processing loops                                      |
-| 2026-02-28 | build_system     | CMakePresets.json missing                  | No `CMakePresets.json` in repo; add `msvc-relwithdebinfo` and `msvc-asan` presets committed to repo                                                                                                                           | Enables one-command configure in CI and new dev machines; eliminates per-machine flag drift                    |
-| 2026-02-28 | build_system     | clang-tidy not in CI                       | No `.clang-tidy` config; add: `modernize-use-override`, `bugprone-use-after-move`, `performance-move-const-arg`, `modernize-use-nullptr`, `cppcoreguidelines-pro-type-member-init`                                            | These 5 checks catch the most common UB and performance regressions introduced during active development       |
-| 2026-02-28 | cpp_gotcha       | std::map for config lookup is O(log n)     | Config option lookup uses `std::map<std::string, ConfigOption*>` (O(log n)); replace with `std::unordered_map` for O(1) amortized                                                                                             | Hot path called on every config key access during slicing                                                      |
-| 2026-02-28 | build_system     | #pragma once migration pending             | 99% of headers use `#ifndef/#define` guards; only `QDTUtil.hpp` uses `#pragma once`; single Python regex pass migrates all; MSVC 2022 fully supports it                                                                       | `#pragma once` guarantees include-guard optimization; eliminates ODR bugs from mismatched guard macros         |
-| 2026-02-28 | implementation   | C++20 standard IMPLEMENTED                 | `set(CMAKE_CXX_STANDARD 20)` + `REQUIRED ON` + `EXTENSIONS OFF` added to `CMakeLists.txt` after `project(QIDIStudio)`; score Language Standard: 4→6/10                                                                        | Global enforcement via root CMakeLists is the safest approach; per-target overrides for mcut/earcut preserved  |
-| 2026-02-28 | implementation   | CMakePresets.json IMPLEMENTED              | `CMakePresets.json` created with 5 presets: `base`, `msvc-release`, `msvc-relwithdebinfo`, `msvc-asan`, `msvc-tests`; score Build System: 3→7/10                                                                              | Eliminates per-developer CMakeCache drift; enables `cmake --preset msvc-relwithdebinfo` one-liner              |
-| 2026-02-28 | implementation   | .clang-tidy IMPLEMENTED                    | `.clang-tidy` created with bugprone-use-after-move, bugprone-suspicious-memset as WarningsAsErrors; modernize-_ + performance-_ as warnings; HeaderFilterRegex targets only src/libslic3r + src/slic3r                        | Tier 1 (errors) vs Tier 2 (warnings) split prevents noisy CI while catching real bugs                          |
-| 2026-02-28 | implementation   | boost::thread REPLACED with jthread        | `GCodeSender.hpp` now includes `<thread>` + `<boost/thread/mutex.hpp>` (not full `<boost/thread.hpp>`); member changed to `std::jthread`; `.swap(t)` → `= std::move(t)`; thread lambda uses `std::stop_token`                 | `std::jthread` auto-joins on destruction; stop_token enables future cooperative cancellation                   |
-| 2026-02-28 | implementation   | noexcept move ctors ADDED to TriangleMesh  | `TriangleMesh(TriangleMesh&&) noexcept = default` + `operator=(TriangleMesh&&) noexcept = default` + explicit copy ops added for Rule-of-Five symmetry                                                                        | `std::vector<TriangleMesh>` now uses O(1) move on reallocation; previously fell back to O(n) copy              |
-| 2026-02-28 | implementation   | GLResource.hpp RAII wrappers CREATED       | `src/slic3r/GUI/GLResource.hpp` — `template<auto Creator, auto Deleter> class GlResource` with Rule of Five; `GlBuffer`, `GlVao`, `GlFramebuffer`, `GlRenderbuffer`, `GlTexture` typedefs using DSA creators                  | Template covers all GL object types in ~130 lines; DSA glCreate* not glGen* for OpenGL 4.5 correctness         |
-| 2026-02-28 | implementation   | [[nodiscard]] ADDED to parse/IO APIs       | `TriangleMesh.hpp`: from_stl, ReadSTLFile, write_ascii, write_binary, volume(); `Format/STL.hpp`: all load_stl, store_stl; `Format/AMF.hpp`: load_amf — all now [[nodiscard]]                                                 | Compiler will warn on ignored return values at every call site; catches silent parse failure bugs              |
-| 2026-02-28 | implementation   | #pragma once PILOTED on format headers     | `Format/STL.hpp` and `Format/AMF.hpp` converted from #ifndef guards to #pragma once; `scripts/migrate_pragma_once.py` created for bulk migration with --dry-run + --backup options                                            | Run `python scripts/migrate_pragma_once.py --dry-run` to preview full migration across all src/\*.hpp          |
-| 2026-02-28 | architecture     | Modernization score 43->54/100             | After P1+P2 implementation: Language 4->6, BuildSystem 3->7, Concurrency 6->7, TypeSafety 4->5, ErrorHandling 4->5, GL 4->5, CodeQuality 5->6; total 43->54/100 C-grade                                                       | Score updated in CPP_MODERNIZATION_SCORE.md; next target: P3 Google Highway SIMD + enable SLIC3R_BUILD_TESTS   |
-| 2026-02-28 | cpp_gotcha       | Config.hpp sorted-map iteration dependency | `options: std::map<t_config_option_key, unique_ptr<ConfigOption>>` has exposed `cbegin()/cend()` API; changing to unordered_map would break alphabetical serialization order in save-to-JSON                                  | Defer until a full Config serialization audit confirms iteration order is not depended upon                    |
-| 2026-02-28 | implementation   | #pragma once EXPANDED to 11 core headers   | `Point.hpp`, `BoundingBox.hpp`, `ExPolygon.hpp`, `Polygon.hpp`, `Polyline.hpp`, `Line.hpp`, `Layer.hpp`, `GCode.hpp`, `Surface.hpp`, `GCodeWriter.hpp`, `Print.hpp` all converted from #ifndef guards to #pragma once         | Code Quality 6→7/10; these are the most-included libslic3r headers — guard elimination guarantees include-once |
-| 2026-02-28 | implementation   | [[nodiscard]] ADDED to GCodeWriter 25 fns  | All `std::string`-returning methods in `GCodeWriter.hpp` marked `[[nodiscard]]`; also `GCode.hpp` (pre/post_toolchange, wipe, prime, tool_change, retract, unretract, etc.), `Print.hpp` (export_gcode, finalize_output_path) | TypeSafety 5→6/10; discarded G-code is a real runtime bug — silent discard now a compile-time warning          |
-| 2026-02-28 | implementation   | Result.hpp std::expected wrapper created   | `src/libslic3r/Result.hpp` — `template<T> using Result = std::expected<T, std::string>` + `VoidResult` + `Err()/Ok()` factory helpers; C++23 feature enabled by our CMAKE_CXX_STANDARD 20 + MSVC /std:c++latest               | Foundation for replacing 3 incompatible error styles (bool, exception, -1.0f) in parse/IO functions            |
-| 2026-02-28 | architecture     | Modernization score 54->56/100             | After P3 partial: TypeSafety 5→6, CodeQuality 6→7; total 54→56/100 C-grade; 13 points above baseline 43/100                                                                                                                   | Score in CPP_MODERNIZATION_SCORE.md; next P3: Google Highway SIMD for BVH + adopt Result<T> in parsers         |
-| 2026-02-28 | implementation   | #pragma once COMPLETE sweep libslic3r      | ALL 80+ headers in `src/libslic3r/*.hpp` converted from `#ifndef` guards to `#pragma once` in batches A–F; `grep` confirms 0 guards remain; Config.hpp, Model.hpp, TriangleMesh.hpp, ClipperUtils.hpp all done                | CodeQuality 7→8/10; total 56→57/100 C+; full guard elimination across all libslic3r public headers             |
-| 2026-02-28 | implementation   | #pragma once COMPLETE sweep GUI            | ALL 271 headers in `src/slic3r/GUI/**/*.hpp` migrated via `scripts/migrate_pragma_once.py`; I18N.hpp manual fix (script corrupted feature guard `#ifndef _`; restored guard + removed inner include guard); 0 guards remain   | CodeQuality 8→9/10; total 57→58/100 C+; full guard elimination across all GUI headers                          |
-| 2026-02-28 | tooling          | Desktop Commander MCP integrated           | DC MCP v0.2.37 registered in VS Code toolset as `mcp_desktop-comma_*`; cloned upstream at `DesktopCommanderMCP/` (gitignored); PowerShell shell — use `;` not `&&`; docs in `docs/DESKTOP_COMMANDER_MCP.md`                   | Enables direct terminal access for build/test/git; build dir = `C:\QIDISrc\QIDIStudio\build`                   |     | 2026-03-01 | hooks_and_memory | LanceDB migrated to GCS | LanceDB moved from local `data/lancedb/` to `gs://qidistudio-lancedb/lancedb`; LANCEDB_PATH in .env updated; store.py `_get_db()` detects `gs://` prefix and calls `lancedb.connect(uri)` directly; 224 rows migrated | Local store was at risk of machine loss; GCS provides durability |
-| 2026-03-01 | hooks_and_memory | LanceDB GCS URI handling in store.py       | `_get_db()` checks `LANCEDB_PATH.startswith(("gs://","s3://","az://","gcs://"))` — if true skips Path() and mkdir; otherwise uses repo_root relative path                                                                     | Path() on `gs://` raises errors on Windows                                                                     |
-| 2026-03-01 | tools_and_env    | rclone GCS Coldline machine backup         | rclone 1.73.1; remote `gcs-backup` (env_auth, COLDLINE, us-central1); bucket `gs://qidistudio-machine-backup`; `scripts/gcs_backup.ps1` + scheduled task nightly 02:00; logs to `%LOCALAPPDATA%\QIDIStudio\backup-logs\`      | Free cold backup of entire user profile + repos; 7-day deleted-file versioning                                 |
+| Date | Category | Topic | Decision | Rationale |
+|------|----------|-------|----------|-----------|
+| 2026-02-27 | PowerShell | Em-dash in double-quoted strings | Replace `—` (U+2014) with plain `-` everywhere in .ps1 hooks | PS parser chokes on Unicode dash in double-quoted strings — encoding mismatch |
+| 2026-02-27 | LangSmith | Hub push tenant error | Use simple name `"qidistudio-memory-agent"` (no `handle/` prefix) + `Client(api_key=k, workspace_id=ws_id)` | Handle prefix triggers cross-tenant auth; workspace_id resolves owner from env |
+| 2026-02-27 | LangSmith | Hub 409 response | Treat "409 Nothing to commit" as success, not error | LangSmith returns 409 when prompt is identical to what's already on Hub |
+| 2026-02-27 | LangSmith | ChatPromptTemplate messages | Use `("placeholder", "{messages}")` not `("human", "{input}")` | deepagents hub_manager.py pattern; placeholder accepts full message list |
+| 2026-02-27 | LanceDB | list_tables() return type | `db.list_tables()` returns `ListTablesResponse` (Pydantic model) — access via `.tables` attr | Not a plain list; `in` check on it fails silently, causing table to be re-created |
+| 2026-02-27 | LanceDB | PyArrow vs pandas | Use `tbl.to_arrow()` + PyArrow scanner for `get_all()`/`get_recent()`/`count()` | pandas not installed in Python 3.13 env; `to_pandas()` raises ImportError |
+| 2026-02-27 | Memory | inject.py confirmed working | Hook log shows "memory inject OK" since commit `ddcde11`; 58 chunks loaded at session start | All source docs chunked verbatim; grouped by source prefix in manifest output |
+| 2026-02-27 | Memory | precompact hook limitation | Hook can only inject JSON instruction to agent via stdout; agent must do file writes | Shell commands in precompact hook body are invisible to agent — only `additionalContext` JSON matters |
+| 2026-02-27 | LangSmith | push_prompt.py python env | Use `memory_env\Scripts\python.exe memory/push_prompt.py` — universal memory venv; NOT deepagents venv or Python 3.13 | memory_env is the single canonical venv for all LangSmith/LanceDB memory commands |
+| 2026-02-27 | LangSmith | Remote prompt confirmed live | `qidistudio-memory-agent` pushed successfully, org `073a725b-0613-4b53-9391-56f740a3e7ea`, rev `ace15015` | push_out.txt was stale (showed old tenant error); actual push was already fixed and working |
+| 2026-02-27 | tools_and_env | Universal memory venv | Created `memory_env\` at repo root with Python 3.13; install: `memory_env\Scripts\pip install -r memory\requirements.txt` | Replaces dependency on deepagents venv for all langsmith/lancedb/sentence-transformers operations |
+| 2026-02-27 | tools_and_env | Agent fleet architecture | LangGraph Supervisor + Send API fan-out; 4 agents: researcher/builder/verifier/scribe; all Gemini via langchain-google-genai | agents/orchestrator.py; parallel dispatch uses Send API — all tasks with no deps run same superstep |
+| 2026-02-27 | tools_and_env | Parallelism directive | NEVER captureOutput:true; NEVER sequential waits; delegate blocking ops to runSubagent; write output to file, read_file later | User directive — blocking terminal polling is the #1 cause of getting stuck |
+| 2026-02-27 | LangSmith | Agent prompt Hub names | All agent prompts pushed as qidi-<agent_id>: qidi-director, qidi-researcher, qidi-builder, qidi-verifier, qidi-scribe | agents/push_all_prompts.py iterates agents/prompts/*.md and pushes each |
+| 2026-02-27 | Google Auth | Vertex AI ADC — NOT API keys | Use project="crafty-hook-483415-b3" + location="us-central1" with ChatGoogleGenerativeAI — NO google_api_key. Auth via gcloud ADC (vertex-express@crafty-hook-483415-b3.iam.gserviceaccount.com). `AQ.` prefix = OAuth token, not API key. Valid API keys start with AIzaSy | deepagents-quickstarts uses same pattern; probe_gemini_quota.py confirmed; VERTEX_OK from orchestrator |
+| 2026-02-27 | Google Auth | Available Vertex models on crafty-hook-483415-b3 | OK: gemini-2.5-flash, gemini-2.5-flash-lite, gemini-2.5-pro, gemini-2.0-flash, gemini-2.0-flash-lite. NOT_AVAILABLE: gemini-1.5-*. In catalog: gemini-3-flash-preview (needs location=global) | Paid project — no RPM limits hit; all 5 models return OK (no 429). agents/_probe_quotas.py confirmed |
+| 2026-02-27 | Google Auth | orchestrator.py also needs project/location | Both agents/agents.py AND agents/orchestrator.py had google_api_key — must update _director_llm() too | Smoke test 401 traced to line 128 orchestrator.py plan() — _director_llm was separate from _make_llm |
+| 2026-02-28 | Blender Pipeline | Topology Classifier replaces _auto_projection | `_classify_mesh_topology()` returns `TopologySignature` with 3 features: sharp_fraction, z_ratio, curvature_std (Gaussian K std-dev) | Single-feature heuristic failed for ornamental flat shells (elvish back panel) — multi-feature + match/case is stable across any new part |
+| 2026-02-28 | Blender Pipeline | MeshClass enum + match/case dispatch | FLAT_SHELL (z<0.25)→OBJECT, PRISMATIC (sharp>=0.35)→OBJECT, REVOLUTION (z>=1 + low sharp)→LSCM 30deg, ORGANIC→LSCM 60deg | Eliminates per-part code modifications; new part types handled by classifier alone |
+| 2026-02-28 | Blender Pipeline | Gaussian angle-deficit for curvature_std | K_v = 2pi - sum(interior angles at v). Flat vertex K~=0, curved K!=0. Capped at 5000 verts. | CMU 15-458 DDG s6; standard discrete Gaussian curvature formula; separates organic from flat/prismatic |
+| 2026-02-28 | Blender Pipeline | Euler characteristic as tiebreaker | chi = V-E+F added to TopologySignature; REVOLUTION requires chi<=0 (annular manifold). Tall smooth chi>0 -> ORGANIC | Chazal 2009; Spectral Shape Analysis and Transforms paper absorbed; prevents figurine-on-pedestal misclassification as REVOLUTION |
+| 2026-02-28 | Blender Pipeline | Spectral DNA verification | _compute_shape_dna now accepts expected_class; lambda1/lambda2 ratio > 0.85 = REVOLUTION-like. Logs TOPOLOGY MISMATCH if DNA contradicts classifier | Reuter 2006 eigenvalue degeneracy for rotational symmetry; Geometric Shape Classification via Spectral DNA paper absorbed; primary debug hook |
+| 2026-02-28 | Dev Workflow | NTFS junction = single source of truth | Replace install_dir\resources\scripts\ with NTFS junction to workspace\resources\scripts\. One-time setup via scripts\dev_setup.ps1. No copy, no stub, no rebuild. OS-level transparent redirect. | resources_dir() computed at runtime in QIDIStudio.cpp:~L8000 as binary.parent_path()/"resources" — junction picked up without any C++ change |
+| 2026-02-28 | Dev Workflow | dev_setup.ps1 rewritten (junction mode) | Old stub approach replaced. $Workspace derived from $PSScriptRoot — only $InstallDir is hardcoded. Idempotent: checks LinkType before acting. Re-run after every clean build. | Stub approach had hardcoded abs paths burned into Python; junction has zero Python code, 100% transparent to VS Code debugger |
+| 2026-02-28 | Dev Workflow | run_texture_pipeline.ps1 created | Standalone Blender runner: derives workspace from $PSScriptRoot, discovers Blender via QIDI_BLENDER_EXE env var then Program Files scan (mirrors Plater.cpp pattern), -Debug flag enables debugpy wait-for-attach on localhost:5678 | Allows testing apply_texture_bpy.py without launching QIDIStudio; debugpy attach works because junction means Blender IS executing the workspace file |
+| 2026-02-28 | Debugging | faulthandler added to apply_texture_bpy.py | faulthandler.enable(file=sys.stderr, all_threads=True) added after imports — dumps Python traceback to stderr if Blender C++ layer segfaults | PhD Hybrid Debugging Workflow absorbed; stderr captured by QIDIStudio into %TEMP%\qidi_texture.log so crash appears in standard log |
+| 2026-02-28 | Debugging | debug_build.ps1 created | scripts\debug_build.ps1 configures CMake with RelWithDebInfo + MSVC /fsanitize=address; output to install_dir_debug | PhD Debugging C++ Systems absorbed; ASan detects buffer overruns in mesh geometry kernel |
+| 2026-02-28 | Architecture | Strategy Pattern = current MeshClass dispatch | Current match/case in _classify_mesh_topology() IS the Strategy Pattern; ABC formal version documented in §15.12 as refactor target when script > 1500 lines | PhD Research Project Architecture Guide absorbed; Open/Closed principle: new MeshClass requires only new case arm, no pipeline changes |
+| 2026-02-28 | Testing | Property-based testing with hypothesis | hypothesis @given tests for spectral DNA rotation-invariance documented in §15.12; install in bpy_env via pip install hypothesis | PhD Architecture Guide §III absorbed; Shape DNA must be isometry-invariant (Reuter 2006) — property test verifies mathematical invariant not just code behaviour |
+| 2026-02-28 | Debugging | ViL debug snapshot infrastructure | `--debug-snapshots` flag + `_DebugSession` dataclass + `_export_debug_snapshot()` + `_render_curvature_heatmap()` added to apply_texture_bpy.py; snapshots at post_weld / post_classify / post_displace stages with JSON telemetry | AI reads session_summary.json to verify mesh_class + feature values without human; heatmap PNG (EEVEE vertex-colour K_v) is optional via `--render-heatmap` |
+| 2026-02-28 | Debugging | ai_debug_pipeline.py autonomous harness | `scripts/ai_debug_pipeline.py` defines TEST_CASES (POCO X6=FLAT_SHELL, vacuum nozzle=REVOLUTION, elvish panel=FLAT_SHELL, crevice nozzle=PRISMATIC); runs Blender --debug-snapshots, validates actual vs expected class, writes ai_debug_report.txt with REMEDIATION HINTS | No human needed; AI runs script, reads report, adjusts `_classify_mesh_topology()` thresholds; 3MF files in C:\Users\User\source\repos\3DPrinting\ used read-only via zipfile extraction |
+| 2026-02-28 | Debugging | UV stretch metrics added to debug snapshots | `_calculate_uv_stretch_metrics()` added to apply_texture_bpy.py; called at post_displace stage; populates `uv_stretch` in session_summary.json with mean_stretch, max_stretch, dirichlet_energy, high_energy_frac | E_D > 2.0 = wrong projection mode; high_energy_frac > 0.20 = seam placement issue; Levy 2002 + Sander 2001 L2 stretch metric |
+| 2026-02-28 | Debugging | Checkerboard diagnostic render added | `_render_checkerboard_diagnostic()` added to apply_texture_bpy.py; 8x8 Blender Checker Texture node rendered with EEVEE; shows UV island quality as aspect-ratio of checker cells | Replaces need for manual Blender UV editor inspection; parallels uv_diagnostic.glsl CHECKERBOARD mode |
+| 2026-02-28 | Debugging | GLSL UV diagnostic shader created | `resources/shaders/uv_diagnostic.glsl` implements Jacobian heatmap via dFdx/dFdy approximation; 3 modes: CHECKERBOARD/HEATMAP/HYBRID; yellow ring at 15% threshold | Screen-space Jacobian (|dx|/|dy|) gives per-fragment stretch without CPU readback; green=conformal, red=compression, blue=expansion |
+| 2026-02-28 | Debugging | ai_texture_critic.py autonomous quality analyser | `scripts/ai_texture_critic.py` reads session_summary.json, applies decision tree (E_D, stretch, topology, weld), writes ai_texture_critic_report.txt with SEVERITY/ROOT_CAUSE/REMEDIATION | No vision required - pure metric analysis; covers all known failure modes in UV pipeline |
+| 2026-02-28 | Blender Pipeline | --render-heatmap flag added | New argparse flag activates both curvature heatmap AND checkerboard diagnostic render at each snapshot stage; render_heatmap kwarg threaded through _apply_displacement chain | Opt-in because EEVEE render adds ~5-15s per stage; separate from --debug-snapshots which runs always |
+| 2026-02-28 | Debugging | Build DLL permission fix | QIDIStudio.dll locked by running process causes CMake install to fail with Permission denied; always Stop-Process before rebuild | Start-Job background job pattern: kill first, sleep 2, then cmake --build in background job writing to build_out.txt |
+| 2026-02-28 | Debugging | ai_texture_critic.py Bug 1: UTF-8 BOM | json.load() raises JSONDecodeError on UTF-8-BOM files (PowerShell Out-File writes BOM by default); fix: open(..., encoding="utf-8-sig") is backward-compatible with plain UTF-8 | apply_texture_bpy.py writes no-BOM; critic must be defensive for user-edited files |
+| 2026-02-28 | Debugging | ai_texture_critic.py Bug 2: Windows CP1252 | print() raises UnicodeEncodeError on Greek letters (χ, λ, ∇) on Windows console default CP1252; fix: sys.stdout.reconfigure(encoding="utf-8", errors="replace") at start of main() | Must add this pattern to ANY script using Unicode math symbols on Windows |
+| 2026-02-28 | Debugging | ai_texture_critic.py Bug 3: duplicate stage analysis | _analyse_topology() was called from BOTH post_classify AND post_displace branches in _analyse_stage(), producing duplicate WARNING/ERROR entries; fix: removed _analyse_topology() call from post_displace | post_displace should only run _analyse_uv_stretch(); topology analysis only runs once at post_classify |
+| 2026-02-28 | Debugging | apply_texture_bpy.py projection field mismatch | _export_debug_snapshot() wrote "projection":"uv" for LSCM mode; ai_texture_critic.py checked proj == "object" as the non-UV flag — "uv" caused UV stretch to warn about missing layer; fix: write "lscm" not "uv" | Use "lscm"/"object" in JSON to match terminology used everywhere else in pipeline |

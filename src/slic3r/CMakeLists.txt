@@ -244,6 +244,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/GUI_Factories.hpp
     GUI/TextureParamsDialog.cpp
     GUI/TextureParamsDialog.hpp
+    GUI/SkinBrowserDialog.cpp
+    GUI/SkinBrowserDialog.hpp
     GUI/GUI_ObjectList.cpp
     GUI/GUI_ObjectList.hpp
     GUI/GUI_ObjectLayers.cpp
