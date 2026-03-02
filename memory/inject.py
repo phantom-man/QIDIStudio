@@ -110,6 +110,64 @@ def _format_full(rows: list[dict]) -> str:
 # Full text is always available via: python memory/inject.py --query '<topic>'
 _CONTENT_MAX = 1500
 
+# Cosine distance threshold for near-duplicate suppression.
+# LanceDB returns L2 distance on normalised vectors, so L2²=2(1-cosine_sim).
+# _distance < 0.05  →  cosine_sim > 0.975  →  essentially identical content.
+_DEDUP_DISTANCE = 0.05
+# Minimum characters of content overlap to count as a duplicate
+# (guards against very short topics that accidentally match).
+_DEDUP_MIN_LEN = 80
+
+
+def _dedup_results(rows: list[dict]) -> list[dict]:
+    """
+    Remove near-duplicate and exact-duplicate results from a query result list.
+
+    Two passes:
+      1. Exact fingerprint: skip any row whose first _DEDUP_MIN_LEN chars of
+         content are identical to an already-kept row (catches the common case
+         of the same learning stored as both a /learnings row and embedded
+         inside a /section chunk).
+      2. Near-duplicate by _distance: if two rows are within _DEDUP_DISTANCE
+         of each other in vector space AND share a content prefix, keep only
+         the one with the lower (better) distance.
+
+    Both passes are O(n²) but n≤20 so it's trivially fast.
+    """
+    kept: list[dict] = []
+    fingerprints: set[str] = set()
+
+    for row in rows:
+        content = (row.get("content") or row.get("decision") or "").strip()
+        fp = content[:_DEDUP_MIN_LEN].lower()
+
+        # Pass 1 — exact content fingerprint
+        if len(fp) >= _DEDUP_MIN_LEN and fp in fingerprints:
+            continue
+
+        # Pass 2 — near-duplicate by vector distance
+        dist = row.get("_distance") or row.get("_score") or 1.0
+        is_near_dup = False
+        for kept_row in kept:
+            kept_dist = kept_row.get("_distance") or kept_row.get("_score") or 1.0
+            if abs(dist - kept_dist) < _DEDUP_DISTANCE:
+                kept_fp = (
+                    (kept_row.get("content") or kept_row.get("decision") or "")
+                    .strip()[:_DEDUP_MIN_LEN]
+                    .lower()
+                )
+                if fp and kept_fp and fp == kept_fp:
+                    is_near_dup = True
+                    break
+
+        if is_near_dup:
+            continue
+
+        fingerprints.add(fp)
+        kept.append(row)
+
+    return kept
+
 
 def _format_query_results(rows: list[dict], query: str) -> str:
     """Full content of semantically matching chunks (content truncated to _CONTENT_MAX)."""
@@ -177,6 +235,7 @@ def main() -> None:
         elif query_text:
             # HOOK PATH: semantic search — single ANN query, no full table scan
             matches = query_similar(query_text, n=args.n)
+            matches = _dedup_results(matches)
             context = _format_query_results(matches, query_text)
 
         else:
