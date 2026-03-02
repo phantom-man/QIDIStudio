@@ -334,15 +334,16 @@ def extract_learnings_table(path: Path, source: str) -> list[dict]:
 
 def sync_to_lancedb(rows: list[dict]) -> tuple[int, int]:
     """
-    Batch-upsert all rows in a single GCS write pair.
+    Full-replace sync: deletes ALL store rows first, then adds current rows.
 
-    Old approach: N × (table.delete + table.add) = 400+ GCS round trips for 200 rows.
-    New approach: one batch embed → one IN-delete → one table.add = ~3 GCS ops total.
+    Using replace_all=True eliminates orphan rows that accumulate when section
+    headings are renamed or removed from source docs. Every extract.py run
+    produces a clean snapshot of exactly the current knowledge base.
     """
     from memory.store import batch_upsert
 
     try:
-        inserted, skipped = batch_upsert(rows)
+        inserted, skipped = batch_upsert(rows, replace_all=True)
     except Exception as e:
         print(f"  [ERROR] batch_upsert failed: {e}", file=sys.stderr)
         inserted, skipped = 0, len(rows)

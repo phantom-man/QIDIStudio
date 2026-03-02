@@ -162,13 +162,15 @@ def upsert_learning(
     return row_id
 
 
-def batch_upsert(rows: list[dict]) -> tuple[int, int]:
+def batch_upsert(rows: list[dict], replace_all: bool = False) -> tuple[int, int]:
     """
     Upsert many rows in a single GCS round-trip pair.
 
     Instead of N×(delete+add) calls, this does:
       1. One batch embed pass over all topics+decisions (GPU/CPU parallelism)
-      2. One DELETE with an IN (...) clause covering all topics
+      2a. If replace_all=True: DELETE everything from the table (eliminates orphan rows
+          from stale/renamed topics in old doc versions) — use this for full syncs.
+      2b. If replace_all=False: DELETE WHERE topic IN (...) covering all new topics.
       3. One table.add() writing all rows as a single fragment
 
     Returns (inserted, skipped).
@@ -194,19 +196,31 @@ def batch_upsert(rows: list[dict]) -> tuple[int, int]:
         show_progress_bar=False,
     )
 
-    # ── 2. Delete all existing rows for these topics in one shot ──────────
-    escaped = [t["topic"].replace("'", "''") for t in valid]
-    in_clause = ", ".join(f"'{t}'" for t in escaped)
-    try:
-        table.delete(f"topic IN ({in_clause})")
-    except Exception:
-        # GCS LanceDB may reject large IN clauses — fall back to per-row deletes.
-        # This is slower but guarantees no row accumulation over repeated runs.
-        for esc_topic in escaped:
+    # ── 2. Delete rows ───────────────────────────────────────────────────────
+    if replace_all:
+        # Full table rebuild — delete everything so orphan rows from old doc versions
+        # don't accumulate. Safe because we're about to re-add all current rows.
+        try:
+            table.delete("id IS NOT NULL")
+        except Exception:
             try:
-                table.delete(f"topic = '{esc_topic}'")
+                table.delete("1 = 1")
             except Exception:
                 pass
+    else:
+        # Targeted delete — only remove rows for topics we're replacing.
+        escaped = [t["topic"].replace("'", "''") for t in valid]
+        in_clause = ", ".join(f"'{t}'" for t in escaped)
+        try:
+            table.delete(f"topic IN ({in_clause})")
+        except Exception:
+            # GCS LanceDB may reject large IN clauses — fall back to per-row deletes.
+            # This is slower but guarantees no row accumulation over repeated runs.
+            for esc_topic in escaped:
+                try:
+                    table.delete(f"topic = '{esc_topic}'")
+                except Exception:
+                    pass
 
     # ── 3. Build all rows and write in a single add() call ────────────────
     all_rows = []
