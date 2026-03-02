@@ -17,7 +17,7 @@ Embedding model: all-MiniLM-L6-v2 (local, no API key)
 
 import os
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -59,13 +59,23 @@ def _get_embedder() -> SentenceTransformer:
     return _embedder
 
 
+# GCS storage options — improve reliability for remote tables (v0.29+/v0.30)
+_GCS_STORAGE_OPTIONS = {
+    "timeout": "60s",
+    "connect_timeout": "30s",
+    "max_retries": "5",
+}
+
+
 def _get_db():
     global _db
     if _db is None:
         # Support both local paths and remote URIs (gs://, s3://, az://)
         if LANCEDB_PATH.startswith(("gs://", "s3://", "az://", "gcs://")):
-            uri = LANCEDB_PATH
-            _db = lancedb.connect(uri)
+            _db = lancedb.connect(
+                LANCEDB_PATH,
+                storage_options=_GCS_STORAGE_OPTIONS,
+            )
         else:
             repo_root = Path(__file__).parents[1]
             db_path = repo_root / LANCEDB_PATH
@@ -95,13 +105,9 @@ def _get_table():
         return _table
 
     db = _get_db()
+    # Open-first pattern: avoids list_tables() membership issues on GCS
+    # (list_tables() may return objects that don't compare equal to plain strings).
     try:
-        resp = db.list_tables()  # lancedb >= 0.5 — returns ListTablesResponse
-        existing = list(resp.tables) if hasattr(resp, "tables") else list(resp)
-    except AttributeError:
-        existing = db.table_names()  # older API
-
-    if LANCEDB_TABLE in existing:
         t = db.open_table(LANCEDB_TABLE)
         # Schema migration: if 'content' column missing, drop and recreate
         if "content" not in t.schema.names:
@@ -109,7 +115,8 @@ def _get_table():
             _table = db.create_table(LANCEDB_TABLE, schema=_SCHEMA)
         else:
             _table = t
-    else:
+    except Exception:
+        # Table does not exist yet — create it fresh
         _table = db.create_table(LANCEDB_TABLE, schema=_SCHEMA)
 
     return _table
@@ -295,6 +302,104 @@ def count() -> int:
             return 0
 
 
+def maintenance(
+    compact: bool = True,
+    vacuum_days: int = 7,
+) -> dict:
+    """Compact small GCS fragments and prune old table versions.
+
+    Run once daily (Cloud Function / cron) to control GCS storage costs.
+
+    Args:
+        compact:     Merge small fragment files into larger ones (improves
+                     read performance on GCS when many tiny adds have occurred).
+        vacuum_days: Delete table versions older than this many days from GCS.
+                     Set to 0 to skip vacuuming.  Minimum safe value is 1.
+
+    Returns dict with keys: version (int), compacted (bool), vacuumed (bool).
+    """
+    table = _get_table()
+    result = {"version": None, "compacted": False, "vacuumed": False}
+
+    if compact:
+        try:
+            table.compact_files()
+            result["compacted"] = True
+        except Exception as exc:
+            print(f"[maintenance] compact_files failed: {exc}")
+
+    if vacuum_days > 0:
+        try:
+            table.vacuum(older_than=timedelta(days=vacuum_days))
+            result["vacuumed"] = True
+        except Exception as exc:
+            print(f"[maintenance] vacuum failed: {exc}")
+
+    try:
+        result["version"] = table.version()
+    except Exception:
+        pass
+
+    return result
+
+
+# ── Time Travel (LanceDB v0.29+ / v0.30+) ─────────────────────────────────────
+
+
+def current_version() -> Optional[int]:
+    """Return the current manifest version number of the table on GCS."""
+    try:
+        return _get_table().version()
+    except Exception:
+        return None
+
+
+def open_at_version(version: int):
+    """Return a Table pinned to a specific historical version (read-only snapshot).
+
+    Usage:
+        snap = open_at_version(5)
+        rows = snap.to_arrow().to_pylist()
+
+    Safe for agents: the main `_table` singleton is NOT replaced, so normal writes
+    continue against the current HEAD.  Snapshots are read-only.
+    """
+    db = _get_db()
+    return db.open_table(LANCEDB_TABLE, version=version)
+
+
+def open_at_timestamp(timestamp: str):
+    """Return a Table pinned to a specific ISO-8601 timestamp (read-only snapshot).
+
+    Usage:
+        snap = open_at_timestamp("2026-03-01T12:00:00Z")
+        rows = snap.to_arrow().to_pylist()
+    """
+    db = _get_db()
+    return db.open_table(LANCEDB_TABLE, timestamp=timestamp)
+
+
+def query_similar_at_version(
+    query_text: str,
+    version: int,
+    n: int = 10,
+    category: Optional[str] = None,
+) -> list[dict]:
+    """Run a vector search against a historical version of the table.
+
+    Useful for auditing what an agent saw at a prior point in time.
+    """
+    snap = open_at_version(version)
+    vector = embed(query_text)
+    try:
+        q = snap.search(vector).limit(n)
+        if category:
+            q = q.where(f"category = '{category}'")
+        return q.to_list()
+    except Exception:
+        return []
+
+
 if __name__ == "__main__":
     if LANCEDB_PATH.startswith(("gs://", "s3://", "az://", "gcs://")):
         print(f"LanceDB at : {LANCEDB_PATH}")
@@ -303,6 +408,7 @@ if __name__ == "__main__":
     print(f"Table      : {LANCEDB_TABLE}")
     print(f"Rows       : {count()}")
     results = query_similar("cmake build command", n=3)
-    print(f"Sample query 'cmake build command' → {len(results)} results")
+    print(f"Sample query 'cmake build command' -> {len(results)} results")
     for r in results:
-        print(f"  [{r.get('category')}] {r.get('topic')[:80]}")
+        topic = (r.get("topic") or "")[:80].encode("ascii", errors="replace").decode()
+        print(f"  [{r.get('category')}] {topic}")
