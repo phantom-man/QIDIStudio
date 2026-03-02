@@ -2,10 +2,10 @@
 agents/phd_pipeline.py — Board of Directors Knowledge Acquisition Pipeline.
 
 Inspired by the PhD-level multi-agent acquisition pattern:
-  Librarian  → deep RAG retrieval + Tavily cross-domain search
-  Skeptic    → Popperian falsification + edge-case proof attempts
+  Librarian   → deep RAG retrieval + google_search cross-domain
+  Skeptic     → Popperian falsification + edge-case proof attempts
   Synthesizer → cross-domain theory unification + isomorphism detection
-  Engineer   → code execution + regression verification (re-uses builder/verifier)
+  Engineer    → code execution + regression verification (re-uses builder/verifier)
 
 RAML (Retrieval-Augmented Machine Learning) pattern:
   Every failure trace is stored in LanceDB. New research cycles begin by
@@ -21,104 +21,22 @@ Entry point:
 
 from __future__ import annotations
 
-import json
-import os
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langgraph.prebuilt import create_react_agent
 
 # ── Environment ───────────────────────────────────────────────────────────────
 
 REPO_ROOT = Path(__file__).parents[1]
 load_dotenv(REPO_ROOT / ".env", override=True)
 
-PROMPTS_DIR = REPO_ROOT / "agents" / "prompts"
+# ── Agent registry (single source of truth — no duplication) ─────────────────
 
-_GCP_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "crafty-hook-483415-b3")
-_GCP_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
-
-# ── Tool imports ──────────────────────────────────────────────────────────────
-
-from agents.tools import (  # noqa: E402
-    memory_read,
-    memory_write,
-    file_read,
-    file_search,
-    run_command,
-)
-
-# Import tavily_search if available (added in tools.py)
-try:
-    from agents.tools import tavily_search as _tavily_tool  # type: ignore
-
-    _HAS_TAVILY = True
-except ImportError:
-    _HAS_TAVILY = False
-
-# ── Model factory ─────────────────────────────────────────────────────────────
-
-
-def _llm(
-    model: str = "gemini-2.5-flash", temperature: float = 0.0
-) -> ChatGoogleGenerativeAI:
-    return ChatGoogleGenerativeAI(
-        model=model,
-        temperature=temperature,
-        project=_GCP_PROJECT,
-        location=_GCP_LOCATION,
-    )
-
-
-# ── Prompt loader ─────────────────────────────────────────────────────────────
-
-
-def _load_prompt(name: str) -> str:
-    p = PROMPTS_DIR / f"{name}.md"
-    if not p.exists():
-        raise FileNotFoundError(f"Missing prompt: {p}")
-    return p.read_text(encoding="utf-8")
-
-
-# ── Board of Directors agents ─────────────────────────────────────────────────
-
-
-def make_librarian() -> Any:
-    """
-    Librarian: Gemini Flash + memory_read + tavily_search (if available) + file_read.
-    Performs memory-first retrieval then cross-domain web search.
-    """
-    tools = [memory_read, file_read, file_search]
-    if _HAS_TAVILY:
-        tools.append(_tavily_tool)
-    llm = _llm("gemini-2.5-flash")
-    system = _load_prompt("librarian")
-    return create_react_agent(llm, tools=tools, prompt=system)
-
-
-def make_skeptic() -> Any:
-    """
-    Skeptic: Gemini Flash + memory_read + file_read + run_command for code tests.
-    Attempts Popperian falsification of Librarian output.
-    """
-    tools = [memory_read, file_read, file_search, run_command]
-    llm = _llm("gemini-2.5-flash")
-    system = _load_prompt("skeptic")
-    return create_react_agent(llm, tools=tools, prompt=system)
-
-
-def make_synthesizer() -> Any:
-    """
-    Synthesizer: Gemini 2.5 Pro + memory_write + all read tools.
-    Resolves Librarian/Skeptic debate into a Unified Theory and persists it.
-    """
-    tools = [memory_read, memory_write, file_read, file_search]
-    llm = _llm("gemini-2.5-pro")
-    system = _load_prompt("synthesizer")
-    return create_react_agent(llm, tools=tools, prompt=system)
+from agents.agents import get_agent  # noqa: E402
+from agents.tools import memory_write  # noqa: E402
 
 
 # ── RAML helper ───────────────────────────────────────────────────────────────
@@ -130,9 +48,6 @@ def _retrieve_prior_failures(question: str, n: int = 4) -> str:
     Returns a formatted summary string.
     """
     try:
-        import sys
-
-        sys.path.insert(0, str(REPO_ROOT))
         from memory.store import query_similar  # type: ignore
 
         rows = query_similar(f"failure OR error OR broken: {question}", n=n)
@@ -149,10 +64,13 @@ def _retrieve_prior_failures(question: str, n: int = 4) -> str:
 # ── Dialectical loop ──────────────────────────────────────────────────────────
 
 
-def _invoke_agent(agent: Any, message: str, label: str) -> str:
+def _invoke_agent(agent: Any, message: str, label: str, config: dict | None = None) -> str:
     """Invoke a react agent and extract the final assistant message."""
     try:
-        result = agent.invoke({"messages": [{"role": "user", "content": message}]})
+        kwargs: dict[str, Any] = {"input": {"messages": [{"role": "user", "content": message}]}}
+        if config:
+            kwargs["config"] = config
+        result = agent.invoke(**kwargs)
         # LangGraph returns {"messages": [...]}
         msgs = result.get("messages", [])
         for msg in reversed(msgs):
@@ -178,7 +96,7 @@ def run_phd_research(
     question   : The research question or problem statement.
     max_rounds : How many Librarian→Skeptic→Synthesizer cycles to run.
     persist    : Whether to write the final synthesis to LanceDB via scribe.
-    thread_id  : Optional trace identifier for LangSmith.
+    thread_id  : Optional trace identifier for LangSmith (auto-generated if None).
 
     Returns
     -------
@@ -189,23 +107,29 @@ def run_phd_research(
       "skeptic":     str,   # Raw Skeptic verdict (last round)
       "rounds":      int,
       "persisted":   bool,
+      "thread_id":   str,
     }
     """
-    if thread_id:
-        os.environ["LANGCHAIN_TAGS"] = thread_id
+    tid = thread_id or f"phd-{uuid.uuid4().hex[:8]}"
+    run_config = {
+        "configurable": {"thread_id": tid},
+        "run_name": "phd-research",
+        "tags": ["phd-pipeline"],
+        "metadata": {"question_prefix": question[:80]},
+    }
 
     print(f"\n{'='*60}")
-    print(f"PhD PIPELINE: {question[:80]}")
+    print(f"PhD PIPELINE: {question[:80]}  [thread={tid}]")
     print(f"{'='*60}")
 
     # RAML: load prior failure context
     raml_context = _retrieve_prior_failures(question)
     print(f"\n[RAML] {raml_context[:200]}")
 
-    # Build agents once (stateless, re-entrant)
-    librarian = make_librarian()
-    skeptic = make_skeptic()
-    synthesizer = make_synthesizer()
+    # Resolve agents from shared registry (stateless, safe to reuse)
+    librarian = get_agent("librarian")
+    skeptic = get_agent("skeptic")
+    synthesizer = get_agent("synthesizer")
 
     librarian_out = ""
     skeptic_out = ""
@@ -226,7 +150,7 @@ def run_phd_research(
                 f"\n\nPREVIOUS SYNTHESIS (challenge it):\n{synthesis_out[:500]}"
             )
         print("[Librarian] Searching...")
-        librarian_out = _invoke_agent(librarian, lib_prompt, "Librarian")
+        librarian_out = _invoke_agent(librarian, lib_prompt, "Librarian", run_config)
         print(f"[Librarian] {librarian_out[:200]}...")
 
         # 2. Skeptic: falsify
@@ -236,7 +160,7 @@ def run_phd_research(
             "Attempt to falsify every claim. Provide verdict + required fixes."
         )
         print("[Skeptic] Falsifying...")
-        skeptic_out = _invoke_agent(skeptic, skep_prompt, "Skeptic")
+        skeptic_out = _invoke_agent(skeptic, skep_prompt, "Skeptic", run_config)
         print(f"[Skeptic] {skeptic_out[:200]}...")
 
         # 3. Synthesizer: unify
@@ -248,7 +172,7 @@ def run_phd_research(
             "Call memory_write to persist this synthesis."
         )
         print("[Synthesizer] Synthesizing...")
-        synthesis_out = _invoke_agent(synthesizer, synth_prompt, "Synthesizer")
+        synthesis_out = _invoke_agent(synthesizer, synth_prompt, "Synthesizer", run_config)
         print(f"[Synthesizer] {synthesis_out[:200]}...")
 
         # Early exit if Skeptic says ROBUST
@@ -258,20 +182,19 @@ def run_phd_research(
 
         time.sleep(1)  # Rate-limit between rounds
 
-    result = {
+    result: dict[str, Any] = {
         "question": question,
         "synthesis": synthesis_out,
         "librarian": librarian_out,
         "skeptic": skeptic_out,
         "rounds": rnd,
         "persisted": False,
+        "thread_id": tid,
     }
 
     # Scribe: persist synthesis to LanceDB
     if persist and synthesis_out:
         try:
-            from agents.tools import memory_write  # noqa: F811
-
             topic = question[:60]
             write_result = memory_write.invoke(
                 {

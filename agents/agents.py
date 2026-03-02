@@ -5,10 +5,13 @@ Loads system prompts from LangSmith Hub (or local fallback), wraps each with
 a Gemini model via ChatGoogleGenerativeAI, and returns create_react_agent instances.
 
 Model assignments:
-  researcher  — gemini-2.5-flash + google_search + url_context (built-in tools)
-  builder     — gemini-2.5-pro + code_execution (best reasoning)
-  verifier    — gemini-2.5-flash (fast, structured output)
-  scribe      — gemini-2.5-flash (fast, low cost)
+  researcher  — gemini-2.5-flash  (web search via google_search tool)
+  builder     — gemini-2.5-pro    (best reasoning for implementation)
+  verifier    — gemini-2.5-flash  (fast, structured verdict)
+  scribe      — gemini-2.5-flash  (fast, low cost)
+  librarian   — gemini-2.5-flash  (deep RAG + web)
+  skeptic     — gemini-2.5-flash  (falsification)
+  synthesizer — gemini-2.5-pro    (theory unification)
 """
 
 from __future__ import annotations
@@ -59,21 +62,30 @@ def load_prompt(agent_id: str) -> str:
     try:
         client = _get_client()
         prompt_obj = client.pull_prompt(f"qidi-{agent_id}")
-        # Hub prompt is a ChatPromptTemplate — extract system message text
-        msgs = prompt_obj.messages if hasattr(prompt_obj, "messages") else []
-        for msg in msgs:
-            content = getattr(msg, "content", None) or getattr(msg, "prompt", {})
-            if isinstance(content, str) and content.strip():
-                return content
-        # Fallback: stringify the template
+        # Render the template (empty vars) so we get concrete message objects,
+        # then extract the first non-empty string which is the system message.
+        try:
+            rendered = prompt_obj.invoke({})
+            messages = getattr(rendered, "messages", [])
+            for msg in messages:
+                content = getattr(msg, "content", "")
+                if isinstance(content, str) and content.strip():
+                    return content
+        except Exception:
+            pass
+        # Last-resort: stringify the template object
         return str(prompt_obj)
-    except Exception:
-        # Use local file as fallback
+    except Exception as exc:
+        import warnings
+        warnings.warn(
+            f"LangSmith Hub prompt load failed for '{agent_id}': {exc} — using local fallback.",
+            stacklevel=2,
+        )
         local = PROMPTS_DIR / f"{agent_id}.md"
         if local.exists():
             return local.read_text(encoding="utf-8")
         raise RuntimeError(
-            f"No prompt found for agent '{agent_id}' (Hub and local both failed)"
+            f"No prompt found for agent '{agent_id}' (Hub failed: {exc}; local file missing)"
         )
 
 
@@ -98,29 +110,21 @@ def _make_llm(
 
 # ── Agent factory ─────────────────────────────────────────────────────────────
 
-# Built-in Gemini tool specs — passed at model construction so LangGraph's
-# tool-count validator only sees our custom LangChain tools.
-_GEMINI_SEARCH_TOOLS = [{"google_search": {}}, {"url_context": {}}]
-_GEMINI_CODE_TOOLS = [{"code_execution": {}}]
-
-
 def make_researcher() -> Any:
     """
-    Researcher: Gemini 2.5 Flash + Google Search + URL Context (built-in, constructor-level)
-    plus our local memory_read / file_read tools.
+    Researcher: Gemini 2.5 Flash + google_search (explicit ReAct tool, ADC auth).
+    Web search is fully visible in LangGraph trace and LangSmith runs.
     """
-    # Built-in tools configured at model level — not via bind_tools — so
-    # LangGraph create_react_agent only counts RESEARCHER_TOOLS.
-    llm = _make_llm("gemini-2.5-flash", model_kwargs={"tools": _GEMINI_SEARCH_TOOLS})
+    llm = _make_llm("gemini-2.5-flash")
     system = load_prompt("researcher")
     return create_react_agent(llm, tools=RESEARCHER_TOOLS, prompt=system)
 
 
 def make_builder() -> Any:
     """
-    Builder: Gemini 2.5 Pro + Code Execution (best for complex implementation).
+    Builder: Gemini 2.5 Pro — best reasoning + code via run_command tool.
     """
-    llm = _make_llm("gemini-2.5-pro", model_kwargs={"tools": _GEMINI_CODE_TOOLS})
+    llm = _make_llm("gemini-2.5-pro")
     system = load_prompt("builder")
     return create_react_agent(llm, tools=BUILDER_TOOLS, prompt=system)
 

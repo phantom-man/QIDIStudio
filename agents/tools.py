@@ -3,6 +3,10 @@ agents/tools.py — Shared tools for all QIDIStudio sub-agents.
 
 All tools are @tool decorated functions compatible with LangChain/LangGraph
 create_react_agent. They share the same LanceDB instance as inject.py/extract.py.
+
+Web search: google_search uses Google Grounding via Vertex AI (ADC auth, no
+extra API key). Tavily has been removed — Google Grounding is higher quality,
+free under ADC, and fully traceable in the ReAct loop.
 """
 
 from __future__ import annotations
@@ -12,41 +16,39 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
-from langchain.tools import tool
+from langchain_core.tools import tool  # canonical import; langchain.tools re-exports this
 
-# Tavily search (optional — requires TAVILY_API_KEY in .env)
-try:
-    from langchain_community.tools.tavily_search import (
-        TavilySearchResults as _TavilyBase,
-    )
-
-    _TAVILY_AVAILABLE = True
-except ImportError:
-    _TAVILY_AVAILABLE = False
-
-# ── Paths ────────────────────────────────────────────────────────────────────
+# ── Paths & GCP config ────────────────────────────────────────────────────────
 
 REPO_ROOT = Path(__file__).parents[1]
 MEMORY_PY = REPO_ROOT / "memory_env" / "Scripts" / "python.exe"
 INJECT_PY = REPO_ROOT / "memory" / "inject.py"
 EXTRACT_PY = REPO_ROOT / "memory" / "extract.py"
 
+_GCP_PROJECT  = os.environ.get("GOOGLE_CLOUD_PROJECT",  "crafty-hook-483415-b3")
+_GCP_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
 
-# ── LanceDB helpers ───────────────────────────────────────────────────────────
+# Ensure memory/ is importable — done once at module load, not per call.
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+
+# ── LanceDB store — module-level cache ───────────────────────────────────────
+
+_store_fns: tuple | None = None  # (query_similar, upsert, count)
 
 
 def _get_store():
-    """Import memory.store lazily (requires memory_env on sys.path)."""
-    sys.path.insert(0, str(REPO_ROOT))
-    from memory.store import (
-        query_similar,
-        upsert,
-        count as store_count,
-    )  # noqa: PLC0415
+    """Return cached (query_similar, upsert, count) — imported once."""
+    global _store_fns
+    if _store_fns is None:
+        from memory.store import count as _count
+        from memory.store import query_similar as _qs
+        from memory.store import upsert as _up
 
-    return query_similar, upsert, store_count
+        _store_fns = (_qs, _up, _count)
+    return _store_fns
 
 
 # ── Tools ────────────────────────────────────────────────────────────────────
@@ -60,8 +62,8 @@ def memory_read(query: str, n: int = 6) -> str:
     Use this BEFORE any web search — knowledge base may already have the answer.
     """
     try:
-        query_similar, _, _ = _get_store()
-        rows = query_similar(query, n=n)
+        qs, _, _ = _get_store()
+        rows = qs(query, n=n)
         results = [
             {
                 "topic": r.get("topic", ""),
@@ -96,16 +98,15 @@ def memory_write(
     Returns: confirmation with new row count.
     """
     try:
-        _, upsert, store_count = _get_store()
-        upsert(
+        _, up, cnt = _get_store()
+        up(
             topic=topic,
             decision=decision,
             content=content,
             source=f"agents/{source}",
             category=category,
         )
-        n = store_count()
-        return json.dumps({"status": "ok", "total_rows": n})
+        return json.dumps({"status": "ok", "total_rows": cnt()})
     except Exception as exc:
         return json.dumps({"status": "error", "error": str(exc)})
 
@@ -134,42 +135,54 @@ def file_read(path: str, start_line: int = 1, end_line: int = 120) -> str:
 
 
 @tool
-def tavily_search(query: str, max_results: int = 5) -> str:
+def google_search(query: str, n_sources: int = 5) -> str:
     """
-    Live web search via Tavily — use for ArXiv papers, GitHub repos, technical docs.
-    Always call memory_read FIRST; use this only when the knowledge base misses.
-    query:       natural language or academic search query.
-    max_results: number of results to return (default 5, max 10).
-    Returns JSON list of {title, url, content} hits.
+    Live web search via Google Grounding (Vertex AI, ADC auth — no extra API key).
+    Always call memory_read FIRST; use this only when the knowledge base lacks the answer.
+    query:     natural language, academic, or code-search query.
+    n_sources: number of grounding source citations to return (default 5).
+    Returns JSON with response text and source URLs.
     """
-    if not _TAVILY_AVAILABLE:
+    try:
+        from google import genai  # pip install google-genai
+        from google.genai import types
+
+        client = genai.Client(
+            vertexai=True,
+            project=_GCP_PROJECT,
+            location=_GCP_LOCATION,
+        )
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=f"Search and summarize concisely: {query}",
+            config=types.GenerateContentConfig(
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+                temperature=0.0,
+            ),
+        )
+        sources: list[dict] = []
+        if response.candidates:
+            meta = response.candidates[0].grounding_metadata
+            chunks = getattr(meta, "grounding_chunks", []) if meta else []
+            for chunk in chunks[:n_sources]:
+                web = getattr(chunk, "web", None)
+                if web:
+                    sources.append(
+                        {
+                            "title": getattr(web, "title", ""),
+                            "uri": getattr(web, "uri", ""),
+                        }
+                    )
         return json.dumps(
             {
-                "error": "tavily-python not installed. Run: pip install tavily-python langchain-community"
-            }
-        )
-    api_key = os.environ.get("TAVILY_API_KEY", "")
-    if not api_key:
-        return json.dumps({"error": "TAVILY_API_KEY not set in .env"})
-    try:
-        searcher = _TavilyBase(api_key=api_key, max_results=min(max_results, 10))
-        raw = searcher.invoke(query)
-        # Normalise to list of dicts
-        results = []
-        for item in raw if isinstance(raw, list) else [raw]:
-            if isinstance(item, dict):
-                results.append(
-                    {
-                        "title": item.get("title", ""),
-                        "url": item.get("url", ""),
-                        "content": item.get("content", "")[:600],
-                    }
-                )
-        return json.dumps(
-            {"query": query, "hits": len(results), "results": results}, indent=2
+                "query": query,
+                "response": response.text or "",
+                "sources": sources,
+            },
+            indent=2,
         )
     except Exception as exc:
-        return json.dumps({"error": str(exc)})
+        return json.dumps({"error": str(exc), "query": query})
 
 
 @tool
@@ -256,12 +269,14 @@ def reindex_memory() -> str:
     out_path = REPO_ROOT / "agents" / "_extract_out.txt"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     try:
+        fh = open(out_path, "w")  # noqa: WPS515
         proc = subprocess.Popen(
             [str(MEMORY_PY), str(EXTRACT_PY)],
-            stdout=open(out_path, "w"),
+            stdout=fh,
             stderr=subprocess.STDOUT,
             cwd=str(REPO_ROOT),
         )
+        fh.close()  # hand off fd to subprocess; safe to close after Popen
         return json.dumps(
             {
                 "status": "launched",
@@ -275,10 +290,11 @@ def reindex_memory() -> str:
 
 # ── Tool sets per agent ───────────────────────────────────────────────────────
 
-RESEARCHER_TOOLS = [memory_read, memory_write, file_read, file_search, tavily_search]
-BUILDER_TOOLS = [memory_read, file_read, file_search, run_command]
-VERIFIER_TOOLS = [memory_read, file_read, file_search]
-SCRIBE_TOOLS = [memory_read, memory_write, file_read, run_command, reindex_memory]
-LIBRARIAN_TOOLS = [memory_read, file_read, file_search, tavily_search]
-SKEPTIC_TOOLS = [memory_read, file_read, file_search, run_command]
+# google_search is uniform across all web-capable agents — same quality, same ADC auth.
+RESEARCHER_TOOLS  = [memory_read, memory_write, file_read, file_search, google_search]
+BUILDER_TOOLS     = [memory_read, file_read, file_search, run_command]
+VERIFIER_TOOLS    = [memory_read, file_read, file_search]
+SCRIBE_TOOLS      = [memory_read, memory_write, file_read, run_command, reindex_memory]
+LIBRARIAN_TOOLS   = [memory_read, file_read, file_search, google_search]
+SKEPTIC_TOOLS     = [memory_read, file_read, file_search, run_command]
 SYNTHESIZER_TOOLS = [memory_read, memory_write, file_read, file_search]

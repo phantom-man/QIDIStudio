@@ -31,10 +31,11 @@ from pathlib import Path
 from typing import Annotated, Any, Literal, TypedDict
 
 from dotenv import load_dotenv
-from langchain.messages import HumanMessage
+from langchain_core.messages import HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
+from langsmith import traceable
 from typing_extensions import NotRequired
 
 # ── Env ───────────────────────────────────────────────────────────────────────
@@ -42,14 +43,18 @@ from typing_extensions import NotRequired
 REPO_ROOT = Path(__file__).parents[1]
 load_dotenv(REPO_ROOT / ".env", override=True)
 
+# Enable LangSmith tracing. Override via LANGCHAIN_TRACING_V2 / LANGCHAIN_PROJECT in .env.
+os.environ.setdefault("LANGCHAIN_TRACING_V2", "true")
+os.environ.setdefault("LANGCHAIN_PROJECT", "qidistudio-agents")
+
 
 # ── State schema ─────────────────────────────────────────────────────────────
 
 class AgentTask(TypedDict):
-    agent_id:   str           # "researcher" | "builder" | "verifier" | "scribe"
-    task:       str           # specific instruction for that agent
-    context:    dict          # supporting context (file paths, facts, etc.)
-    depends_on: list[str]     # logical deps (informational only — enforced via graph topology)
+    agent_id:   str    # "researcher"|"builder"|"verifier"|"scribe"|"librarian"|"skeptic"|"synthesizer"
+    task:       str    # specific instruction for that agent
+    context:    dict   # supporting context (file paths, facts, etc.)
+    # NOTE: all tasks run as a parallel superstep — no sequential deps are enforced.
 
 
 class AgentResult(TypedDict):
@@ -102,10 +107,15 @@ _PLAN_SCHEMA = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "agent_id":   {"type": "string", "enum": ["researcher", "builder", "verifier", "scribe"]},
-                    "task":       {"type": "string"},
-                    "context":    {"type": "object"},
-                    "depends_on": {"type": "array", "items": {"type": "string"}},
+                    "agent_id": {
+                        "type": "string",
+                        "enum": [
+                            "researcher", "builder", "verifier", "scribe",
+                            "librarian", "skeptic", "synthesizer",
+                        ],
+                    },
+                    "task":    {"type": "string"},
+                    "context": {"type": "object"},
                 },
                 "required": ["agent_id", "task"],
             },
@@ -132,13 +142,23 @@ def plan(state: OrchestratorState) -> OrchestratorState:
     ]
     response = llm.invoke(messages)
     raw = response.content if isinstance(response.content, str) else response.text
-    plan_data = json.loads(raw)
+    try:
+        plan_data = json.loads(raw)
+    except json.JSONDecodeError:
+        import warnings
+        warnings.warn(
+            f"Director returned invalid JSON — falling back to single researcher task. "
+            f"raw={raw[:200]!r}",
+            stacklevel=2,
+        )
+        plan_data = {
+            "tasks": [{"agent_id": "researcher", "task": state["user_request"], "context": {}}]
+        }
     tasks: list[AgentTask] = [
         AgentTask(
             agent_id=t["agent_id"],
             task=t["task"],
             context=t.get("context", {}),
-            depends_on=t.get("depends_on", []),
         )
         for t in plan_data.get("tasks", [])
     ]
@@ -147,10 +167,9 @@ def plan(state: OrchestratorState) -> OrchestratorState:
 
 def dispatch(state: OrchestratorState) -> list[Send]:
     """
-    Fan-out all tasks to agent nodes in parallel via Send API.
-    Tasks with depends_on[] = [] run immediately (same superstep).
-    For tasks with deps, we run them all anyway — deps are informational in
-    this simple topology; for strict ordering, use subgraphs.
+    Fan-out all tasks to agent nodes in parallel via the Send API.
+    All tasks run in the same LangGraph superstep — true parallelism.
+    Task ordering is not enforced; decompose into independent units.
     """
     return [
         Send(task["agent_id"], SingleTaskState(task=task))
@@ -204,6 +223,18 @@ def verifier(state: SingleTaskState) -> OrchestratorState:
 
 def scribe(state: SingleTaskState) -> OrchestratorState:
     return _run_agent("scribe", state)
+
+
+def librarian(state: SingleTaskState) -> OrchestratorState:
+    return _run_agent("librarian", state)
+
+
+def skeptic(state: SingleTaskState) -> OrchestratorState:
+    return _run_agent("skeptic", state)
+
+
+def synthesizer(state: SingleTaskState) -> OrchestratorState:
+    return _run_agent("synthesizer", state)
 
 
 def synthesize(state: OrchestratorState) -> OrchestratorState:
@@ -278,19 +309,23 @@ def build_graph() -> Any:
     builder_graph = StateGraph(OrchestratorState)
 
     # Nodes
-    builder_graph.add_node("plan",       plan)
-    builder_graph.add_node("researcher", researcher)
-    builder_graph.add_node("builder",    builder)
-    builder_graph.add_node("verifier",   verifier)
-    builder_graph.add_node("scribe",     scribe)
-    builder_graph.add_node("synthesize", synthesize)
+    builder_graph.add_node("plan",        plan)
+    builder_graph.add_node("researcher",  researcher)
+    builder_graph.add_node("builder",     builder)
+    builder_graph.add_node("verifier",    verifier)
+    builder_graph.add_node("scribe",      scribe)
+    builder_graph.add_node("librarian",   librarian)
+    builder_graph.add_node("skeptic",     skeptic)
+    builder_graph.add_node("synthesizer", synthesizer)
+    builder_graph.add_node("synthesize",  synthesize)
 
     # Edges
     builder_graph.add_edge(START, "plan")
     builder_graph.add_conditional_edges("plan", dispatch)   # Send API fan-out
 
     # All agent nodes converge to synthesize
-    for agent_id in ("researcher", "builder", "verifier", "scribe"):
+    for agent_id in ("researcher", "builder", "verifier", "scribe",
+                     "librarian", "skeptic", "synthesizer"):
         builder_graph.add_edge(agent_id, "synthesize")
 
     builder_graph.add_edge("synthesize", END)
@@ -303,6 +338,7 @@ def build_graph() -> Any:
 _graph: Any = None
 
 
+@traceable(name="orchestrator-run", tags=["orchestrator"])
 def run(request: str, thread_id: str | None = None) -> str:
     """
     Run the director-agent fleet on a user request.
