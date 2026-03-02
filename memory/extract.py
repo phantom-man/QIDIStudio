@@ -499,9 +499,16 @@ def main() -> None:
         # Compaction summaries: harvested by harvest_summaries.py from
         # ~/.claude/projects/<QIDIStudio>/*/session-memory/summary.md.
         # Only included if the file exists (created on first harvest).
-        *((
-            (REPO_ROOT / "memory" / "compaction_summaries.md", "compaction-summary"),
-        ) if (REPO_ROOT / "memory" / "compaction_summaries.md").exists() else ()),
+        *(
+            (
+                (
+                    REPO_ROOT / "memory" / "compaction_summaries.md",
+                    "agents/compaction-summary",
+                ),
+            )
+            if (REPO_ROOT / "memory" / "compaction_summaries.md").exists()
+            else ()
+        ),
     ]
 
     for path, prefix in sources:
