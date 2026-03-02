@@ -105,8 +105,14 @@ def _format_full(rows: list[dict]) -> str:
     return "\n".join(lines)
 
 
+# Maximum chars of content per search result injected into context.
+# Keeps 8 results from flooding the context window with fat section chunks.
+# Full text is always available via: python memory/inject.py --query '<topic>'
+_CONTENT_MAX = 1500
+
+
 def _format_query_results(rows: list[dict], query: str) -> str:
-    """Full content of semantically matching chunks."""
+    """Full content of semantically matching chunks (content truncated to _CONTENT_MAX)."""
     if not rows:
         return f"No results for '{query}'\nuse Context7"
 
@@ -115,10 +121,15 @@ def _format_query_results(rows: list[dict], query: str) -> str:
         "",
     ]
     for i, r in enumerate(rows, 1):
-        lines.append(f"[{i}] {r.get('topic', '')}  ({r.get('source', '')})")
+        lines.append(f"[{i}] {r.get('topic', '')}  ({r.get('source', '')}")
         lines.append("-" * 60)
-        lines.append(r.get("content") or r.get("decision", ""))
-        lines.append("")
+        content = r.get("content") or r.get("decision", "")
+        if len(content) > _CONTENT_MAX:
+            content = (
+                content[:_CONTENT_MAX]
+                + f"\n... [truncated — {len(content)} chars total. Run: memory/inject.py --query '{r.get('topic','')[:40]}' for full text]"
+            )
+        lines.append(content)
 
     lines.append("━━━ END QUERY RESULTS ━━━")
     lines.append("use Context7")
