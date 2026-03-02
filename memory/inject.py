@@ -118,6 +118,12 @@ _DEDUP_DISTANCE = 0.05
 # (guards against very short topics that accidentally match).
 _DEDUP_MIN_LEN = 80
 
+# Maximum L2 distance for a result to be injected.
+# L2 distance < 0.9  →  cosine_sim > 0.595  →  loosely relevant.
+# Chunks scoring worse than this are topic-drift noise (e.g. querying "context"
+# shouldn't return §21 C++ OpenGL RAII or Key Websites & References).
+_MAX_DISTANCE = 0.9
+
 
 def _dedup_results(rows: list[dict]) -> list[dict]:
     """
@@ -235,6 +241,10 @@ def main() -> None:
         elif query_text:
             # HOOK PATH: semantic search — single ANN query, no full table scan
             matches = query_similar(query_text, n=args.n)
+            # Drop results that are beyond the relevance floor
+            matches = [
+                r for r in matches if (r.get("_distance") or 0.0) < _MAX_DISTANCE
+            ]
             matches = _dedup_results(matches)
             context = _format_query_results(matches, query_text)
 
