@@ -278,6 +278,18 @@ def main() -> None:
                 r for r in matches if (r.get("_distance") or 0.0) < _MAX_DISTANCE
             ]
             matches = _dedup_results(matches)
+
+            # ── PREDATOR PASS ────────────────────────────────────────────────
+            # Final step: prune injected chunks to only what this prompt needs.
+            # LangSmith identity is always preserved. Everything else is scored
+            # by keyword overlap against the prompt and hard-capped by item/char
+            # budget. No API calls — pure Python, <10 ms.
+            try:
+                from memory.predator import prune_context as _prune
+                matches = _prune(query_text, matches)
+            except Exception:
+                pass  # silent fallback — predator failure never breaks injection
+
             context = _format_query_results(matches, query_text)
 
         else:

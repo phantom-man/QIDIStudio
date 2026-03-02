@@ -496,6 +496,12 @@ def main() -> None:
         (REPO_ROOT / ".github" / "copilot-instructions.md", "copilot-instructions"),
         (REPO_ROOT / "docs" / "QIDISTUDIO_KNOWLEDGE.md", "knowledge-doc"),
         (REPO_ROOT / "memory" / "langsmith_prompt.md", "langsmith-prompt"),
+        # Compaction summaries: harvested by harvest_summaries.py from
+        # ~/.claude/projects/<QIDIStudio>/*/session-memory/summary.md.
+        # Only included if the file exists (created on first harvest).
+        *((
+            (REPO_ROOT / "memory" / "compaction_summaries.md", "compaction-summary"),
+        ) if (REPO_ROOT / "memory" / "compaction_summaries.md").exists() else ()),
     ]
 
     for path, prefix in sources:
