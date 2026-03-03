@@ -2,7 +2,7 @@
 agents/agents.py — Agent factory for QIDIStudio sub-agents.
 
 Loads system prompts from LangSmith Hub (or local fallback), wraps each with
-a Gemini model via ChatVertexAI, and returns create_react_agent instances.
+a Gemini model via ChatGoogleGenerativeAI, and returns create_react_agent instances.
 
 Model assignments:
   researcher  — gemini-2.5-flash  (web search via google_search tool)
@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from langchain_google_vertexai import ChatVertexAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import create_react_agent
 from langsmith import Client
 
@@ -97,9 +97,11 @@ _GCP_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "crafty-hook-483415-b3")
 _GCP_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 
-def _make_llm(model: str, temperature: float = 0.0, **kwargs: Any) -> ChatVertexAI:
-    return ChatVertexAI(
-        model_name=model,
+def _make_llm(
+    model: str, temperature: float = 0.0, **kwargs: Any
+) -> ChatGoogleGenerativeAI:
+    return ChatGoogleGenerativeAI(
+        model=model,
         temperature=temperature,
         project=_GCP_PROJECT,
         location=_GCP_LOCATION,
