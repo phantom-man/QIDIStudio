@@ -1,0 +1,60 @@
+At C:\Users\User\source\repos\QIDIStudio
+\sites\deploy_all.ps1:87 char:43
++     Log "`n--- Deploying $siteId 
+($folder/)  $($htmlFiles.Count) file ...
++                                       
+    ~
+You must provide a value expression 
+following the '/' operator.
+At C:\Users\User\source\repos\QIDIStudio
+\sites\deploy_all.ps1:106 char:45
++         Log "     $rel  
+($($gzBytes.Length) B gzipped)  
+hash=$($sha.S ...
++                                       
+      ~
+Unexpected token 'B' in expression or 
+statement.
+At C:\Users\User\source\repos\QIDIStudio
+\sites\deploy_all.ps1:106 char:44
++         Log "     $rel  
+($($gzBytes.Length) B gzipped)  
+hash=$($sha.S ...
++                                       
+     ~
+Missing closing ')' in expression.
+At C:\Users\User\source\repos\QIDIStudio
+\sites\deploy_all.ps1:82 char:33
++     if ($htmlFiles.Count -eq 0) {
++                                 ~
+Missing closing '}' in statement block 
+or type definition.
+At C:\Users\User\source\repos\QIDIStudio
+\sites\deploy_all.ps1:79 char:40
++ function Deploy-Site($siteId, 
+$folder) {
++                                       
+ ~
+Missing closing '}' in statement block 
+or type definition.
+At C:\Users\User\source\repos\QIDIStudio
+\sites\deploy_all.ps1:106 char:54
++         Log "     $rel  
+($($gzBytes.Length) B gzipped)  
+hash=$($sha.S ...
++                                       
+               ~
+Unexpected token ')' in expression or 
+statement.
+At C:\Users\User\source\repos\QIDIStudio
+\sites\deploy_all.ps1:110 char:90
++ ... :{"headers":[{"glob":"**","headers
+":{"Cache-Control":"public,max-age= ...
++                                       
+                          ~
+Missing argument in parameter list.
+    + CategoryInfo          : ParserErr 
+   or: (:) [], ParseException
+    + FullyQualifiedErrorId : ExpectedV 
+   alueExpression
+ 

@@ -1,0 +1,1522 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NexusSlicer — 3D Printing, Inside VS Code</title>
+    <meta
+      name="description"
+      content="A professional 3D slicer and model viewer built as a VS Code extension. WebGPU rendering, cloud material profiles, precision controls. Free and open source."
+    />
+    <style>
+      :root {
+        --bg: #0d0d10;
+        --bg2: #131318;
+        --bg3: #18181f;
+        --bg4: #1e1e28;
+        --acc: #7c6af7;
+        --acc2: #a78bfa;
+        --acc3: #c4b5fd;
+        --cyan: #22d3ee;
+        --green: #4ade80;
+        --text: #f1f0ff;
+        --sub: #a09fc0;
+        --muted: #6b6a88;
+        --bdr: #252535;
+        --r: 12px;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        overflow-x: hidden;
+        line-height: 1.6;
+      }
+
+      nav {
+        position: fixed;
+        inset: 0 0 auto;
+        z-index: 200;
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2.5rem;
+        background: rgba(13, 13, 16, 0.82);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-weight: 700;
+        font-size: 1.05rem;
+        text-decoration: none;
+        color: var(--text);
+        letter-spacing: -0.01em;
+      }
+      .logo svg {
+        width: 26px;
+        height: 26px;
+        flex-shrink: 0;
+      }
+      .nav-r {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+      }
+      .nav-links {
+        display: flex;
+        gap: 1.75rem;
+        list-style: none;
+      }
+      .nav-links a {
+        color: var(--muted);
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+      .nav-links a:hover {
+        color: var(--text);
+      }
+      .pill {
+        background: var(--acc);
+        color: #fff;
+        border-radius: 99px;
+        padding: 0.38rem 1.1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition:
+          opacity 0.15s,
+          transform 0.15s;
+      }
+      .pill:hover {
+        opacity: 0.87;
+        transform: translateY(-1px);
+      }
+
+      .hero {
+        min-height: 100svh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 7rem 1.5rem 4rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 80% 60% at 50% 30%,
+          rgba(124, 106, 247, 0.14) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .grid {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(124, 106, 247, 0.055) 1px, transparent 1px),
+          linear-gradient(
+            90deg,
+            rgba(124, 106, 247, 0.055) 1px,
+            transparent 1px
+          );
+        background-size: 64px 64px;
+        mask-image: radial-gradient(
+          ellipse 90% 80% at 50% 50%,
+          black 40%,
+          transparent 100%
+        );
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        background: rgba(124, 106, 247, 0.1);
+        border: 1px solid rgba(124, 106, 247, 0.25);
+        border-radius: 99px;
+        padding: 0.3rem 1rem;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: var(--acc3);
+        margin-bottom: 1.75rem;
+      }
+      h1 {
+        font-size: clamp(2.6rem, 7vw, 5rem);
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -0.035em;
+        max-width: 860px;
+        background: linear-gradient(160deg, #fff 30%, var(--acc2));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .hero-p {
+        font-size: clamp(1rem, 2vw, 1.2rem);
+        color: var(--sub);
+        max-width: 520px;
+        margin: 1.6rem auto 2.8rem;
+        line-height: 1.7;
+      }
+      .cta-row {
+        display: flex;
+        gap: 0.875rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .btn-lg {
+        padding: 0.85rem 2.2rem;
+        border-radius: var(--r);
+        font-size: 0.975rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition:
+          transform 0.15s,
+          box-shadow 0.15s;
+        display: inline-block;
+      }
+      .btn-acc {
+        background: var(--acc);
+        color: #fff;
+        box-shadow: 0 0 28px rgba(124, 106, 247, 0.45);
+      }
+      .btn-acc:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 40px rgba(124, 106, 247, 0.65);
+      }
+      .btn-out {
+        border: 1px solid var(--bdr);
+        color: var(--sub);
+      }
+      .btn-out:hover {
+        border-color: var(--acc);
+        color: var(--text);
+      }
+
+      .frame {
+        margin: 4.5rem auto 0;
+        width: min(960px, 96vw);
+        position: relative;
+      }
+      .frame::before {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        border-radius: 18px;
+        background: linear-gradient(
+          135deg,
+          rgba(124, 106, 247, 0.35),
+          rgba(34, 211, 238, 0.15),
+          transparent 60%
+        );
+        z-index: 0;
+      }
+      .editor {
+        position: relative;
+        z-index: 1;
+        background: var(--bg2);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow:
+          0 50px 120px rgba(0, 0, 0, 0.7),
+          0 0 0 1px rgba(255, 255, 255, 0.05);
+      }
+      .tbar {
+        height: 40px;
+        background: var(--bg3);
+        display: flex;
+        align-items: center;
+        padding: 0 1rem;
+        gap: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      .dots {
+        display: flex;
+        gap: 6px;
+        margin-right: auto;
+      }
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+      .tabs {
+        display: flex;
+        gap: 1px;
+        margin: 0 auto;
+      }
+      .tab {
+        padding: 0.2rem 0.85rem;
+        font-size: 0.72rem;
+        color: var(--muted);
+        border-radius: 6px 6px 0 0;
+        cursor: default;
+      }
+      .tab.on {
+        background: var(--bg2);
+        color: var(--acc3);
+        border-top: 1px solid rgba(124, 106, 247, 0.4);
+      }
+      .tbadge {
+        background: rgba(74, 222, 128, 0.1);
+        border: 1px solid rgba(74, 222, 128, 0.2);
+        border-radius: 99px;
+        padding: 0.1rem 0.5rem;
+        font-size: 0.65rem;
+        color: var(--green);
+        margin-left: auto;
+      }
+      .ebody {
+        display: grid;
+        grid-template-columns: 44px 1fr 230px;
+        height: 460px;
+      }
+      .actbar {
+        background: #1a1a22;
+        border-right: 1px solid var(--bdr);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0.6rem 0;
+        gap: 6px;
+      }
+      .ai {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        opacity: 0.5;
+      }
+      .ai.on {
+        opacity: 1;
+        background: rgba(124, 106, 247, 0.18);
+      }
+      .ai svg {
+        width: 17px;
+        height: 17px;
+      }
+      .vp {
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(
+          ellipse at 42% 52%,
+          #18143a 0%,
+          #0d0d10 70%
+        );
+      }
+      .vpg {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(124, 106, 247, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(124, 106, 247, 0.05) 1px, transparent 1px);
+        background-size: 48px 48px;
+        transform: perspective(500px) rotateX(50deg) translateY(45%) scaleX(1.4);
+      }
+      .model {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -52%);
+      }
+      .model svg {
+        width: 200px;
+        height: 200px;
+        filter: drop-shadow(0 0 40px rgba(124, 106, 247, 0.55));
+        animation: float 5s ease-in-out infinite;
+      }
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-14px);
+        }
+      }
+      .lstrip {
+        position: absolute;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(13, 13, 16, 0.75);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--bdr);
+        border-radius: 99px;
+        padding: 0.35rem 0.9rem;
+        font-size: 0.72rem;
+        color: var(--sub);
+      }
+      .lpip {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--acc);
+        animation: blink 2s ease-in-out infinite;
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+      .sp {
+        background: var(--bg3);
+        border-left: 1px solid var(--bdr);
+        overflow-y: auto;
+        padding: 0.85rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+      }
+      .sph {
+        font-size: 0.6rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 0.5rem 0.3rem 0.3rem;
+        border-top: 1px solid var(--bdr);
+        margin-top: 0.4rem;
+      }
+      .sph:first-child {
+        border-top: none;
+        margin-top: 0;
+      }
+      .spr {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.3rem 0.4rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+      }
+      .spr:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .spv {
+        font-family: "Cascadia Code", monospace;
+        color: var(--acc2);
+        font-size: 0.73rem;
+      }
+      .spbar {
+        position: relative;
+        width: 72px;
+        height: 3px;
+        background: var(--bdr);
+        border-radius: 2px;
+      }
+      .spbar::after {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        background: var(--acc);
+        border-radius: 2px;
+        width: var(--w);
+      }
+      .matrow {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.4rem;
+      }
+      .sw {
+        width: 22px;
+        height: 22px;
+        border-radius: 5px;
+        flex-shrink: 0;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+      }
+
+      .trust {
+        padding: 2.5rem 2rem;
+        border-top: 1px solid var(--bdr);
+        border-bottom: 1px solid var(--bdr);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3rem;
+        flex-wrap: wrap;
+      }
+      .ti {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .ti svg {
+        width: 16px;
+        height: 16px;
+        opacity: 0.7;
+      }
+
+      .sec {
+        padding: 7rem 1.5rem;
+      }
+      .mxw {
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+      .sh {
+        text-align: center;
+        margin-bottom: 5rem;
+      }
+      .shl {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--acc2);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin-bottom: 0.75rem;
+      }
+      .sht {
+        font-size: clamp(1.9rem, 4vw, 3rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.12;
+        margin-bottom: 0.9rem;
+      }
+      .shs {
+        color: var(--sub);
+        font-size: 1rem;
+        max-width: 500px;
+        margin: 0 auto;
+        line-height: 1.7;
+      }
+      .fgrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.25rem;
+      }
+      .fc {
+        background: var(--bg2);
+        border: 1px solid var(--bdr);
+        border-radius: var(--r);
+        padding: 1.75rem;
+        transition:
+          border-color 0.2s,
+          transform 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+      .fc:hover {
+        border-color: rgba(124, 106, 247, 0.4);
+        transform: translateY(-4px);
+      }
+      .fc::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at top left,
+          rgba(124, 106, 247, 0.06),
+          transparent 60%
+        );
+        pointer-events: none;
+      }
+      .fi {
+        width: 42px;
+        height: 42px;
+        background: rgba(124, 106, 247, 0.1);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.1rem;
+      }
+      .fi svg {
+        width: 20px;
+        height: 20px;
+      }
+      .ft {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.45rem;
+        letter-spacing: -0.01em;
+      }
+      .fd {
+        color: var(--sub);
+        font-size: 0.875rem;
+        line-height: 1.65;
+      }
+
+      .cmp {
+        padding: 7rem 1.5rem;
+        background: var(--bg2);
+        border-top: 1px solid var(--bdr);
+        border-bottom: 1px solid var(--bdr);
+      }
+      .cmpi {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4rem;
+        align-items: center;
+      }
+      .cmpt h2 {
+        font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        margin-bottom: 1rem;
+      }
+      .cmpt p {
+        color: var(--sub);
+        line-height: 1.75;
+        margin-bottom: 1.5rem;
+      }
+      .chk {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+      .chk li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.55rem;
+        font-size: 0.925rem;
+        line-height: 1.5;
+      }
+      .ck {
+        color: var(--green);
+        flex-shrink: 0;
+        font-weight: 700;
+        margin-top: 0.05rem;
+      }
+      .cmpv {
+        background: var(--bg3);
+        border: 1px solid var(--bdr);
+        border-radius: var(--r);
+        overflow: hidden;
+      }
+      .cvh {
+        padding: 0.65rem 1rem;
+        border-bottom: 1px solid var(--bdr);
+        font-size: 0.72rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .cvr {
+        display: flex;
+        align-items: center;
+        padding: 0.65rem 1rem;
+        border-bottom: 1px solid rgba(37, 37, 53, 0.5);
+        gap: 0.75rem;
+        font-size: 0.8rem;
+      }
+      .cvr:last-child {
+        border-bottom: none;
+      }
+      .cvi {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .cva {
+        flex: 1;
+        font-weight: 500;
+      }
+      .cvs {
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+      .tag {
+        font-size: 0.65rem;
+        padding: 0.18rem 0.5rem;
+        border-radius: 99px;
+        white-space: nowrap;
+      }
+      .tf {
+        background: rgba(74, 222, 128, 0.1);
+        color: var(--green);
+        border: 1px solid rgba(74, 222, 128, 0.2);
+      }
+      .tp {
+        background: rgba(245, 158, 11, 0.08);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+      }
+      .tx {
+        background: rgba(124, 106, 247, 0.1);
+        color: var(--acc2);
+        border: 1px solid rgba(124, 106, 247, 0.25);
+      }
+      .hl {
+        background: rgba(124, 106, 247, 0.05);
+      }
+
+      .mats {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4rem;
+        align-items: center;
+      }
+      .mv {
+        background: var(--bg2);
+        border: 1px solid var(--bdr);
+        border-radius: var(--r);
+      }
+      .mvh {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--bdr);
+        font-size: 0.7rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .mvb {
+        background: rgba(74, 222, 128, 0.1);
+        color: var(--green);
+        border: 1px solid rgba(74, 222, 128, 0.2);
+        border-radius: 99px;
+        padding: 0.15rem 0.5rem;
+        font-size: 0.62rem;
+      }
+      .mrow {
+        display: flex;
+        align-items: center;
+        padding: 0.7rem 1rem;
+        border-bottom: 1px solid rgba(37, 37, 53, 0.5);
+        gap: 0.8rem;
+        font-size: 0.8rem;
+      }
+      .mrow:last-child {
+        border-bottom: none;
+      }
+      .msw {
+        width: 26px;
+        height: 26px;
+        border-radius: 5px;
+        flex-shrink: 0;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+      }
+      .mn {
+        font-weight: 600;
+        font-size: 0.8rem;
+      }
+      .ms {
+        font-size: 0.68rem;
+        color: var(--muted);
+      }
+      .mt {
+        font-family: "Cascadia Code", monospace;
+        font-size: 0.72rem;
+        color: var(--cyan);
+        margin-left: auto;
+      }
+      .mnw {
+        font-size: 0.6rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 99px;
+        background: rgba(34, 211, 238, 0.1);
+        color: var(--cyan);
+        border: 1px solid rgba(34, 211, 238, 0.2);
+        margin-left: 0.5rem;
+      }
+
+      .ins {
+        padding: 7rem 1.5rem;
+        display: flex;
+        justify-content: center;
+      }
+      .icard {
+        background: var(--bg2);
+        border: 1px solid var(--bdr);
+        border-radius: 20px;
+        padding: 3.5rem;
+        text-align: center;
+        max-width: 680px;
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+      }
+      .icard::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 80% 60% at 50% 100%,
+          rgba(124, 106, 247, 0.08),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .ic {
+        position: relative;
+        z-index: 1;
+      }
+      .ih2 {
+        font-size: 1.9rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        margin-bottom: 0.6rem;
+      }
+      .ip {
+        color: var(--sub);
+        font-size: 0.95rem;
+        margin-bottom: 2rem;
+        line-height: 1.65;
+      }
+      .cmd {
+        background: var(--bg3);
+        border: 1px solid var(--bdr);
+        border-radius: 8px;
+        padding: 0.7rem 1.2rem;
+        font-family: "Cascadia Code", monospace;
+        font-size: 0.88rem;
+        color: var(--acc2);
+        display: inline-block;
+        margin-bottom: 2rem;
+      }
+
+      footer {
+        border-top: 1px solid var(--bdr);
+        padding: 3rem 2.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+      .fl {
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+      .flinks {
+        display: flex;
+        gap: 1.5rem;
+        list-style: none;
+      }
+      .flinks a {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.82rem;
+        transition: color 0.15s;
+      }
+      .flinks a:hover {
+        color: var(--text);
+      }
+      .fn {
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      @media (max-width: 800px) {
+        .ebody {
+          grid-template-columns: 1fr;
+        }
+        .actbar,
+        .sp {
+          display: none;
+        }
+        .vp {
+          height: 320px;
+        }
+        .cmpi,
+        .mats {
+          grid-template-columns: 1fr;
+        }
+        .nav-links {
+          display: none;
+        }
+        h1 {
+          font-size: 2.4rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a class="logo" href="/">
+        <svg viewBox="0 0 26 26" fill="none">
+          <rect width="26" height="26" rx="6" fill="#7c6af7" />
+          <path d="M6 13l5-5 5 5-5 5z" fill="white" opacity=".95" />
+          <path d="M12 13l5-5 5 5-5 5z" fill="white" opacity=".45" />
+        </svg>
+        NexusSlicer
+      </a>
+      <div class="nav-r">
+        <ul class="nav-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#compare">Compare</a></li>
+          <li><a href="#materials">Materials</a></li>
+          <li><a href="https://desktop.nexusslicer.com">Desktop App</a></li>
+          <li>
+            <a href="https://github.com/phantom-man/NexusSlicer">GitHub</a>
+          </li>
+        </ul>
+        <a class="pill" href="#install">Get Extension</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="grid"></div>
+      <div class="eyebrow">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+          <path
+            d="M6 0l1.5 3.5L11 5l-2.5 2.5.6 3.5L6 9.5 2.9 11l.6-3.5L1 5l3.5-1.5z"
+          />
+        </svg>
+        VS Code Extension &nbsp;&middot;&nbsp; WebGPU &nbsp;&middot;&nbsp; Free
+        &amp; Open Source
+      </div>
+      <h1>3D Printing Intelligence.<br />Already in Your Editor.</h1>
+      <p class="hero-p">
+        Prepare, slice, and preview 3D prints without leaving VS Code. A
+        full-featured slicer built as a native extension &mdash; with a WebGPU
+        renderer that makes every other tool look dated.
+      </p>
+      <div class="cta-row">
+        <a href="#install" class="btn-lg btn-acc">Install Free</a>
+        <a
+          href="https://github.com/phantom-man/NexusSlicer"
+          class="btn-lg btn-out"
+          >GitHub &rarr;</a
+        >
+      </div>
+
+      <div class="frame">
+        <div class="editor">
+          <div class="tbar">
+            <div class="dots">
+              <div class="dot" style="background: #ff5f57"></div>
+              <div class="dot" style="background: #febc2e"></div>
+              <div class="dot" style="background: #28c840"></div>
+            </div>
+            <div class="tabs">
+              <div class="tab">bracket.3mf</div>
+              <div class="tab on">&#11041; NexusSlicer</div>
+            </div>
+            <div class="tbadge">Ready to slice</div>
+          </div>
+          <div class="ebody">
+            <div class="actbar">
+              <div class="ai on">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#a78bfa"
+                  stroke-width="1.8"
+                >
+                  <polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5" />
+                </svg>
+              </div>
+              <div class="ai">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#6b6a88"
+                  stroke-width="1.8"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path
+                    d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41"
+                  />
+                </svg>
+              </div>
+              <div class="ai">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#6b6a88"
+                  stroke-width="1.8"
+                >
+                  <path
+                    d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div class="vp">
+              <div class="vpg"></div>
+              <div class="model">
+                <svg width="200" height="200" viewBox="0 0 200 200" fill="none">
+                  <path
+                    d="M100 24L158 58L158 126L100 160L42 126L42 58Z"
+                    fill="rgba(124,106,247,.12)"
+                    stroke="rgba(124,106,247,.65)"
+                    stroke-width="1.5"
+                  />
+                  <path
+                    d="M100 24L158 58L100 92L42 58Z"
+                    fill="rgba(124,106,247,.22)"
+                    stroke="rgba(167,139,250,.7)"
+                    stroke-width="1.5"
+                  />
+                  <path
+                    d="M100 92L158 58L158 126L100 160Z"
+                    fill="rgba(167,139,250,.1)"
+                    stroke="rgba(167,139,250,.45)"
+                    stroke-width="1.5"
+                  />
+                  <path
+                    d="M100 92L42 58L42 126L100 160Z"
+                    fill="rgba(124,106,247,.07)"
+                    stroke="rgba(124,106,247,.4)"
+                    stroke-width="1.5"
+                  />
+                  <line
+                    x1="100"
+                    y1="24"
+                    x2="100"
+                    y2="92"
+                    stroke="rgba(255,255,255,.25)"
+                    stroke-width="1"
+                  />
+                  <line
+                    x1="100"
+                    y1="92"
+                    x2="100"
+                    y2="160"
+                    stroke="rgba(255,255,255,.12)"
+                    stroke-width="1"
+                    stroke-dasharray="4,4"
+                  />
+                  <circle cx="130" cy="52" r="3" fill="rgba(255,255,255,.4)" />
+                </svg>
+              </div>
+              <div class="lstrip">
+                <div class="lpip"></div>
+                Layer 1 / 214 &nbsp;&middot;&nbsp; 0.20mm &nbsp;&middot;&nbsp;
+                Est. 2h 14m
+              </div>
+            </div>
+            <div class="sp">
+              <div class="sph">Print Profile</div>
+              <div class="spr">
+                <span>Layer Height</span><span class="spv">0.20mm</span>
+              </div>
+              <div class="spr">
+                <span>Speed</span><span class="spv">200mm/s</span>
+              </div>
+              <div class="spr">
+                <span>Walls</span><span class="spv">3</span>
+              </div>
+              <div class="spr">
+                <span>Infill</span>
+                <div class="spbar" style="--w: 40%"></div>
+              </div>
+              <div class="spr">
+                <span>Supports</span
+                ><span class="spv" style="color: var(--green)">Auto</span>
+              </div>
+              <div class="sph">Material</div>
+              <div class="matrow">
+                <div class="sw" style="background: #e85d04"></div>
+                <div style="flex: 1">
+                  <div style="font-weight: 600; font-size: 0.75rem">
+                    PLA+ Orange
+                  </div>
+                  <div style="font-size: 0.66rem; color: var(--muted)">
+                    eSUN &middot; synced
+                  </div>
+                </div>
+                <div
+                  style="
+                    font-family: monospace;
+                    font-size: 0.7rem;
+                    color: var(--cyan);
+                  "
+                >
+                  215&deg;
+                </div>
+              </div>
+              <div class="sph">Rotation</div>
+              <div class="spr">
+                <span>X</span><span class="spv">0.000&deg;</span>
+              </div>
+              <div class="spr">
+                <span>Y</span><span class="spv">0.000&deg;</span>
+              </div>
+              <div class="spr">
+                <span>Z</span><span class="spv">45.000&deg;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust">
+      <div class="ti">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="20,6 9,17 4,12" /></svg
+        >VS Code native &mdash; no separate app
+      </div>
+      <div class="ti">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="20,6 9,17 4,12" /></svg
+        >WebGPU PBR renderer
+      </div>
+      <div class="ti">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="20,6 9,17 4,12" /></svg
+        >Cloud-synced material profiles
+      </div>
+      <div class="ti">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="20,6 9,17 4,12" /></svg
+        >MIT licensed &middot; always free
+      </div>
+    </div>
+
+    <div class="sec mxw" id="features">
+      <div class="sh">
+        <div class="shl">Features</div>
+        <h2 class="sht">Everything a slicer needs.<br />Nothing it doesn't.</h2>
+        <p class="shs">
+          Built from the ground up as a VS Code extension. No separate app to
+          switch to &mdash; your editor is the slicer.
+        </p>
+      </div>
+      <div class="fgrid">
+        <div class="fc">
+          <div class="fi">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#a78bfa"
+              stroke-width="1.8"
+            >
+              <polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5" />
+            </svg>
+          </div>
+          <div class="ft">WebGPU 3D Viewer</div>
+          <div class="fd">
+            Physically-based rendering with real material shaders runs directly
+            in the editor panel. Smooth, GPU-accelerated, and sharper than any
+            standalone slicer available today.
+          </div>
+        </div>
+        <div class="fc">
+          <div class="fi">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#22d3ee"
+              stroke-width="1.8"
+            >
+              <path
+                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"
+              />
+            </svg>
+          </div>
+          <div class="ft">Cloud Material Profiles</div>
+          <div class="fd">
+            Hundreds of community-tuned filament profiles sync automatically on
+            launch. eSUN, Polymaker, Bambu, and more &mdash; temperature, flow,
+            and pressure advance all dialled in.
+          </div>
+        </div>
+        <div class="fc">
+          <div class="fi">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#4ade80"
+              stroke-width="1.8"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="16" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+          </div>
+          <div class="ft">Precision Rotation Controls</div>
+          <div class="fd">
+            Three-axis rotation panel with coarse, fine, and micrometer modes.
+            Hold modifier keys for sub-degree precision. The kind of control
+            product developers actually need.
+          </div>
+        </div>
+        <div class="fc">
+          <div class="fi">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#f59e0b"
+              stroke-width="1.8"
+            >
+              <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" />
+              <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
+            </svg>
+          </div>
+          <div class="ft">Layer-by-Layer Preview</div>
+          <div class="fd">
+            Scrub through every printed layer before you commit. Catch
+            overhangs, check supports, verify infill pattern &mdash; before the
+            first gram of filament is used.
+          </div>
+        </div>
+        <div class="fc">
+          <div class="fi">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#a78bfa"
+              stroke-width="1.8"
+            >
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+          </div>
+          <div class="ft">AI-Assisted Settings</div>
+          <div class="fd">
+            Ask Copilot Chat why a print failed, request parameter suggestions,
+            or describe a surface defect &mdash; the answer is inline, in
+            context, without leaving the editor.
+          </div>
+        </div>
+        <div class="fc">
+          <div class="fi">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#22d3ee"
+              stroke-width="1.8"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" />
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+            </svg>
+          </div>
+          <div class="ft">STL, 3MF &amp; OBJ Support</div>
+          <div class="fd">
+            Open any major 3D format directly. Drag a file in, preview it,
+            configure settings, slice it. Full multi-part 3MF support including
+            embedded print profiles.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cmp" id="compare">
+      <div class="cmpi">
+        <div class="cmpt">
+          <div class="shl">Why NexusSlicer</div>
+          <h2>The slicer that lives<br />where you work.</h2>
+          <p>
+            Every other slicer is a separate application. NexusSlicer is a VS
+            Code extension &mdash; it opens in a panel, reads your project
+            files, and shares your Copilot session.
+          </p>
+          <ul class="chk">
+            <li>
+              <span class="ck">&#10003;</span>Works alongside your code,
+              scripts, and G-code in one window
+            </li>
+            <li>
+              <span class="ck">&#10003;</span>AI context is shared &mdash;
+              Copilot sees your model and settings
+            </li>
+            <li>
+              <span class="ck">&#10003;</span>Completely free, no account
+              required, no telemetry
+            </li>
+            <li>
+              <span class="ck">&#10003;</span>Open source &mdash; fork it,
+              extend it, own it
+            </li>
+          </ul>
+        </div>
+        <div class="cmpv">
+          <div class="cvh">Slicer landscape &mdash; 2026</div>
+          <div class="cvr">
+            <div class="cvi" style="background: rgba(245, 158, 11, 0.12)">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fbbf24"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+              </svg>
+            </div>
+            <div>
+              <div class="cva">BambuStudio</div>
+              <div class="cvs">Standalone &middot; Bambu printers</div>
+            </div>
+            <div class="tag tf">Free</div>
+          </div>
+          <div class="cvr">
+            <div class="cvi" style="background: rgba(248, 113, 113, 0.1)">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#f87171"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+              </svg>
+            </div>
+            <div>
+              <div class="cva">PrusaSlicer</div>
+              <div class="cvs">Standalone &middot; broad support</div>
+            </div>
+            <div class="tag tf">Free</div>
+          </div>
+          <div class="cvr">
+            <div class="cvi" style="background: rgba(34, 211, 238, 0.1)">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#22d3ee"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+              </svg>
+            </div>
+            <div>
+              <div class="cva">OrcaSlicer</div>
+              <div class="cvs">Standalone &middot; community fork</div>
+            </div>
+            <div class="tag tf">Free</div>
+          </div>
+          <div class="cvr">
+            <div class="cvi" style="background: rgba(245, 158, 11, 0.08)">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fbbf24"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+              </svg>
+            </div>
+            <div>
+              <div class="cva">Simplify3D</div>
+              <div class="cvs">Standalone &middot; professional</div>
+            </div>
+            <div class="tag tp">$199</div>
+          </div>
+          <div class="cvr hl">
+            <div class="cvi" style="background: rgba(124, 106, 247, 0.15)">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <rect width="14" height="14" rx="3.5" fill="#7c6af7" />
+                <path
+                  d="M3 7l2.5-2.5L8 7l-2.5 2.5z"
+                  fill="white"
+                  opacity=".9"
+                />
+                <path
+                  d="M6.5 7l2.5-2.5L11.5 7 9 9.5z"
+                  fill="white"
+                  opacity=".4"
+                />
+              </svg>
+            </div>
+            <div>
+              <div class="cva" style="color: var(--acc3)">NexusSlicer</div>
+              <div class="cvs">VS Code extension &middot; editor-native</div>
+            </div>
+            <div class="tag tx">Extension</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="materials">
+      <div class="mats">
+        <div>
+          <div class="shl">Material Library</div>
+          <h2
+            class="sht"
+            style="text-align: left; font-size: clamp(1.8rem, 3.5vw, 2.6rem)"
+          >
+            Right filament settings.<br />Every time.
+          </h2>
+          <p
+            style="color: var(--sub); line-height: 1.75; margin-bottom: 1.5rem"
+          >
+            Stop copying settings from forum threads. NexusSlicer syncs a
+            curated library of filament profiles automatically &mdash;
+            temperature, bed adhesion, pressure advance, all community-tuned.
+          </p>
+          <ul class="chk">
+            <li>
+              <span class="ck">&#10003;</span>Hundreds of filaments across all
+              major brands
+            </li>
+            <li>
+              <span class="ck">&#10003;</span>Bad batch? A correction is pushed
+              to everyone instantly
+            </li>
+            <li>
+              <span class="ck">&#10003;</span>Keep your tweaks, or reset to
+              defaults any time
+            </li>
+          </ul>
+        </div>
+        <div class="mv">
+          <div class="mvh">
+            Material Library
+            <div class="mvb">&#9679; Live sync</div>
+          </div>
+          <div class="mrow">
+            <div class="msw" style="background: #e85d04"></div>
+            <div>
+              <div class="mn">PLA+ Orange</div>
+              <div class="ms">eSUN &middot; 1.75mm</div>
+            </div>
+            <div class="mt">215&deg;C</div>
+          </div>
+          <div class="mrow">
+            <div class="msw" style="background: #1a1a2e"></div>
+            <div>
+              <div class="mn">ABS-GF Midnight</div>
+              <div class="ms">Polymaker &middot; 1.75mm</div>
+            </div>
+            <div class="mt">250&deg;C</div>
+          </div>
+          <div class="mrow">
+            <div class="msw" style="background: #155e75"></div>
+            <div>
+              <div class="mn">PETG Deep Teal<span class="mnw">NEW</span></div>
+              <div class="ms">Hatchbox &middot; 1.75mm</div>
+            </div>
+            <div class="mt">235&deg;C</div>
+          </div>
+          <div class="mrow">
+            <div class="msw" style="background: #71717a"></div>
+            <div>
+              <div class="mn">PA-CF Gunmetal</div>
+              <div class="ms">Bambu Lab &middot; 1.75mm</div>
+            </div>
+            <div class="mt">280&deg;C</div>
+          </div>
+          <div class="mrow">
+            <div class="msw" style="background: #fef08a"></div>
+            <div>
+              <div class="mn">TPU 95A Lemon<span class="mnw">NEW</span></div>
+              <div class="ms">Overture &middot; 1.75mm</div>
+            </div>
+            <div class="mt">225&deg;C</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ins" id="install">
+      <div class="icard">
+        <div class="ic">
+          <div
+            style="
+              display: flex;
+              justify-content: center;
+              margin-bottom: 1.5rem;
+            "
+          >
+            <svg width="56" height="56" viewBox="0 0 100 100">
+              <path
+                d="M74.9 6.6L51.4 27.5 32.3 13.3 25 17.8v64.4l7.3 4.5 19.1-14.2 23.5 20.9 7.3-3.4V10zm0 73.8L51.4 60.5 32.3 74.7V25.3l19.1 14.2 23.5-20.9z"
+                fill="#007ACC"
+              />
+            </svg>
+          </div>
+          <h2 class="ih2">Install in VS Code</h2>
+          <p class="ip">
+            Open VS Code, hit <strong>Ctrl+P</strong>, paste the command, press
+            Enter.
+          </p>
+          <div class="cmd">ext install nexus-workshop.nexusslicer</div>
+          <br />
+          <div class="cta-row">
+            <a
+              href="vscode:extension/nexus-workshop.nexusslicer"
+              class="btn-lg btn-acc"
+              >Open in VS Code</a
+            >
+            <a
+              href="https://marketplace.visualstudio.com/items?itemName=nexus-workshop.nexusslicer"
+              class="btn-lg btn-out"
+              >Marketplace &rarr;</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="fl">NexusSlicer &nbsp;&middot;&nbsp; Nexus Workshop</div>
+      <ul class="flinks">
+        <li><a href="https://github.com/phantom-man/NexusSlicer">GitHub</a></li>
+        <li><a href="https://nexusmill.com">NexusMill</a></li>
+        <li><a href="https://nexusgauge.com">NexusGauge</a></li>
+        <li><a href="mailto:hello@nexusslicer.com">Contact</a></li>
+      </ul>
+      <div class="fn">&copy; 2026 Nexus Workshop &middot; MIT License</div>
+    </footer>
+  </body>
+</html>

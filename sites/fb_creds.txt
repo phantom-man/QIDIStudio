@@ -1,0 +1,2 @@
+Get-ChildItem: Cannot find path 'C:\Users\User\AppData\Roaming\firebase\auth.json' because it does not exist.
+done

@@ -10,11 +10,11 @@
 # This replaces the heavy steps that used to block the PreCompact flow.
 # PreCompact now only writes a lightweight flag; all heavy work happens here.
 
-$ts   = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+$ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 $date = Get-Date -Format 'yyyy-MM-dd'
 $repo = 'C:\Users\User\source\repos\QIDIStudio'
-$log  = Join-Path $repo '.github\hooks\stop_hook.log'
-$py   = Join-Path $repo 'memory_env\Scripts\python.exe'
+$log = Join-Path $repo '.github\hooks\stop_hook.log'
+$py = Join-Path $repo 'memory_env\Scripts\python.exe'
 
 Add-Content -Path $log -Value "$ts [Stop] fired"
 

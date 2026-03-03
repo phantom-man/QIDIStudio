@@ -1,0 +1,3098 @@
+[
+  {
+    "iteration": 1,
+    "role": "user",
+    "screenshot_bytes": 65556,
+    "url": "visualizer://vacuum_nozzle_lower"
+  },
+  {
+    "iteration": 1,
+    "role": "model_call",
+    "function": "list_available_skins",
+    "args": {},
+    "result": {
+      "skins": [
+        {
+          "name": "armadillo_plates_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+          "size_kb": 2024.6
+        },
+        {
+          "name": "armadillo_plates_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_02.png",
+          "size_kb": 2158.2
+        },
+        {
+          "name": "armadillo_plates_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_03.png",
+          "size_kb": 2026.6
+        },
+        {
+          "name": "armadillo_plates_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_04.png",
+          "size_kb": 2207.7
+        },
+        {
+          "name": "armadillo_plates_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_05.png",
+          "size_kb": 2126.8
+        },
+        {
+          "name": "armadillo_plates_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_06.png",
+          "size_kb": 1792.0
+        },
+        {
+          "name": "armadillo_plates_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_07.png",
+          "size_kb": 2248.2
+        },
+        {
+          "name": "armadillo_plates_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_08.png",
+          "size_kb": 1998.7
+        },
+        {
+          "name": "armadillo_plates_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_09.png",
+          "size_kb": 1980.0
+        },
+        {
+          "name": "armadillo_plates_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_10.png",
+          "size_kb": 1810.6
+        },
+        {
+          "name": "armadillo_plates_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_11.png",
+          "size_kb": 1978.7
+        },
+        {
+          "name": "armadillo_plates_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_12.png",
+          "size_kb": 1805.9
+        },
+        {
+          "name": "armadillo_plates_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_13.png",
+          "size_kb": 1989.6
+        },
+        {
+          "name": "armadillo_plates_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_14.png",
+          "size_kb": 1938.6
+        },
+        {
+          "name": "armadillo_plates_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_15.png",
+          "size_kb": 1981.7
+        },
+        {
+          "name": "armadillo_plates_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_16.png",
+          "size_kb": 1377.9
+        },
+        {
+          "name": "armadillo_plates_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_17.png",
+          "size_kb": 1786.8
+        },
+        {
+          "name": "armadillo_plates_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_18.png",
+          "size_kb": 1939.0
+        },
+        {
+          "name": "armadillo_plates_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_19.png",
+          "size_kb": 2136.7
+        },
+        {
+          "name": "armadillo_plates_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_20.png",
+          "size_kb": 1893.2
+        },
+        {
+          "name": "bark_texture_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_01.png",
+          "size_kb": 2000.2
+        },
+        {
+          "name": "bark_texture_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_02.png",
+          "size_kb": 1985.8
+        },
+        {
+          "name": "bark_texture_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_03.png",
+          "size_kb": 2111.7
+        },
+        {
+          "name": "bark_texture_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_04.png",
+          "size_kb": 2069.8
+        },
+        {
+          "name": "bark_texture_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_05.png",
+          "size_kb": 2095.9
+        },
+        {
+          "name": "bark_texture_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_06.png",
+          "size_kb": 1789.5
+        },
+        {
+          "name": "bark_texture_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_07.png",
+          "size_kb": 2173.8
+        },
+        {
+          "name": "bark_texture_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_08.png",
+          "size_kb": 2023.2
+        },
+        {
+          "name": "bark_texture_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_09.png",
+          "size_kb": 1879.8
+        },
+        {
+          "name": "bark_texture_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_10.png",
+          "size_kb": 1962.9
+        },
+        {
+          "name": "bark_texture_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_11.png",
+          "size_kb": 1903.6
+        },
+        {
+          "name": "bark_texture_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_12.png",
+          "size_kb": 2013.9
+        },
+        {
+          "name": "bark_texture_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_13.png",
+          "size_kb": 1943.1
+        },
+        {
+          "name": "bark_texture_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_14.png",
+          "size_kb": 1783.6
+        },
+        {
+          "name": "bark_texture_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_15.png",
+          "size_kb": 2011.1
+        },
+        {
+          "name": "bark_texture_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_16.png",
+          "size_kb": 2170.9
+        },
+        {
+          "name": "bark_texture_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_17.png",
+          "size_kb": 2136.2
+        },
+        {
+          "name": "bark_texture_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_18.png",
+          "size_kb": 2120.8
+        },
+        {
+          "name": "bark_texture_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_19.png",
+          "size_kb": 2058.8
+        },
+        {
+          "name": "bark_texture_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\bark_texture\\bark_texture_20.png",
+          "size_kb": 1919.5
+        },
+        {
+          "name": "brick_pattern_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_01.png",
+          "size_kb": 1.2
+        },
+        {
+          "name": "brick_pattern_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_02.png",
+          "size_kb": 3.8
+        },
+        {
+          "name": "brick_pattern_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_03.png",
+          "size_kb": 3.8
+        },
+        {
+          "name": "brick_pattern_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_04.png",
+          "size_kb": 2.5
+        },
+        {
+          "name": "brick_pattern_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_05.png",
+          "size_kb": 3.6
+        },
+        {
+          "name": "brick_pattern_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_06.png",
+          "size_kb": 1.3
+        },
+        {
+          "name": "brick_pattern_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_07.png",
+          "size_kb": 4.3
+        },
+        {
+          "name": "brick_pattern_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_08.png",
+          "size_kb": 4.4
+        },
+        {
+          "name": "brick_pattern_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_09.png",
+          "size_kb": 2.7
+        },
+        {
+          "name": "brick_pattern_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_10.png",
+          "size_kb": 4.4
+        },
+        {
+          "name": "brick_pattern_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_11.png",
+          "size_kb": 1.3
+        },
+        {
+          "name": "brick_pattern_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_12.png",
+          "size_kb": 3.8
+        },
+        {
+          "name": "brick_pattern_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_13.png",
+          "size_kb": 3.9
+        },
+        {
+          "name": "brick_pattern_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_14.png",
+          "size_kb": 2.5
+        },
+        {
+          "name": "brick_pattern_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_15.png",
+          "size_kb": 3.7
+        },
+        {
+          "name": "brick_pattern_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_16.png",
+          "size_kb": 1.3
+        },
+        {
+          "name": "brick_pattern_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_17.png",
+          "size_kb": 3.7
+        },
+        {
+          "name": "brick_pattern_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_18.png",
+          "size_kb": 3.9
+        },
+        {
+          "name": "brick_pattern_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_19.png",
+          "size_kb": 2.5
+        },
+        {
+          "name": "brick_pattern_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\brick_pattern\\brick_pattern_20.png",
+          "size_kb": 3.8
+        },
+        {
+          "name": "carbon_fiber_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_01.png",
+          "size_kb": 878.8
+        },
+        {
+          "name": "carbon_fiber_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_02.png",
+          "size_kb": 1015.4
+        },
+        {
+          "name": "carbon_fiber_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_03.png",
+          "size_kb": 837.9
+        },
+        {
+          "name": "carbon_fiber_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_04.png",
+          "size_kb": 1349.6
+        },
+        {
+          "name": "carbon_fiber_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_05.png",
+          "size_kb": 1558.3
+        },
+        {
+          "name": "carbon_fiber_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_06.png",
+          "size_kb": 1031.6
+        },
+        {
+          "name": "carbon_fiber_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_07.png",
+          "size_kb": 1314.2
+        },
+        {
+          "name": "carbon_fiber_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_08.png",
+          "size_kb": 1197.9
+        },
+        {
+          "name": "carbon_fiber_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_09.png",
+          "size_kb": 901.4
+        },
+        {
+          "name": "carbon_fiber_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_10.png",
+          "size_kb": 908.7
+        },
+        {
+          "name": "carbon_fiber_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_11.png",
+          "size_kb": 1539.5
+        },
+        {
+          "name": "carbon_fiber_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_12.png",
+          "size_kb": 1244.4
+        },
+        {
+          "name": "carbon_fiber_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_13.png",
+          "size_kb": 974.8
+        },
+        {
+          "name": "carbon_fiber_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_14.png",
+          "size_kb": 1647.2
+        },
+        {
+          "name": "carbon_fiber_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_15.png",
+          "size_kb": 1098.7
+        },
+        {
+          "name": "carbon_fiber_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_16.png",
+          "size_kb": 1638.5
+        },
+        {
+          "name": "carbon_fiber_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_17.png",
+          "size_kb": 1175.6
+        },
+        {
+          "name": "carbon_fiber_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_18.png",
+          "size_kb": 1758.2
+        },
+        {
+          "name": "carbon_fiber_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_19.png",
+          "size_kb": 1698.7
+        },
+        {
+          "name": "carbon_fiber_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\carbon_fiber\\carbon_fiber_20.png",
+          "size_kb": 1725.5
+        },
+        {
+          "name": "celtic_knotwork_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_01.png",
+          "size_kb": 2076.8
+        },
+        {
+          "name": "celtic_knotwork_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_02.png",
+          "size_kb": 2094.7
+        },
+        {
+          "name": "celtic_knotwork_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_03.png",
+          "size_kb": 2405.1
+        },
+        {
+          "name": "celtic_knotwork_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_04.png",
+          "size_kb": 2560.1
+        },
+        {
+          "name": "celtic_knotwork_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_05.png",
+          "size_kb": 2132.2
+        },
+        {
+          "name": "celtic_knotwork_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_06.png",
+          "size_kb": 1801.4
+        },
+        {
+          "name": "celtic_knotwork_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_07.png",
+          "size_kb": 2404.2
+        },
+        {
+          "name": "celtic_knotwork_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_08.png",
+          "size_kb": 2300.6
+        },
+        {
+          "name": "celtic_knotwork_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_09.png",
+          "size_kb": 2435.9
+        },
+        {
+          "name": "celtic_knotwork_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_10.png",
+          "size_kb": 1976.5
+        },
+        {
+          "name": "celtic_knotwork_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_11.png",
+          "size_kb": 2565.6
+        },
+        {
+          "name": "celtic_knotwork_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_12.png",
+          "size_kb": 2288.5
+        },
+        {
+          "name": "celtic_knotwork_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_13.png",
+          "size_kb": 2532.1
+        },
+        {
+          "name": "celtic_knotwork_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_14.png",
+          "size_kb": 1759.0
+        },
+        {
+          "name": "celtic_knotwork_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_15.png",
+          "size_kb": 2658.7
+        },
+        {
+          "name": "celtic_knotwork_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_16.png",
+          "size_kb": 1464.0
+        },
+        {
+          "name": "celtic_knotwork_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_17.png",
+          "size_kb": 2317.2
+        },
+        {
+          "name": "celtic_knotwork_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_18.png",
+          "size_kb": 2307.2
+        },
+        {
+          "name": "celtic_knotwork_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_19.png",
+          "size_kb": 2222.9
+        },
+        {
+          "name": "celtic_knotwork_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\celtic_knotwork\\celtic_knotwork_20.png",
+          "size_kb": 2466.4
+        },
+        {
+          "name": "chain_link_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_01.png",
+          "size_kb": 2483.9
+        },
+        {
+          "name": "chain_link_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_02.png",
+          "size_kb": 2561.0
+        },
+        {
+          "name": "chain_link_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_03.png",
+          "size_kb": 1866.8
+        },
+        {
+          "name": "chain_link_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_04.png",
+          "size_kb": 1194.6
+        },
+        {
+          "name": "chain_link_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_05.png",
+          "size_kb": 2099.2
+        },
+        {
+          "name": "chain_link_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_06.png",
+          "size_kb": 1295.7
+        },
+        {
+          "name": "chain_link_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_07.png",
+          "size_kb": 2322.7
+        },
+        {
+          "name": "chain_link_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_08.png",
+          "size_kb": 1154.9
+        },
+        {
+          "name": "chain_link_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_09.png",
+          "size_kb": 1239.8
+        },
+        {
+          "name": "chain_link_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_10.png",
+          "size_kb": 2082.3
+        },
+        {
+          "name": "chain_link_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_11.png",
+          "size_kb": 1065.8
+        },
+        {
+          "name": "chain_link_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_12.png",
+          "size_kb": 1237.3
+        },
+        {
+          "name": "chain_link_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_13.png",
+          "size_kb": 2390.1
+        },
+        {
+          "name": "chain_link_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_14.png",
+          "size_kb": 2495.5
+        },
+        {
+          "name": "chain_link_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_15.png",
+          "size_kb": 2254.7
+        },
+        {
+          "name": "chain_link_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_16.png",
+          "size_kb": 2173.6
+        },
+        {
+          "name": "chain_link_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_17.png",
+          "size_kb": 2389.4
+        },
+        {
+          "name": "chain_link_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_18.png",
+          "size_kb": 996.3
+        },
+        {
+          "name": "chain_link_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_19.png",
+          "size_kb": 1184.4
+        },
+        {
+          "name": "chain_link_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chain_link\\chain_link_20.png",
+          "size_kb": 2085.4
+        },
+        {
+          "name": "chainmail_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_01.png",
+          "size_kb": 4.4
+        },
+        {
+          "name": "chainmail_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_02.png",
+          "size_kb": 14.4
+        },
+        {
+          "name": "chainmail_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_03.png",
+          "size_kb": 14.3
+        },
+        {
+          "name": "chainmail_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_04.png",
+          "size_kb": 7.8
+        },
+        {
+          "name": "chainmail_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_05.png",
+          "size_kb": 10.6
+        },
+        {
+          "name": "chainmail_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_06.png",
+          "size_kb": 6.6
+        },
+        {
+          "name": "chainmail_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_07.png",
+          "size_kb": 20.2
+        },
+        {
+          "name": "chainmail_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_08.png",
+          "size_kb": 19.4
+        },
+        {
+          "name": "chainmail_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_09.png",
+          "size_kb": 9.9
+        },
+        {
+          "name": "chainmail_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_10.png",
+          "size_kb": 13.3
+        },
+        {
+          "name": "chainmail_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_11.png",
+          "size_kb": 7.5
+        },
+        {
+          "name": "chainmail_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_12.png",
+          "size_kb": 15.6
+        },
+        {
+          "name": "chainmail_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_13.png",
+          "size_kb": 15.7
+        },
+        {
+          "name": "chainmail_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_14.png",
+          "size_kb": 8.3
+        },
+        {
+          "name": "chainmail_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_15.png",
+          "size_kb": 12.4
+        },
+        {
+          "name": "chainmail_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_16.png",
+          "size_kb": 3.6
+        },
+        {
+          "name": "chainmail_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_17.png",
+          "size_kb": 5.5
+        },
+        {
+          "name": "chainmail_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_18.png",
+          "size_kb": 5.3
+        },
+        {
+          "name": "chainmail_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_19.png",
+          "size_kb": 3.6
+        },
+        {
+          "name": "chainmail_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\chainmail\\chainmail_20.png",
+          "size_kb": 4.2
+        },
+        {
+          "name": "circuit_board_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_01.png",
+          "size_kb": 1303.0
+        },
+        {
+          "name": "circuit_board_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_02.png",
+          "size_kb": 1277.3
+        },
+        {
+          "name": "circuit_board_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_03.png",
+          "size_kb": 1261.2
+        },
+        {
+          "name": "circuit_board_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_04.png",
+          "size_kb": 1343.0
+        },
+        {
+          "name": "circuit_board_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_05.png",
+          "size_kb": 1163.6
+        },
+        {
+          "name": "circuit_board_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_06.png",
+          "size_kb": 982.0
+        },
+        {
+          "name": "circuit_board_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_07.png",
+          "size_kb": 1326.6
+        },
+        {
+          "name": "circuit_board_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_08.png",
+          "size_kb": 1277.6
+        },
+        {
+          "name": "circuit_board_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_09.png",
+          "size_kb": 1337.4
+        },
+        {
+          "name": "circuit_board_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_10.png",
+          "size_kb": 1326.3
+        },
+        {
+          "name": "circuit_board_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_11.png",
+          "size_kb": 1200.0
+        },
+        {
+          "name": "circuit_board_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_12.png",
+          "size_kb": 1178.7
+        },
+        {
+          "name": "circuit_board_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_13.png",
+          "size_kb": 1338.6
+        },
+        {
+          "name": "circuit_board_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_14.png",
+          "size_kb": 1220.8
+        },
+        {
+          "name": "circuit_board_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_15.png",
+          "size_kb": 1507.2
+        },
+        {
+          "name": "circuit_board_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_16.png",
+          "size_kb": 1338.7
+        },
+        {
+          "name": "circuit_board_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_17.png",
+          "size_kb": 1552.2
+        },
+        {
+          "name": "circuit_board_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_18.png",
+          "size_kb": 1263.9
+        },
+        {
+          "name": "circuit_board_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_19.png",
+          "size_kb": 1551.9
+        },
+        {
+          "name": "circuit_board_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\circuit_board\\circuit_board_20.png",
+          "size_kb": 1228.7
+        },
+        {
+          "name": "cobblestone_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_01.png",
+          "size_kb": 1728.2
+        },
+        {
+          "name": "cobblestone_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_02.png",
+          "size_kb": 1771.4
+        },
+        {
+          "name": "cobblestone_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_03.png",
+          "size_kb": 1639.1
+        },
+        {
+          "name": "cobblestone_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_04.png",
+          "size_kb": 1734.1
+        },
+        {
+          "name": "cobblestone_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_05.png",
+          "size_kb": 1619.0
+        },
+        {
+          "name": "cobblestone_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_06.png",
+          "size_kb": 1659.4
+        },
+        {
+          "name": "cobblestone_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_07.png",
+          "size_kb": 1714.5
+        },
+        {
+          "name": "cobblestone_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_08.png",
+          "size_kb": 1575.5
+        },
+        {
+          "name": "cobblestone_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_09.png",
+          "size_kb": 1672.1
+        },
+        {
+          "name": "cobblestone_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_10.png",
+          "size_kb": 1716.0
+        },
+        {
+          "name": "cobblestone_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_11.png",
+          "size_kb": 1636.8
+        },
+        {
+          "name": "cobblestone_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_12.png",
+          "size_kb": 1758.4
+        },
+        {
+          "name": "cobblestone_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_13.png",
+          "size_kb": 1835.9
+        },
+        {
+          "name": "cobblestone_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_14.png",
+          "size_kb": 1612.0
+        },
+        {
+          "name": "cobblestone_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_15.png",
+          "size_kb": 1597.0
+        },
+        {
+          "name": "cobblestone_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_16.png",
+          "size_kb": 1573.2
+        },
+        {
+          "name": "cobblestone_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_17.png",
+          "size_kb": 1869.5
+        },
+        {
+          "name": "cobblestone_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_18.png",
+          "size_kb": 1654.9
+        },
+        {
+          "name": "cobblestone_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_19.png",
+          "size_kb": 1708.1
+        },
+        {
+          "name": "cobblestone_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\cobblestone\\cobblestone_20.png",
+          "size_kb": 1643.3
+        },
+        {
+          "name": "coral_texture_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_01.png",
+          "size_kb": 1683.4
+        },
+        {
+          "name": "coral_texture_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_02.png",
+          "size_kb": 1740.7
+        },
+        {
+          "name": "coral_texture_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_03.png",
+          "size_kb": 1669.8
+        },
+        {
+          "name": "coral_texture_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_04.png",
+          "size_kb": 1754.7
+        },
+        {
+          "name": "coral_texture_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_05.png",
+          "size_kb": 1720.1
+        },
+        {
+          "name": "coral_texture_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_06.png",
+          "size_kb": 1801.5
+        },
+        {
+          "name": "coral_texture_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_07.png",
+          "size_kb": 1885.0
+        },
+        {
+          "name": "coral_texture_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_08.png",
+          "size_kb": 1674.0
+        },
+        {
+          "name": "coral_texture_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_09.png",
+          "size_kb": 1718.8
+        },
+        {
+          "name": "coral_texture_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_10.png",
+          "size_kb": 1813.2
+        },
+        {
+          "name": "coral_texture_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_11.png",
+          "size_kb": 1743.1
+        },
+        {
+          "name": "coral_texture_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_12.png",
+          "size_kb": 1676.6
+        },
+        {
+          "name": "coral_texture_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_13.png",
+          "size_kb": 1605.9
+        },
+        {
+          "name": "coral_texture_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_14.png",
+          "size_kb": 1774.6
+        },
+        {
+          "name": "coral_texture_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_15.png",
+          "size_kb": 1811.6
+        },
+        {
+          "name": "coral_texture_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_16.png",
+          "size_kb": 1813.0
+        },
+        {
+          "name": "coral_texture_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_17.png",
+          "size_kb": 1787.3
+        },
+        {
+          "name": "coral_texture_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_18.png",
+          "size_kb": 1859.5
+        },
+        {
+          "name": "coral_texture_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_19.png",
+          "size_kb": 1826.6
+        },
+        {
+          "name": "coral_texture_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\coral_texture\\coral_texture_20.png",
+          "size_kb": 1939.3
+        },
+        {
+          "name": "crocodile_skin_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_01.png",
+          "size_kb": 1840.4
+        },
+        {
+          "name": "crocodile_skin_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_02.png",
+          "size_kb": 1956.2
+        },
+        {
+          "name": "crocodile_skin_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_03.png",
+          "size_kb": 1940.3
+        },
+        {
+          "name": "crocodile_skin_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_04.png",
+          "size_kb": 1946.2
+        },
+        {
+          "name": "crocodile_skin_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_05.png",
+          "size_kb": 1927.4
+        },
+        {
+          "name": "crocodile_skin_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_06.png",
+          "size_kb": 1868.5
+        },
+        {
+          "name": "crocodile_skin_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_07.png",
+          "size_kb": 1776.6
+        },
+        {
+          "name": "crocodile_skin_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_08.png",
+          "size_kb": 1795.5
+        },
+        {
+          "name": "crocodile_skin_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_09.png",
+          "size_kb": 1876.6
+        },
+        {
+          "name": "crocodile_skin_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_10.png",
+          "size_kb": 1883.5
+        },
+        {
+          "name": "crocodile_skin_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_11.png",
+          "size_kb": 1728.2
+        },
+        {
+          "name": "crocodile_skin_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_12.png",
+          "size_kb": 1845.0
+        },
+        {
+          "name": "crocodile_skin_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_13.png",
+          "size_kb": 1612.5
+        },
+        {
+          "name": "crocodile_skin_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_14.png",
+          "size_kb": 1768.0
+        },
+        {
+          "name": "crocodile_skin_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_15.png",
+          "size_kb": 1908.4
+        },
+        {
+          "name": "crocodile_skin_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_16.png",
+          "size_kb": 1725.5
+        },
+        {
+          "name": "crocodile_skin_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_17.png",
+          "size_kb": 1773.0
+        },
+        {
+          "name": "crocodile_skin_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_18.png",
+          "size_kb": 2036.5
+        },
+        {
+          "name": "crocodile_skin_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_19.png",
+          "size_kb": 2008.5
+        },
+        {
+          "name": "crocodile_skin_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\crocodile_skin\\crocodile_skin_20.png",
+          "size_kb": 1781.3
+        },
+        {
+          "name": "diamond_knurl_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_01.png",
+          "size_kb": 4.8
+        },
+        {
+          "name": "diamond_knurl_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_02.png",
+          "size_kb": 6.5
+        },
+        {
+          "name": "diamond_knurl_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_03.png",
+          "size_kb": 6.7
+        },
+        {
+          "name": "diamond_knurl_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_04.png",
+          "size_kb": 5.7
+        },
+        {
+          "name": "diamond_knurl_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_05.png",
+          "size_kb": 6.0
+        },
+        {
+          "name": "diamond_knurl_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_06.png",
+          "size_kb": 6.8
+        },
+        {
+          "name": "diamond_knurl_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_07.png",
+          "size_kb": 7.7
+        },
+        {
+          "name": "diamond_knurl_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_08.png",
+          "size_kb": 7.4
+        },
+        {
+          "name": "diamond_knurl_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_09.png",
+          "size_kb": 7.6
+        },
+        {
+          "name": "diamond_knurl_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_10.png",
+          "size_kb": 6.8
+        },
+        {
+          "name": "diamond_knurl_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_11.png",
+          "size_kb": 7.5
+        },
+        {
+          "name": "diamond_knurl_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_12.png",
+          "size_kb": 7.0
+        },
+        {
+          "name": "diamond_knurl_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_13.png",
+          "size_kb": 6.9
+        },
+        {
+          "name": "diamond_knurl_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_14.png",
+          "size_kb": 6.3
+        },
+        {
+          "name": "diamond_knurl_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_15.png",
+          "size_kb": 6.6
+        },
+        {
+          "name": "diamond_knurl_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_16.png",
+          "size_kb": 3.3
+        },
+        {
+          "name": "diamond_knurl_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_17.png",
+          "size_kb": 3.3
+        },
+        {
+          "name": "diamond_knurl_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_18.png",
+          "size_kb": 3.3
+        },
+        {
+          "name": "diamond_knurl_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_19.png",
+          "size_kb": 3.0
+        },
+        {
+          "name": "diamond_knurl_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\diamond_knurl\\diamond_knurl_20.png",
+          "size_kb": 3.0
+        },
+        {
+          "name": "dragon_scales_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_01.png",
+          "size_kb": 1531.2
+        },
+        {
+          "name": "dragon_scales_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_02.png",
+          "size_kb": 1516.9
+        },
+        {
+          "name": "dragon_scales_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_03.png",
+          "size_kb": 1510.1
+        },
+        {
+          "name": "dragon_scales_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_04.png",
+          "size_kb": 1569.8
+        },
+        {
+          "name": "dragon_scales_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_05.png",
+          "size_kb": 1580.0
+        },
+        {
+          "name": "dragon_scales_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_06.png",
+          "size_kb": 1585.0
+        },
+        {
+          "name": "dragon_scales_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_07.png",
+          "size_kb": 1689.7
+        },
+        {
+          "name": "dragon_scales_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_08.png",
+          "size_kb": 1667.5
+        },
+        {
+          "name": "dragon_scales_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_09.png",
+          "size_kb": 1490.9
+        },
+        {
+          "name": "dragon_scales_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_10.png",
+          "size_kb": 1701.1
+        },
+        {
+          "name": "dragon_scales_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_11.png",
+          "size_kb": 1520.0
+        },
+        {
+          "name": "dragon_scales_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_12.png",
+          "size_kb": 1682.1
+        },
+        {
+          "name": "dragon_scales_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_13.png",
+          "size_kb": 1480.9
+        },
+        {
+          "name": "dragon_scales_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_14.png",
+          "size_kb": 1551.2
+        },
+        {
+          "name": "dragon_scales_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_15.png",
+          "size_kb": 1630.4
+        },
+        {
+          "name": "dragon_scales_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_16.png",
+          "size_kb": 1550.1
+        },
+        {
+          "name": "dragon_scales_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_17.png",
+          "size_kb": 1716.1
+        },
+        {
+          "name": "dragon_scales_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_18.png",
+          "size_kb": 1678.5
+        },
+        {
+          "name": "dragon_scales_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_19.png",
+          "size_kb": 1566.6
+        },
+        {
+          "name": "dragon_scales_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\dragon_scales\\dragon_scales_20.png",
+          "size_kb": 1709.1
+        },
+        {
+          "name": "feather_pattern_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_01.png",
+          "size_kb": 2013.7
+        },
+        {
+          "name": "feather_pattern_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_02.png",
+          "size_kb": 2250.1
+        },
+        {
+          "name": "feather_pattern_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_03.png",
+          "size_kb": 2261.3
+        },
+        {
+          "name": "feather_pattern_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_04.png",
+          "size_kb": 1971.6
+        },
+        {
+          "name": "feather_pattern_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_05.png",
+          "size_kb": 2052.5
+        },
+        {
+          "name": "feather_pattern_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_06.png",
+          "size_kb": 2256.9
+        },
+        {
+          "name": "feather_pattern_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_07.png",
+          "size_kb": 1956.0
+        },
+        {
+          "name": "feather_pattern_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_08.png",
+          "size_kb": 2259.5
+        },
+        {
+          "name": "feather_pattern_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_09.png",
+          "size_kb": 2038.8
+        },
+        {
+          "name": "feather_pattern_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_10.png",
+          "size_kb": 2004.4
+        },
+        {
+          "name": "feather_pattern_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_11.png",
+          "size_kb": 1984.2
+        },
+        {
+          "name": "feather_pattern_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_12.png",
+          "size_kb": 2321.5
+        },
+        {
+          "name": "feather_pattern_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_13.png",
+          "size_kb": 2359.2
+        },
+        {
+          "name": "feather_pattern_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_14.png",
+          "size_kb": 2148.5
+        },
+        {
+          "name": "feather_pattern_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_15.png",
+          "size_kb": 2094.4
+        },
+        {
+          "name": "feather_pattern_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_16.png",
+          "size_kb": 2162.0
+        },
+        {
+          "name": "feather_pattern_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_17.png",
+          "size_kb": 2019.9
+        },
+        {
+          "name": "feather_pattern_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_18.png",
+          "size_kb": 1957.6
+        },
+        {
+          "name": "feather_pattern_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_19.png",
+          "size_kb": 2239.3
+        },
+        {
+          "name": "feather_pattern_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\feather_pattern\\feather_pattern_20.png",
+          "size_kb": 1941.6
+        },
+        {
+          "name": "fish_scales_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_01.png",
+          "size_kb": 1378.1
+        },
+        {
+          "name": "fish_scales_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_02.png",
+          "size_kb": 1512.0
+        },
+        {
+          "name": "fish_scales_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_03.png",
+          "size_kb": 1596.0
+        },
+        {
+          "name": "fish_scales_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_04.png",
+          "size_kb": 1545.8
+        },
+        {
+          "name": "fish_scales_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_05.png",
+          "size_kb": 1638.2
+        },
+        {
+          "name": "fish_scales_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_06.png",
+          "size_kb": 1600.5
+        },
+        {
+          "name": "fish_scales_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_07.png",
+          "size_kb": 1477.8
+        },
+        {
+          "name": "fish_scales_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_08.png",
+          "size_kb": 1347.0
+        },
+        {
+          "name": "fish_scales_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_09.png",
+          "size_kb": 1702.7
+        },
+        {
+          "name": "fish_scales_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_10.png",
+          "size_kb": 1657.6
+        },
+        {
+          "name": "fish_scales_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_11.png",
+          "size_kb": 1725.2
+        },
+        {
+          "name": "fish_scales_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_12.png",
+          "size_kb": 1731.4
+        },
+        {
+          "name": "fish_scales_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_13.png",
+          "size_kb": 1659.3
+        },
+        {
+          "name": "fish_scales_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_14.png",
+          "size_kb": 1145.1
+        },
+        {
+          "name": "fish_scales_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_15.png",
+          "size_kb": 2019.0
+        },
+        {
+          "name": "fish_scales_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_16.png",
+          "size_kb": 1483.9
+        },
+        {
+          "name": "fish_scales_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_17.png",
+          "size_kb": 1729.6
+        },
+        {
+          "name": "fish_scales_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_18.png",
+          "size_kb": 1788.9
+        },
+        {
+          "name": "fish_scales_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_19.png",
+          "size_kb": 1746.3
+        },
+        {
+          "name": "fish_scales_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\fish_scales\\fish_scales_20.png",
+          "size_kb": 1838.9
+        },
+        {
+          "name": "hammered_metal_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_01.png",
+          "size_kb": 1660.8
+        },
+        {
+          "name": "hammered_metal_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_02.png",
+          "size_kb": 2098.3
+        },
+        {
+          "name": "hammered_metal_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_03.png",
+          "size_kb": 1732.4
+        },
+        {
+          "name": "hammered_metal_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_04.png",
+          "size_kb": 1721.7
+        },
+        {
+          "name": "hammered_metal_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_05.png",
+          "size_kb": 1795.2
+        },
+        {
+          "name": "hammered_metal_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_06.png",
+          "size_kb": 1659.2
+        },
+        {
+          "name": "hammered_metal_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_07.png",
+          "size_kb": 1805.5
+        },
+        {
+          "name": "hammered_metal_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_08.png",
+          "size_kb": 1466.0
+        },
+        {
+          "name": "hammered_metal_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_09.png",
+          "size_kb": 1486.5
+        },
+        {
+          "name": "hammered_metal_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_10.png",
+          "size_kb": 1578.1
+        },
+        {
+          "name": "hammered_metal_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_11.png",
+          "size_kb": 1365.8
+        },
+        {
+          "name": "hammered_metal_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_12.png",
+          "size_kb": 1957.8
+        },
+        {
+          "name": "hammered_metal_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_13.png",
+          "size_kb": 1639.6
+        },
+        {
+          "name": "hammered_metal_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_14.png",
+          "size_kb": 1311.8
+        },
+        {
+          "name": "hammered_metal_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_15.png",
+          "size_kb": 2170.2
+        },
+        {
+          "name": "hammered_metal_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_16.png",
+          "size_kb": 1890.1
+        },
+        {
+          "name": "hammered_metal_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_17.png",
+          "size_kb": 1738.0
+        },
+        {
+          "name": "hammered_metal_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_18.png",
+          "size_kb": 2084.1
+        },
+        {
+          "name": "hammered_metal_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_19.png",
+          "size_kb": 1504.4
+        },
+        {
+          "name": "hammered_metal_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\hammered_metal\\hammered_metal_20.png",
+          "size_kb": 2077.9
+        },
+        {
+          "name": "herringbone_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_01.png",
+          "size_kb": 1.3
+        },
+        {
+          "name": "herringbone_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_02.png",
+          "size_kb": 2.7
+        },
+        {
+          "name": "herringbone_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_03.png",
+          "size_kb": 2.8
+        },
+        {
+          "name": "herringbone_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_04.png",
+          "size_kb": 2.0
+        },
+        {
+          "name": "herringbone_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_05.png",
+          "size_kb": 2.7
+        },
+        {
+          "name": "herringbone_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_06.png",
+          "size_kb": 1.3
+        },
+        {
+          "name": "herringbone_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_07.png",
+          "size_kb": 3.0
+        },
+        {
+          "name": "herringbone_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_08.png",
+          "size_kb": 3.1
+        },
+        {
+          "name": "herringbone_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_09.png",
+          "size_kb": 2.1
+        },
+        {
+          "name": "herringbone_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_10.png",
+          "size_kb": 3.0
+        },
+        {
+          "name": "herringbone_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_11.png",
+          "size_kb": 1.4
+        },
+        {
+          "name": "herringbone_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_12.png",
+          "size_kb": 3.4
+        },
+        {
+          "name": "herringbone_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_13.png",
+          "size_kb": 3.6
+        },
+        {
+          "name": "herringbone_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_14.png",
+          "size_kb": 2.4
+        },
+        {
+          "name": "herringbone_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_15.png",
+          "size_kb": 3.5
+        },
+        {
+          "name": "herringbone_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_16.png",
+          "size_kb": 1.4
+        },
+        {
+          "name": "herringbone_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_17.png",
+          "size_kb": 3.0
+        },
+        {
+          "name": "herringbone_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_18.png",
+          "size_kb": 3.1
+        },
+        {
+          "name": "herringbone_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_19.png",
+          "size_kb": 1.9
+        },
+        {
+          "name": "herringbone_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\herringbone\\herringbone_20.png",
+          "size_kb": 2.5
+        },
+        {
+          "name": "honeycomb_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_01.png",
+          "size_kb": 3.5
+        },
+        {
+          "name": "honeycomb_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_02.png",
+          "size_kb": 12.2
+        },
+        {
+          "name": "honeycomb_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_03.png",
+          "size_kb": 12.8
+        },
+        {
+          "name": "honeycomb_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_04.png",
+          "size_kb": 7.4
+        },
+        {
+          "name": "honeycomb_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_05.png",
+          "size_kb": 10.2
+        },
+        {
+          "name": "honeycomb_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_06.png",
+          "size_kb": 3.7
+        },
+        {
+          "name": "honeycomb_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_07.png",
+          "size_kb": 12.3
+        },
+        {
+          "name": "honeycomb_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_08.png",
+          "size_kb": 12.8
+        },
+        {
+          "name": "honeycomb_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_09.png",
+          "size_kb": 7.0
+        },
+        {
+          "name": "honeycomb_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_10.png",
+          "size_kb": 9.9
+        },
+        {
+          "name": "honeycomb_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_11.png",
+          "size_kb": 3.8
+        },
+        {
+          "name": "honeycomb_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_12.png",
+          "size_kb": 9.8
+        },
+        {
+          "name": "honeycomb_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_13.png",
+          "size_kb": 10.0
+        },
+        {
+          "name": "honeycomb_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_14.png",
+          "size_kb": 5.5
+        },
+        {
+          "name": "honeycomb_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_15.png",
+          "size_kb": 7.4
+        },
+        {
+          "name": "honeycomb_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_16.png",
+          "size_kb": 2.5
+        },
+        {
+          "name": "honeycomb_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_17.png",
+          "size_kb": 5.1
+        },
+        {
+          "name": "honeycomb_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_18.png",
+          "size_kb": 5.1
+        },
+        {
+          "name": "honeycomb_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_19.png",
+          "size_kb": 3.1
+        },
+        {
+          "name": "honeycomb_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\honeycomb\\honeycomb_20.png",
+          "size_kb": 4.1
+        },
+        {
+          "name": "lava_rock_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_01.png",
+          "size_kb": 1837.1
+        },
+        {
+          "name": "lava_rock_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_02.png",
+          "size_kb": 1909.9
+        },
+        {
+          "name": "lava_rock_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_03.png",
+          "size_kb": 1923.8
+        },
+        {
+          "name": "lava_rock_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_04.png",
+          "size_kb": 1949.9
+        },
+        {
+          "name": "lava_rock_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_05.png",
+          "size_kb": 2019.4
+        },
+        {
+          "name": "lava_rock_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_06.png",
+          "size_kb": 1790.6
+        },
+        {
+          "name": "lava_rock_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_07.png",
+          "size_kb": 1978.7
+        },
+        {
+          "name": "lava_rock_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_08.png",
+          "size_kb": 1842.4
+        },
+        {
+          "name": "lava_rock_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_09.png",
+          "size_kb": 1917.2
+        },
+        {
+          "name": "lava_rock_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_10.png",
+          "size_kb": 2011.4
+        },
+        {
+          "name": "lava_rock_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_11.png",
+          "size_kb": 1978.4
+        },
+        {
+          "name": "lava_rock_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_12.png",
+          "size_kb": 1913.1
+        },
+        {
+          "name": "lava_rock_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_13.png",
+          "size_kb": 1915.0
+        },
+        {
+          "name": "lava_rock_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_14.png",
+          "size_kb": 2084.5
+        },
+        {
+          "name": "lava_rock_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_15.png",
+          "size_kb": 2013.7
+        },
+        {
+          "name": "lava_rock_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_16.png",
+          "size_kb": 2048.4
+        },
+        {
+          "name": "lava_rock_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_17.png",
+          "size_kb": 2045.5
+        },
+        {
+          "name": "lava_rock_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_18.png",
+          "size_kb": 2099.7
+        },
+        {
+          "name": "lava_rock_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_19.png",
+          "size_kb": 1974.0
+        },
+        {
+          "name": "lava_rock_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\lava_rock\\lava_rock_20.png",
+          "size_kb": 1938.9
+        },
+        {
+          "name": "leather_pebble_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_01.png",
+          "size_kb": 1878.4
+        },
+        {
+          "name": "leather_pebble_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_02.png",
+          "size_kb": 2091.6
+        },
+        {
+          "name": "leather_pebble_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_03.png",
+          "size_kb": 1964.0
+        },
+        {
+          "name": "leather_pebble_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_04.png",
+          "size_kb": 2121.1
+        },
+        {
+          "name": "leather_pebble_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_05.png",
+          "size_kb": 2185.7
+        },
+        {
+          "name": "leather_pebble_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_08.png",
+          "size_kb": 2018.1
+        },
+        {
+          "name": "leather_pebble_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_09.png",
+          "size_kb": 1938.1
+        },
+        {
+          "name": "leather_pebble_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_10.png",
+          "size_kb": 2114.1
+        },
+        {
+          "name": "leather_pebble_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_11.png",
+          "size_kb": 1916.9
+        },
+        {
+          "name": "leather_pebble_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_12.png",
+          "size_kb": 2130.9
+        },
+        {
+          "name": "leather_pebble_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_13.png",
+          "size_kb": 1859.1
+        },
+        {
+          "name": "leather_pebble_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_14.png",
+          "size_kb": 2097.4
+        },
+        {
+          "name": "leather_pebble_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_16.png",
+          "size_kb": 1855.0
+        },
+        {
+          "name": "leather_pebble_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_17.png",
+          "size_kb": 1986.3
+        },
+        {
+          "name": "leather_pebble_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_18.png",
+          "size_kb": 2105.7
+        },
+        {
+          "name": "leather_pebble_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_19.png",
+          "size_kb": 2269.8
+        },
+        {
+          "name": "leather_pebble_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\leather_pebble\\leather_pebble_20.png",
+          "size_kb": 2109.9
+        },
+        {
+          "name": "moroccan_tiles_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_01.png",
+          "size_kb": 2673.8
+        },
+        {
+          "name": "moroccan_tiles_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_02.png",
+          "size_kb": 2553.1
+        },
+        {
+          "name": "moroccan_tiles_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_03.png",
+          "size_kb": 2467.7
+        },
+        {
+          "name": "moroccan_tiles_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_04.png",
+          "size_kb": 2428.4
+        },
+        {
+          "name": "moroccan_tiles_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_05.png",
+          "size_kb": 2036.7
+        },
+        {
+          "name": "moroccan_tiles_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_06.png",
+          "size_kb": 2453.5
+        },
+        {
+          "name": "moroccan_tiles_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_07.png",
+          "size_kb": 2319.9
+        },
+        {
+          "name": "moroccan_tiles_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_08.png",
+          "size_kb": 2548.9
+        },
+        {
+          "name": "moroccan_tiles_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_09.png",
+          "size_kb": 2428.2
+        },
+        {
+          "name": "moroccan_tiles_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_10.png",
+          "size_kb": 1749.9
+        },
+        {
+          "name": "moroccan_tiles_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_11.png",
+          "size_kb": 2210.4
+        },
+        {
+          "name": "moroccan_tiles_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_12.png",
+          "size_kb": 2358.1
+        },
+        {
+          "name": "moroccan_tiles_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_13.png",
+          "size_kb": 2447.6
+        },
+        {
+          "name": "moroccan_tiles_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_14.png",
+          "size_kb": 2593.1
+        },
+        {
+          "name": "moroccan_tiles_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_15.png",
+          "size_kb": 2565.3
+        },
+        {
+          "name": "moroccan_tiles_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_16.png",
+          "size_kb": 1529.0
+        },
+        {
+          "name": "moroccan_tiles_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_17.png",
+          "size_kb": 2470.0
+        },
+        {
+          "name": "moroccan_tiles_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_18.png",
+          "size_kb": 2547.0
+        },
+        {
+          "name": "moroccan_tiles_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_19.png",
+          "size_kb": 2281.9
+        },
+        {
+          "name": "moroccan_tiles_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\moroccan_tiles\\moroccan_tiles_20.png",
+          "size_kb": 1511.6
+        },
+        {
+          "name": "pine_cone_scales_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_01.png",
+          "size_kb": 1337.2
+        },
+        {
+          "name": "pine_cone_scales_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_02.png",
+          "size_kb": 1650.4
+        },
+        {
+          "name": "pine_cone_scales_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_03.png",
+          "size_kb": 1604.3
+        },
+        {
+          "name": "pine_cone_scales_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_04.png",
+          "size_kb": 1236.1
+        },
+        {
+          "name": "pine_cone_scales_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_05.png",
+          "size_kb": 1420.7
+        },
+        {
+          "name": "pine_cone_scales_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_06.png",
+          "size_kb": 1089.9
+        },
+        {
+          "name": "pine_cone_scales_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_07.png",
+          "size_kb": 1658.2
+        },
+        {
+          "name": "pine_cone_scales_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_08.png",
+          "size_kb": 1299.2
+        },
+        {
+          "name": "pine_cone_scales_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_09.png",
+          "size_kb": 1024.2
+        },
+        {
+          "name": "pine_cone_scales_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_10.png",
+          "size_kb": 1438.4
+        },
+        {
+          "name": "pine_cone_scales_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_11.png",
+          "size_kb": 1395.1
+        },
+        {
+          "name": "pine_cone_scales_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_12.png",
+          "size_kb": 936.0
+        },
+        {
+          "name": "pine_cone_scales_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_13.png",
+          "size_kb": 1152.9
+        },
+        {
+          "name": "pine_cone_scales_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_14.png",
+          "size_kb": 776.5
+        },
+        {
+          "name": "pine_cone_scales_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_15.png",
+          "size_kb": 1244.9
+        },
+        {
+          "name": "pine_cone_scales_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_16.png",
+          "size_kb": 1277.6
+        },
+        {
+          "name": "pine_cone_scales_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_17.png",
+          "size_kb": 1107.5
+        },
+        {
+          "name": "pine_cone_scales_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_18.png",
+          "size_kb": 1008.8
+        },
+        {
+          "name": "pine_cone_scales_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_19.png",
+          "size_kb": 1131.9
+        },
+        {
+          "name": "pine_cone_scales_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\pine_cone_scales\\pine_cone_scales_20.png",
+          "size_kb": 1619.0
+        },
+        {
+          "name": "reptile_scales_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_01.png",
+          "size_kb": 1063.5
+        },
+        {
+          "name": "reptile_scales_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_02.png",
+          "size_kb": 1835.1
+        },
+        {
+          "name": "reptile_scales_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_03.png",
+          "size_kb": 1907.9
+        },
+        {
+          "name": "reptile_scales_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_04.png",
+          "size_kb": 1947.4
+        },
+        {
+          "name": "reptile_scales_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_05.png",
+          "size_kb": 1965.2
+        },
+        {
+          "name": "reptile_scales_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_06.png",
+          "size_kb": 1794.4
+        },
+        {
+          "name": "reptile_scales_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_07.png",
+          "size_kb": 2175.2
+        },
+        {
+          "name": "reptile_scales_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_08.png",
+          "size_kb": 1589.2
+        },
+        {
+          "name": "reptile_scales_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_09.png",
+          "size_kb": 2016.8
+        },
+        {
+          "name": "reptile_scales_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_10.png",
+          "size_kb": 1888.2
+        },
+        {
+          "name": "reptile_scales_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_11.png",
+          "size_kb": 1630.1
+        },
+        {
+          "name": "reptile_scales_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_12.png",
+          "size_kb": 1964.6
+        },
+        {
+          "name": "reptile_scales_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_13.png",
+          "size_kb": 1845.5
+        },
+        {
+          "name": "reptile_scales_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_14.png",
+          "size_kb": 1763.4
+        },
+        {
+          "name": "reptile_scales_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_15.png",
+          "size_kb": 1844.5
+        },
+        {
+          "name": "reptile_scales_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_16.png",
+          "size_kb": 1700.2
+        },
+        {
+          "name": "reptile_scales_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_17.png",
+          "size_kb": 1909.4
+        },
+        {
+          "name": "reptile_scales_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_18.png",
+          "size_kb": 1764.1
+        },
+        {
+          "name": "reptile_scales_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_19.png",
+          "size_kb": 2166.2
+        },
+        {
+          "name": "reptile_scales_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\reptile_scales\\reptile_scales_20.png",
+          "size_kb": 2095.4
+        },
+        {
+          "name": "riveted_metal_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_01.png",
+          "size_kb": 2.5
+        },
+        {
+          "name": "riveted_metal_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_02.png",
+          "size_kb": 8.8
+        },
+        {
+          "name": "riveted_metal_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_03.png",
+          "size_kb": 9.0
+        },
+        {
+          "name": "riveted_metal_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_04.png",
+          "size_kb": 6.3
+        },
+        {
+          "name": "riveted_metal_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_05.png",
+          "size_kb": 8.1
+        },
+        {
+          "name": "riveted_metal_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_06.png",
+          "size_kb": 3.7
+        },
+        {
+          "name": "riveted_metal_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_07.png",
+          "size_kb": 17.8
+        },
+        {
+          "name": "riveted_metal_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_08.png",
+          "size_kb": 18.5
+        },
+        {
+          "name": "riveted_metal_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_09.png",
+          "size_kb": 9.8
+        },
+        {
+          "name": "riveted_metal_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_10.png",
+          "size_kb": 14.6
+        },
+        {
+          "name": "riveted_metal_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_11.png",
+          "size_kb": 3.2
+        },
+        {
+          "name": "riveted_metal_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_12.png",
+          "size_kb": 14.5
+        },
+        {
+          "name": "riveted_metal_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_13.png",
+          "size_kb": 14.5
+        },
+        {
+          "name": "riveted_metal_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_14.png",
+          "size_kb": 7.5
+        },
+        {
+          "name": "riveted_metal_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_15.png",
+          "size_kb": 11.0
+        },
+        {
+          "name": "riveted_metal_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_16.png",
+          "size_kb": 1.5
+        },
+        {
+          "name": "riveted_metal_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_17.png",
+          "size_kb": 1.9
+        },
+        {
+          "name": "riveted_metal_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_18.png",
+          "size_kb": 2.0
+        },
+        {
+          "name": "riveted_metal_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_19.png",
+          "size_kb": 1.7
+        },
+        {
+          "name": "riveted_metal_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\riveted_metal\\riveted_metal_20.png",
+          "size_kb": 1.8
+        },
+        {
+          "name": "shark_skin_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_01.png",
+          "size_kb": 2155.9
+        },
+        {
+          "name": "shark_skin_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_02.png",
+          "size_kb": 2125.2
+        },
+        {
+          "name": "shark_skin_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_03.png",
+          "size_kb": 2369.3
+        },
+        {
+          "name": "shark_skin_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_04.png",
+          "size_kb": 2151.0
+        },
+        {
+          "name": "shark_skin_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_05.png",
+          "size_kb": 2047.5
+        },
+        {
+          "name": "shark_skin_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_06.png",
+          "size_kb": 2003.0
+        },
+        {
+          "name": "shark_skin_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_07.png",
+          "size_kb": 2250.8
+        },
+        {
+          "name": "shark_skin_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_08.png",
+          "size_kb": 2327.8
+        },
+        {
+          "name": "shark_skin_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_09.png",
+          "size_kb": 2135.9
+        },
+        {
+          "name": "shark_skin_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_10.png",
+          "size_kb": 2159.4
+        },
+        {
+          "name": "shark_skin_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_11.png",
+          "size_kb": 2041.3
+        },
+        {
+          "name": "shark_skin_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_12.png",
+          "size_kb": 2302.7
+        },
+        {
+          "name": "shark_skin_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_13.png",
+          "size_kb": 2340.3
+        },
+        {
+          "name": "shark_skin_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_14.png",
+          "size_kb": 2144.2
+        },
+        {
+          "name": "shark_skin_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_15.png",
+          "size_kb": 2202.6
+        },
+        {
+          "name": "shark_skin_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_16.png",
+          "size_kb": 2298.5
+        },
+        {
+          "name": "shark_skin_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_17.png",
+          "size_kb": 2501.3
+        },
+        {
+          "name": "shark_skin_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_18.png",
+          "size_kb": 2176.5
+        },
+        {
+          "name": "shark_skin_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_19.png",
+          "size_kb": 2384.4
+        },
+        {
+          "name": "shark_skin_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\shark_skin\\shark_skin_20.png",
+          "size_kb": 2291.0
+        },
+        {
+          "name": "voronoi_cells_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_01.png",
+          "size_kb": 4.8
+        },
+        {
+          "name": "voronoi_cells_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_02.png",
+          "size_kb": 24.3
+        },
+        {
+          "name": "voronoi_cells_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_03.png",
+          "size_kb": 26.1
+        },
+        {
+          "name": "voronoi_cells_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_04.png",
+          "size_kb": 17.5
+        },
+        {
+          "name": "voronoi_cells_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_05.png",
+          "size_kb": 23.8
+        },
+        {
+          "name": "voronoi_cells_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_06.png",
+          "size_kb": 8.2
+        },
+        {
+          "name": "voronoi_cells_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_07.png",
+          "size_kb": 35.6
+        },
+        {
+          "name": "voronoi_cells_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_08.png",
+          "size_kb": 38.1
+        },
+        {
+          "name": "voronoi_cells_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_09.png",
+          "size_kb": 27.7
+        },
+        {
+          "name": "voronoi_cells_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_10.png",
+          "size_kb": 36.5
+        },
+        {
+          "name": "voronoi_cells_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_11.png",
+          "size_kb": 12.0
+        },
+        {
+          "name": "voronoi_cells_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_12.png",
+          "size_kb": 48.8
+        },
+        {
+          "name": "voronoi_cells_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_13.png",
+          "size_kb": 50.8
+        },
+        {
+          "name": "voronoi_cells_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_14.png",
+          "size_kb": 35.5
+        },
+        {
+          "name": "voronoi_cells_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_15.png",
+          "size_kb": 47.9
+        },
+        {
+          "name": "voronoi_cells_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_16.png",
+          "size_kb": 17.4
+        },
+        {
+          "name": "voronoi_cells_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_17.png",
+          "size_kb": 60.6
+        },
+        {
+          "name": "voronoi_cells_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_18.png",
+          "size_kb": 62.3
+        },
+        {
+          "name": "voronoi_cells_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_19.png",
+          "size_kb": 45.0
+        },
+        {
+          "name": "voronoi_cells_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\voronoi_cells\\voronoi_cells_20.png",
+          "size_kb": 59.2
+        },
+        {
+          "name": "wood_grain_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_01.png",
+          "size_kb": 1497.6
+        },
+        {
+          "name": "wood_grain_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_02.png",
+          "size_kb": 1569.7
+        },
+        {
+          "name": "wood_grain_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_03.png",
+          "size_kb": 2153.8
+        },
+        {
+          "name": "wood_grain_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_04.png",
+          "size_kb": 1526.1
+        },
+        {
+          "name": "wood_grain_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_05.png",
+          "size_kb": 1570.8
+        },
+        {
+          "name": "wood_grain_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_06.png",
+          "size_kb": 1587.4
+        },
+        {
+          "name": "wood_grain_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_07.png",
+          "size_kb": 1788.7
+        },
+        {
+          "name": "wood_grain_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_08.png",
+          "size_kb": 1546.8
+        },
+        {
+          "name": "wood_grain_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_09.png",
+          "size_kb": 1959.2
+        },
+        {
+          "name": "wood_grain_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_10.png",
+          "size_kb": 1661.3
+        },
+        {
+          "name": "wood_grain_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_11.png",
+          "size_kb": 1451.0
+        },
+        {
+          "name": "wood_grain_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_12.png",
+          "size_kb": 1640.0
+        },
+        {
+          "name": "wood_grain_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_13.png",
+          "size_kb": 1649.5
+        },
+        {
+          "name": "wood_grain_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_14.png",
+          "size_kb": 1643.4
+        },
+        {
+          "name": "wood_grain_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_15.png",
+          "size_kb": 1730.0
+        },
+        {
+          "name": "wood_grain_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_16.png",
+          "size_kb": 1570.1
+        },
+        {
+          "name": "wood_grain_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_17.png",
+          "size_kb": 1548.6
+        },
+        {
+          "name": "wood_grain_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_18.png",
+          "size_kb": 1654.7
+        },
+        {
+          "name": "wood_grain_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_19.png",
+          "size_kb": 1674.2
+        },
+        {
+          "name": "wood_grain_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\wood_grain\\wood_grain_20.png",
+          "size_kb": 1983.7
+        },
+        {
+          "name": "woven_basket_01",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_01.png",
+          "size_kb": 2086.1
+        },
+        {
+          "name": "woven_basket_02",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_02.png",
+          "size_kb": 1955.2
+        },
+        {
+          "name": "woven_basket_03",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_03.png",
+          "size_kb": 1868.5
+        },
+        {
+          "name": "woven_basket_04",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_04.png",
+          "size_kb": 1915.4
+        },
+        {
+          "name": "woven_basket_05",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_05.png",
+          "size_kb": 2049.9
+        },
+        {
+          "name": "woven_basket_06",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_06.png",
+          "size_kb": 2181.5
+        },
+        {
+          "name": "woven_basket_07",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_07.png",
+          "size_kb": 1573.9
+        },
+        {
+          "name": "woven_basket_08",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_08.png",
+          "size_kb": 1806.5
+        },
+        {
+          "name": "woven_basket_09",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_09.png",
+          "size_kb": 1909.4
+        },
+        {
+          "name": "woven_basket_10",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_10.png",
+          "size_kb": 1729.0
+        },
+        {
+          "name": "woven_basket_11",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_11.png",
+          "size_kb": 2028.4
+        },
+        {
+          "name": "woven_basket_12",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_12.png",
+          "size_kb": 2102.8
+        },
+        {
+          "name": "woven_basket_13",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_13.png",
+          "size_kb": 2140.3
+        },
+        {
+          "name": "woven_basket_14",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_14.png",
+          "size_kb": 1609.7
+        },
+        {
+          "name": "woven_basket_15",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_15.png",
+          "size_kb": 1541.1
+        },
+        {
+          "name": "woven_basket_16",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_16.png",
+          "size_kb": 2027.3
+        },
+        {
+          "name": "woven_basket_17",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_17.png",
+          "size_kb": 2066.1
+        },
+        {
+          "name": "woven_basket_18",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_18.png",
+          "size_kb": 1730.2
+        },
+        {
+          "name": "woven_basket_19",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_19.png",
+          "size_kb": 1720.0
+        },
+        {
+          "name": "woven_basket_20",
+          "path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\woven_basket\\woven_basket_20.png",
+          "size_kb": 1646.7
+        }
+      ]
+    }
+  },
+  {
+    "iteration": 1,
+    "role": "model_call",
+    "function": "list_available_parts",
+    "args": {},
+    "result": {
+      "parts": [
+        {
+          "name": "poco_x6_phone_case",
+          "stl_exists": false,
+          "stl_path": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\protection-poco-x6_texture_modifier.stl",
+          "profile": "PRISMATIC",
+          "label": "Poco X6 Phone Case (PRISMATIC/OBJECT)"
+        },
+        {
+          "name": "elvish_tpu_inner",
+          "stl_exists": false,
+          "stl_path": "C:\\Users\\User\\source\\repos\\3DPrinting\\PhoneCase\\STL\\elvish_tpu_inner_texture_modifier.stl",
+          "profile": "FLAT_SHELL",
+          "label": "Elvish TPU Inner (FLAT_SHELL/OBJECT)"
+        },
+        {
+          "name": "vacuum_nozzle_lower",
+          "stl_exists": true,
+          "stl_path": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier.stl",
+          "profile": "REVOLUTION",
+          "label": "Vacuum Nozzle Lower (REVOLUTION/CYLINDER)"
+        },
+        {
+          "name": "vacuum_crevice_nozzle",
+          "stl_exists": true,
+          "stl_path": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_crevice_nozzle_texture_modifier.stl",
+          "profile": "PRISMATIC",
+          "label": "Vacuum Crevice Nozzle (PRISMATIC/OBJECT)"
+        }
+      ]
+    }
+  },
+  {
+    "iteration": 2,
+    "role": "user",
+    "screenshot_bytes": 65556,
+    "url": "visualizer://vacuum_nozzle_lower"
+  },
+  {
+    "iteration": 2,
+    "role": "model_call",
+    "function": "run_texture_pipeline",
+    "args": {
+      "stl_path": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier.stl",
+      "part_name": "vacuum_nozzle_lower",
+      "skin_path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png"
+    },
+    "result": {
+      "part_name": "vacuum_nozzle_lower",
+      "exit_code": 0,
+      "status": "ok",
+      "output_3mf": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier_skin.3mf",
+      "log": "Log: C:\\Users\\User\\AppData\\Local\\Temp\\apply_skin_log.txt\nnumpy 2.4.2  trimesh 4.11.2\n\nModel : C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier.stl\nSkin  : C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png\nTile  : 15.0 mm   Relief: 1.0 mm   Max-edge: 2.0 mm\nInvert: True   Gamma: 0.7\n\nSTL input detected \u2014 converting to in-memory 3MF \u2026\n\n\n  1 mesh object(s) | global BB: 250.7 x 43.4 x 43.3 mm | 173,640 source verts\n\n  Heightmap raw: (512, 512)  min=0.000  max=0.949  (stretched to 0..1)\n\n  Gamma 0.7 applied (dome-shaped scale profile)\n\n\n\n  Max displacement: 0.800 mm\n  obj[0]: repair OK \u2014 1,728,804 faces, watertight=False\n\n\n  Written: C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier_skin.3mf  (24,800 KB)  |  909,724 total displaced verts\n\nSKIN_OUTPUT: C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier_skin.3mf\nLOG_FILE: C:\\Users\\User\\AppData\\Local\\Temp\\apply_skin_log.txt\n\n=== Exit code: 0 ===\n"
+    }
+  },
+  {
+    "iteration": 3,
+    "role": "user",
+    "screenshot_bytes": 65556,
+    "url": "visualizer://vacuum_nozzle_lower"
+  },
+  {
+    "iteration": 3,
+    "role": "model_call",
+    "function": "reload_part",
+    "args": {
+      "stl_path": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier_skin.3mf",
+      "part_name": "vacuum_nozzle_lower"
+    },
+    "result": {
+      "part_name": "vacuum_nozzle_lower",
+      "stl_path": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier_skin.3mf",
+      "status": "reloaded"
+    }
+  },
+  {
+    "iteration": 4,
+    "role": "user",
+    "screenshot_bytes": 39593,
+    "url": "visualizer://vacuum_nozzle_lower"
+  },
+  {
+    "iteration": 4,
+    "role": "model_call",
+    "function": "zoom_to_part",
+    "args": {
+      "part_name": "vacuum_nozzle_lower"
+    },
+    "result": {
+      "status": "ok",
+      "focused_part": "vacuum_nozzle_lower"
+    }
+  },
+  {
+    "iteration": 4,
+    "role": "model_call",
+    "function": "rotate_view",
+    "args": {
+      "azimuth": 0,
+      "elevation": 0
+    },
+    "result": {
+      "status": "ok",
+      "azimuth": 0,
+      "elevation": 0
+    }
+  },
+  {
+    "iteration": 5,
+    "role": "user",
+    "screenshot_bytes": 51703,
+    "url": "visualizer://vacuum_nozzle_lower"
+  },
+  {
+    "iteration": 5,
+    "role": "model_call",
+    "function": "rotate_view",
+    "args": {
+      "elevation": 0,
+      "azimuth": 90
+    },
+    "result": {
+      "status": "ok",
+      "azimuth": 90,
+      "elevation": 0
+    }
+  },
+  {
+    "iteration": 6,
+    "role": "user",
+    "screenshot_bytes": 51492,
+    "url": "visualizer://vacuum_nozzle_lower"
+  },
+  {
+    "iteration": 6,
+    "role": "model_call",
+    "function": "rotate_view",
+    "args": {
+      "elevation": 0,
+      "azimuth": 180
+    },
+    "result": {
+      "status": "ok",
+      "azimuth": 180,
+      "elevation": 0
+    }
+  },
+  {
+    "iteration": 7,
+    "role": "user",
+    "screenshot_bytes": 51860,
+    "url": "visualizer://vacuum_nozzle_lower"
+  },
+  {
+    "iteration": 7,
+    "role": "model_call",
+    "function": "rotate_view",
+    "args": {
+      "elevation": 0,
+      "azimuth": 270
+    },
+    "result": {
+      "status": "ok",
+      "azimuth": 270,
+      "elevation": 0
+    }
+  },
+  {
+    "iteration": 8,
+    "role": "user",
+    "screenshot_bytes": 51622,
+    "url": "visualizer://vacuum_nozzle_lower"
+  },
+  {
+    "iteration": 8,
+    "role": "model_call",
+    "function": "rotate_view",
+    "args": {
+      "azimuth": 0,
+      "elevation": 90
+    },
+    "result": {
+      "status": "ok",
+      "azimuth": 0,
+      "elevation": 90
+    }
+  },
+  {
+    "iteration": 9,
+    "role": "user",
+    "screenshot_bytes": 46697,
+    "url": "visualizer://vacuum_nozzle_lower"
+  },
+  {
+    "iteration": 9,
+    "role": "model_call",
+    "function": "rotate_view",
+    "args": {
+      "azimuth": 0,
+      "elevation": -90
+    },
+    "result": {
+      "status": "ok",
+      "azimuth": 0,
+      "elevation": -90
+    }
+  },
+  {
+    "iteration": 10,
+    "role": "user",
+    "screenshot_bytes": 46697,
+    "url": "visualizer://vacuum_nozzle_lower"
+  },
+  {
+    "iteration": 10,
+    "role": "model_call",
+    "function": "assess_quality",
+    "args": {
+      "stl_path": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier_skin.3mf",
+      "part_name": "vacuum_nozzle_lower",
+      "skin_path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png"
+    },
+    "result": {
+      "part_name": "vacuum_nozzle_lower",
+      "uniformity_score": 0.729,
+      "seam_score": 0.819,
+      "artifact_score": 1.0,
+      "coverage_pct": 100.0,
+      "face_count": 1728804,
+      "is_watertight": false,
+      "verdict": "MARGINAL",
+      "notes": "cv=1.085 boundary_ratio=0.181 degen_faces=0/1728804 | beauty=0.656 [ACCEPTABLE] S=0.427 H=11.709 | beauty below threshold (0.656 < 0.75)",
+      "beauty_score": 0.656,
+      "beauty_verdict": "ACCEPTABLE",
+      "symmetry_score": 0.427,
+      "spectral_entropy": 11.709,
+      "in_golden_zone": false,
+      "beauty_screenshot_path": null
+    }
+  },
+  {
+    "iteration": 11,
+    "role": "user",
+    "screenshot_bytes": 46697,
+    "url": "visualizer://vacuum_nozzle_lower"
+  },
+  {
+    "iteration": 11,
+    "role": "model_text",
+    "text": "The quality assessment is MARGINAL. The seam score is 0.819, which is good, but the uniformity score is 0.729, which could be better. The beauty score is also a bit low at 0.656. I'll try increasing the tile size to see if that improves uniformity and beauty."
+  },
+  {
+    "iteration": 11,
+    "role": "model_call",
+    "function": "run_texture_pipeline",
+    "args": {
+      "stl_path": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier.stl",
+      "tile_mm": 20,
+      "skin_path": "C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png",
+      "part_name": "vacuum_nozzle_lower"
+    },
+    "result": {
+      "part_name": "vacuum_nozzle_lower",
+      "exit_code": 0,
+      "status": "ok",
+      "output_3mf": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier_skin.3mf",
+      "log": "Log: C:\\Users\\User\\AppData\\Local\\Temp\\apply_skin_log.txt\nnumpy 2.4.2  trimesh 4.11.2\n\nModel : C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier.stl\nSkin  : C:\\Users\\User\\source\\repos\\QIDIStudio\\resources\\assets\\armadillo_plates\\armadillo_plates_01.png\nTile  : 20.0 mm   Relief: 1.0 mm   Max-edge: 2.0 mm\nInvert: True   Gamma: 0.7\n\nSTL input detected \u2014 converting to in-memory 3MF \u2026\n\n\n  1 mesh object(s) | global BB: 250.7 x 43.4 x 43.3 mm | 173,640 source verts\n\n  Heightmap raw: (512, 512)  min=0.000  max=0.949  (stretched to 0..1)\n\n  Gamma 0.7 applied (dome-shaped scale profile)\n\n\n\n  Max displacement: 0.800 mm\n  obj[0]: repair OK \u2014 1,728,804 faces, watertight=False\n\n\n  Written: C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier_skin.3mf  (24,807 KB)  |  909,724 total displaced verts\n\nSKIN_OUTPUT: C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier_skin.3mf\nLOG_FILE: C:\\Users\\User\\AppData\\Local\\Temp\\apply_skin_log.txt\n\n=== Exit code: 0 ===\n"
+    }
+  },
+  {
+    "iteration": 12,
+    "role": "user",
+    "screenshot_bytes": 46697,
+    "url": "visualizer://vacuum_nozzle_lower"
+  },
+  {
+    "iteration": 12,
+    "role": "model_call",
+    "function": "reload_part",
+    "args": {
+      "stl_path": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier_skin.3mf",
+      "part_name": "vacuum_nozzle_lower"
+    },
+    "result": {
+      "part_name": "vacuum_nozzle_lower",
+      "stl_path": "C:\\Users\\User\\source\\repos\\3DPrinting\\VacuumNozzle\\STL\\vacuum_nozzle_lower_texture_modifier_skin.3mf",
+      "status": "reloaded"
+    }
+  }
+]

@@ -1,0 +1,7 @@
+Token status: active
+Found zones: []
+Global zone list empty ù trying per-name lookups...
+  Not found: nexusslicer.com  errors=[]
+  Not found: nexusmill.com  errors=[]
+  Not found: nexusgauge.com  errors=[]
+No zones accessible with this token. Check token permissions (Zone:Read required).

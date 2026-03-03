@@ -1,0 +1,12 @@
+
+  copilot-instructions.md             sections : 6
+  QIDISTUDIO_KNOWLEDGE.md             sections : 115
+  langsmith_prompt.md                 sections : 16
+Pruning verified learnings from source files before indexing...
+  [prune] No Session Learnings Log table found ù skipping
+  Archive path: C:\Users\User\source\repos\QIDIStudio\memory\session_learnings_archive.md
+  Inserted/updated : 137
+  Total in store   : 266
+Done.
+
+---DONE---

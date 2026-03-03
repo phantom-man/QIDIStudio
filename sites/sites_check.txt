@@ -1,0 +1,4 @@
+nexuicer -> https://nexuicer.web.app
+nexuicer-desktop -> https://nexuicer-desktop.web.app
+nexusgauge-app -> https://nexusgauge-app.web.app
+nexusmill-app -> https://nexusmill-app.web.app

@@ -250,6 +250,37 @@ namespace Slic3r
                 return buf;
             }
 
+            // ── AI Bridge helpers ──────────────────────────────────────────────────────
+
+            constexpr uint16_t AI_BRIDGE_PORT = 17234;
+
+            /**
+             * Try a non-blocking TCP connect to localhost:AI_BRIDGE_PORT.
+             * Returns true if the port is open (AI bridge is running).
+             * Times out after ~200 ms so it never blocks the server thread.
+             */
+            bool probe_ai_bridge()
+            {
+                try
+                {
+                    asio::io_context probe_ioc;
+                    tcp::socket sock{probe_ioc};
+                    tcp::endpoint ep{asio::ip::make_address("127.0.0.1"), AI_BRIDGE_PORT};
+
+                    beast::error_code ec;
+                    sock.connect(ep, ec);
+                    if (!ec)
+                    {
+                        sock.shutdown(tcp::socket::shutdown_both, ec);
+                        return true;
+                    }
+                }
+                catch (...)
+                {
+                }
+                return false;
+            }
+
             // Serialise current slicer config snapshot as compact JSON
             std::string config_to_json(const Plater *plater)
             {
@@ -389,6 +420,42 @@ namespace Slic3r
                         return config_to_json(plater);
                     });
                 return make_response(req, http::status::ok, "application/json", std::move(json));
+            }
+
+            // ── GET /api/ai/bridge-info ────────────────────────────────────────────
+            // Tells the VS Code extension where the Python AI bridge lives, and
+            // what capabilities it exposes.  The extension uses this to decide
+            // whether to show the AI panel or a "start bridge" prompt.
+            if (method == http::verb::get && target == "/api/ai/bridge-info")
+            {
+                boost::json::object jobj;
+                jobj["ai_bridge_url"] = "http://127.0.0.1:17234";
+                jobj["ai_bridge_port"] = 17234;
+                jobj["launch_cmd"] = "memory_env\\Scripts\\python.exe scripts/ai_bridge_server.py";
+                jobj["endpoints"] = boost::json::array{
+                    "/api/ai/status",
+                    "/api/ai/analyze-stress",
+                    "/api/ai/run-texture-pipeline",
+                    "/api/ai/results/<part>",
+                    "/api/ai/uv-quality/<part>",
+                    "/api/ai/record-outcome",
+                    "/api/ai/jobs/<id>"};
+                return make_response(req, http::status::ok, "application/json",
+                                     boost::json::serialize(jobj));
+            }
+
+            // ── GET /api/ai/probe ──────────────────────────────────────────────────
+            // Non-blocking live check: is the Python AI bridge running right now?
+            // The VS Code extension polls this every 5 s to update its status bar badge.
+            if (method == http::verb::get && target == "/api/ai/probe")
+            {
+                const bool bridge_up = probe_ai_bridge();
+                boost::json::object jobj;
+                jobj["ai_bridge_running"] = bridge_up;
+                jobj["ai_bridge_port"] = 17234;
+                jobj["slicer_running"] = true;
+                return make_response(req, http::status::ok, "application/json",
+                                     boost::json::serialize(jobj));
             }
 
             // ── 404 catch-all ──────────────────────────────────────────────────────

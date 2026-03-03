@@ -17,7 +17,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from langchain_core.tools import tool  # canonical import; langchain.tools re-exports this
+from langchain_core.tools import (
+    tool,
+)  # canonical import; langchain.tools re-exports this
 
 # ── Paths & GCP config ────────────────────────────────────────────────────────
 
@@ -26,7 +28,7 @@ MEMORY_PY = REPO_ROOT / "memory_env" / "Scripts" / "python.exe"
 INJECT_PY = REPO_ROOT / "memory" / "inject.py"
 EXTRACT_PY = REPO_ROOT / "memory" / "extract.py"
 
-_GCP_PROJECT  = os.environ.get("GOOGLE_CLOUD_PROJECT",  "crafty-hook-483415-b3")
+_GCP_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "crafty-hook-483415-b3")
 _GCP_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 # Ensure memory/ is importable — done once at module load, not per call.
@@ -291,10 +293,10 @@ def reindex_memory() -> str:
 # ── Tool sets per agent ───────────────────────────────────────────────────────
 
 # google_search is uniform across all web-capable agents — same quality, same ADC auth.
-RESEARCHER_TOOLS  = [memory_read, memory_write, file_read, file_search, google_search]
-BUILDER_TOOLS     = [memory_read, file_read, file_search, run_command]
-VERIFIER_TOOLS    = [memory_read, file_read, file_search]
-SCRIBE_TOOLS      = [memory_read, memory_write, file_read, run_command, reindex_memory]
-LIBRARIAN_TOOLS   = [memory_read, file_read, file_search, google_search]
-SKEPTIC_TOOLS     = [memory_read, file_read, file_search, run_command]
+RESEARCHER_TOOLS = [memory_read, memory_write, file_read, file_search, google_search]
+BUILDER_TOOLS = [memory_read, file_read, file_search, run_command]
+VERIFIER_TOOLS = [memory_read, file_read, file_search]
+SCRIBE_TOOLS = [memory_read, memory_write, file_read, run_command, reindex_memory]
+LIBRARIAN_TOOLS = [memory_read, file_read, file_search, google_search]
+SKEPTIC_TOOLS = [memory_read, file_read, file_search, run_command]
 SYNTHESIZER_TOOLS = [memory_read, memory_write, file_read, file_search]

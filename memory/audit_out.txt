@@ -1,0 +1,21 @@
+Total rows in LanceDB: 266
+  113  copilot-instructions/learnings
+   17  copilot-instructions/section
+  120  knowledge-doc/section
+   16  langsmith-prompt/section
+
+Top 10 fattest rows by content length:
+  145204 chars  [copilot-instructions/section]  Session Learnings Log
+   31568 chars  [langsmith-prompt/section]  7. SESSION LEARNINGS LOG
+    7816 chars  [knowledge-doc/section]  13. Our Modifications vs Upstream ù Feature: "Add Texture" ù Displacem
+    6505 chars  [knowledge-doc/section]  15. Computational Metrology & Geometry Processing ù 15.1 Core Python L
+    6240 chars  [knowledge-doc/section]  15. Computational Metrology & Geometry Processing ù 15.15 UV Diagnosti
+    5649 chars  [knowledge-doc/section]  15. Computational Metrology & Geometry Processing ù 15.11 Polymorphic 
+    5191 chars  [knowledge-doc/section]  15. Computational Metrology & Geometry Processing ù 15.14 Vision-in-th
+    5164 chars  [knowledge-doc/section]  15. Computational Metrology & Geometry Processing ù 15.8 Reference Pap
+    5050 chars  [knowledge-doc/section]  º18 PhD-Level Cognitive Architecture ù Applied to Every Pipeline ù 18.
+    4701 chars  [knowledge-doc/section]  13. Our Modifications vs Upstream ù Applied Changes (in forked source)
+
+Total content chars in store: 416,266
+Avg per row: 1,564
+done

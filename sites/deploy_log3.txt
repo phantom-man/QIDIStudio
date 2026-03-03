@@ -1,0 +1,9 @@
+============================================================
+Firebase project : nexuicer
+Sites dir        : c:\Users\User\source\repos\QIDIStudio\sites
+============================================================
+
+=== Step 1: Ensure hosting sites exist ===
+  [nexuicer] DEFAULT_SITE ù already exists
+  [nexuicer-desktop] created -> https://nexuicer-desktop.web.app
+

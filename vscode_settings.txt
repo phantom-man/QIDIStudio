@@ -1,0 +1,20 @@
+{
+    "git.enabled": true,
+    "scm.providers.visible": "all",
+    "chat.agent.maxRequests": 10000,
+    "python.terminal.useEnvFile": true,
+    "python.envFile": "${workspaceFolder}/.env",
+    "diffEditor.maxComputationTime": 0,
+    "diffEditor.maxFileSize": 0,
+    "scm.diffDecorationsIgnoreTrimWhitespace": "false",
+    "git.renameLimit": 0,
+    "python.testing.pytestArgs": [
+        "GCodeRefiner"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+    "chat.agentSessionProjection.enabled": true,
+    "chat.customAgentInSubagent.enabled": true
+}
+---DONE---

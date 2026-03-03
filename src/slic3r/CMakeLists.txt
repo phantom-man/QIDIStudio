@@ -634,8 +634,14 @@ set(SLIC3R_GUI_SOURCES
     Utils/FileTransferUtils.hpp
     Utils/CertificateVerify.hpp
     Utils/CertificateVerify.cpp
+    Utils/MaterialsDatabaseClient.hpp
+    Utils/MaterialsDatabaseClient.cpp
     GUI/Filament_web.hpp
     GUI/Filament_web.cpp
+    GUI/ResetPresetsDialog.hpp
+    GUI/ResetPresetsDialog.cpp
+    GUI/PresetSyncPanel.hpp
+    GUI/PresetSyncPanel.cpp
 )
 
 add_subdirectory(GUI/DeviceCore)
@@ -767,3 +773,14 @@ endif ()
 
 # Add a definition so that we can tell we are compiling slic3r.
 target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_CURRENTLY_COMPILING_GUI_MODULE)
+
+# Materials database sync — API key and base URL injected by CI via env vars.
+# Community (self-built) binaries get an empty key and use the public endpoint.
+if (DEFINED ENV{NEXUS_MATERIALS_API_KEY})
+    target_compile_definitions(libslic3r_gui PRIVATE
+        NEXUS_MATERIALS_API_KEY="$ENV{NEXUS_MATERIALS_API_KEY}")
+endif ()
+if (DEFINED ENV{NEXUS_MATERIALS_API_BASE_URL})
+    target_compile_definitions(libslic3r_gui PRIVATE
+        NEXUS_MATERIALS_API_BASE_URL="$ENV{NEXUS_MATERIALS_API_BASE_URL}")
+endif ()

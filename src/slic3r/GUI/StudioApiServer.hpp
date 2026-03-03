@@ -9,6 +9,16 @@
  *   GET  /api/mesh/all          → all model objects as a single binary STL
  *   GET  /api/config/current    → key slicer settings as JSON
  *   POST /api/slice/preview     → G-code stats for the current plate (async)
+ *   GET  /api/ai/bridge-info    → Python AI bridge URL + available endpoints
+ *   GET  /api/ai/probe          → live check: is the Python AI bridge running?
+ *
+ * Python AI bridge (port 17234 — separate process, scripts/ai_bridge_server.py):
+ *   POST /api/ai/analyze-stress          → MeshStressGNN structural integrity
+ *   POST /api/ai/run-texture-pipeline    → full LangGraph manufacturing pipeline
+ *   GET  /api/ai/results/<part>          → latest LanceDB run results
+ *   GET  /api/ai/uv-quality/<part>       → UV stats for WebGPU heatmap overlay
+ *   POST /api/ai/record-outcome          → RLHF feedback after physical print
+ *   GET  /api/ai/jobs/<id>               → async job status poll
  *
  * Threading model:
  *   - The server runs on a private std::jthread (not the wxWidgets UI thread).

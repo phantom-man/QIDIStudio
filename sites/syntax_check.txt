@@ -1,0 +1,5 @@
+  File "c:\Users\User\source\repos\QIDIStudio\sites\deploy_all.py", line 180
+    global _log_fh
+    ^^^^^^^^^^^^^^
+SyntaxError: name '_log_fh' is assigned to before global declaration
+EXIT:1

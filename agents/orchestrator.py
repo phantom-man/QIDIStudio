@@ -50,19 +50,20 @@ os.environ.setdefault("LANGCHAIN_PROJECT", "qidistudio-agents")
 
 # ── State schema ─────────────────────────────────────────────────────────────
 
+
 class AgentTask(TypedDict):
-    agent_id:   str    # "researcher"|"builder"|"verifier"|"scribe"|"librarian"|"skeptic"|"synthesizer"
-    task:       str    # specific instruction for that agent
-    context:    dict   # supporting context (file paths, facts, etc.)
+    agent_id: str  # "researcher"|"builder"|"verifier"|"scribe"|"librarian"|"skeptic"|"synthesizer"
+    task: str  # specific instruction for that agent
+    context: dict  # supporting context (file paths, facts, etc.)
     # NOTE: all tasks run as a parallel superstep — no sequential deps are enforced.
 
 
 class AgentResult(TypedDict):
     agent_id: str
-    task:     str
-    result:   str             # JSON string of agent output
-    success:  bool
-    error:    NotRequired[str]
+    task: str
+    result: str  # JSON string of agent output
+    success: bool
+    error: NotRequired[str]
 
 
 def _merge_results(left: list, right: list) -> list:
@@ -72,20 +73,22 @@ def _merge_results(left: list, right: list) -> list:
 
 class OrchestratorState(TypedDict):
     user_request: str
-    tasks:        list[AgentTask]
-    results:      Annotated[list[AgentResult], _merge_results]
+    tasks: list[AgentTask]
+    results: Annotated[list[AgentResult], _merge_results]
     final_response: NotRequired[str]
 
 
 class SingleTaskState(TypedDict):
     """State passed to each parallel agent node via Send."""
+
     task: AgentTask
 
 
 # ── Director LLM ─────────────────────────────────────────────────────────────
 
-_GCP_PROJECT  = os.environ.get("GOOGLE_CLOUD_PROJECT",  "crafty-hook-483415-b3")
+_GCP_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "crafty-hook-483415-b3")
 _GCP_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+
 
 def _director_llm() -> ChatGoogleGenerativeAI:
     return ChatGoogleGenerativeAI(
@@ -96,7 +99,9 @@ def _director_llm() -> ChatGoogleGenerativeAI:
     )
 
 
-_DIRECTOR_SYSTEM = (REPO_ROOT / "agents" / "prompts" / "director.md").read_text(encoding="utf-8")
+_DIRECTOR_SYSTEM = (REPO_ROOT / "agents" / "prompts" / "director.md").read_text(
+    encoding="utf-8"
+)
 
 _PLAN_SCHEMA = {
     "type": "object",
@@ -110,11 +115,16 @@ _PLAN_SCHEMA = {
                     "agent_id": {
                         "type": "string",
                         "enum": [
-                            "researcher", "builder", "verifier", "scribe",
-                            "librarian", "skeptic", "synthesizer",
+                            "researcher",
+                            "builder",
+                            "verifier",
+                            "scribe",
+                            "librarian",
+                            "skeptic",
+                            "synthesizer",
                         ],
                     },
-                    "task":    {"type": "string"},
+                    "task": {"type": "string"},
                     "context": {"type": "object"},
                 },
                 "required": ["agent_id", "task"],
@@ -127,6 +137,7 @@ _PLAN_SCHEMA = {
 
 # ── Graph nodes ───────────────────────────────────────────────────────────────
 
+
 def plan(state: OrchestratorState) -> OrchestratorState:
     """
     Director: decompose user_request into a list of AgentTasks.
@@ -138,7 +149,7 @@ def plan(state: OrchestratorState) -> OrchestratorState:
     )
     messages = [
         {"role": "system", "content": _DIRECTOR_SYSTEM},
-        {"role": "user",   "content": state["user_request"]},
+        {"role": "user", "content": state["user_request"]},
     ]
     response = llm.invoke(messages)
     raw = response.content if isinstance(response.content, str) else response.text
@@ -146,13 +157,16 @@ def plan(state: OrchestratorState) -> OrchestratorState:
         plan_data = json.loads(raw)
     except json.JSONDecodeError:
         import warnings
+
         warnings.warn(
             f"Director returned invalid JSON — falling back to single researcher task. "
             f"raw={raw[:200]!r}",
             stacklevel=2,
         )
         plan_data = {
-            "tasks": [{"agent_id": "researcher", "task": state["user_request"], "context": {}}]
+            "tasks": [
+                {"agent_id": "researcher", "task": state["user_request"], "context": {}}
+            ]
         }
     tasks: list[AgentTask] = [
         AgentTask(
@@ -172,14 +186,14 @@ def dispatch(state: OrchestratorState) -> list[Send]:
     Task ordering is not enforced; decompose into independent units.
     """
     return [
-        Send(task["agent_id"], SingleTaskState(task=task))
-        for task in state["tasks"]
+        Send(task["agent_id"], SingleTaskState(task=task)) for task in state["tasks"]
     ]
 
 
 def _run_agent(agent_id: str, state: SingleTaskState) -> OrchestratorState:
     """Generic agent executor — runs agent, catches errors, returns AgentResult."""
     from agents.agents import get_agent  # lazy import to avoid circular at module level
+
     task = state["task"]
     try:
         agent = get_agent(agent_id)
@@ -244,8 +258,11 @@ def synthesize(state: OrchestratorState) -> OrchestratorState:
     """
     llm = _director_llm()
     results_text = json.dumps(
-        [{"agent": r["agent_id"], "success": r["success"], "result": r["result"]} for r in state["results"]],
-        indent=2
+        [
+            {"agent": r["agent_id"], "success": r["success"], "result": r["result"]}
+            for r in state["results"]
+        ],
+        indent=2,
     )
     messages = [
         {"role": "system", "content": _DIRECTOR_SYSTEM},
@@ -279,7 +296,9 @@ def _build_checkpointer() -> Any:
         from langgraph.checkpoint.postgres import PostgresSaver
         from psycopg_pool import ConnectionPool
 
-        dsn = os.environ.get("PG_DSN", "postgresql://postgres:d1204l0723@localhost:5432/postgres")
+        dsn = os.environ.get(
+            "PG_DSN", "postgresql://postgres:d1204l0723@localhost:5432/postgres"
+        )
         pool = ConnectionPool(
             conninfo=dsn,
             max_size=10,
@@ -287,19 +306,22 @@ def _build_checkpointer() -> Any:
             open=True,
         )
         saver = PostgresSaver(pool)
-        saver.setup()   # idempotent — creates langgraph_checkpoints tables if needed
+        saver.setup()  # idempotent — creates langgraph_checkpoints tables if needed
         return saver
     except Exception as exc:
         import warnings
+
         warnings.warn(
             f"PostgresSaver unavailable ({exc}), falling back to MemorySaver (state is NOT persistent).",
             stacklevel=2,
         )
         from langgraph.checkpoint.memory import MemorySaver
+
         return MemorySaver()
 
 
 # ── Build graph ────────────────────────────────────────────────────────────────
+
 
 def build_graph() -> Any:
     global _checkpointer
@@ -309,23 +331,30 @@ def build_graph() -> Any:
     builder_graph = StateGraph(OrchestratorState)
 
     # Nodes
-    builder_graph.add_node("plan",        plan)
-    builder_graph.add_node("researcher",  researcher)
-    builder_graph.add_node("builder",     builder)
-    builder_graph.add_node("verifier",    verifier)
-    builder_graph.add_node("scribe",      scribe)
-    builder_graph.add_node("librarian",   librarian)
-    builder_graph.add_node("skeptic",     skeptic)
+    builder_graph.add_node("plan", plan)
+    builder_graph.add_node("researcher", researcher)
+    builder_graph.add_node("builder", builder)
+    builder_graph.add_node("verifier", verifier)
+    builder_graph.add_node("scribe", scribe)
+    builder_graph.add_node("librarian", librarian)
+    builder_graph.add_node("skeptic", skeptic)
     builder_graph.add_node("synthesizer", synthesizer)
-    builder_graph.add_node("synthesize",  synthesize)
+    builder_graph.add_node("synthesize", synthesize)
 
     # Edges
     builder_graph.add_edge(START, "plan")
-    builder_graph.add_conditional_edges("plan", dispatch)   # Send API fan-out
+    builder_graph.add_conditional_edges("plan", dispatch)  # Send API fan-out
 
     # All agent nodes converge to synthesize
-    for agent_id in ("researcher", "builder", "verifier", "scribe",
-                     "librarian", "skeptic", "synthesizer"):
+    for agent_id in (
+        "researcher",
+        "builder",
+        "verifier",
+        "scribe",
+        "librarian",
+        "skeptic",
+        "synthesizer",
+    ):
         builder_graph.add_edge(agent_id, "synthesize")
 
     builder_graph.add_edge("synthesize", END)
@@ -372,12 +401,13 @@ def run(request: str, thread_id: str | None = None) -> str:
 
 if __name__ == "__main__":
     import sys
+
     args = sys.argv[1:]
     # Optional --thread <id> flag
     tid = None
     if "--thread" in args:
         idx = args.index("--thread")
         tid = args[idx + 1]
-        args = args[:idx] + args[idx + 2:]
+        args = args[:idx] + args[idx + 2 :]
     q = " ".join(args) if args else "What is the current build status?"
     print(run(q, thread_id=tid))

@@ -1,0 +1,15 @@
+============================================================
+Firebase project : nexuicer
+Sites dir        : c:\Users\User\source\repos\QIDIStudio\sites
+============================================================
+
+=== Step 1: Ensure hosting sites exist ===
+  [nexuicer] DEFAULT_SITE ù already exists
+  [nexusslicer-desktop] CREATE ERROR: HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid name: `nexusslicer-desktop` is invalid; try something like `nexuicer-desktop` instead",
+    "status": "INVALID_ARGUMENT"
+  }
+}
+

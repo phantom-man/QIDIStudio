@@ -1,0 +1,9 @@
+============================================================
+Firebase project : nexuicer
+Sites dir        : c:\Users\User\source\repos\QIDIStudio\sites
+============================================================
+
+=== Deploying all 4 sites ===
+
+--- Deploying nexuicer (nexusslicer/) —  1 file(s) ---
+     /index.html  (8,331 bytes gzipped)  hash=7cfc5e17fd13...

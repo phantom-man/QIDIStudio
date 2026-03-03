@@ -50,6 +50,7 @@ agents/__pycache__/
 # Desktop Commander MCP — cloned upstream source (not project code)
 DesktopCommanderMCP/
 data/lancedb
+memory/lancedb/       # GCS-backed — local dir is always a stale artifact
 
 # Private strategy/legal/business documents — local only, never publish
 # Even if this repo goes public these files stay off git history entirely

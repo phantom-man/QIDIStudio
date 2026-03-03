@@ -1,0 +1,10 @@
+C:\Users\User\source\repos\QIDIStudio\.github\hooks
+C:\Users\User\source\repos\QIDIStudio\.github\workflows
+C:\Users\User\source\repos\QIDIStudio\.github\copilot-instructions.md
+C:\Users\User\source\repos\QIDIStudio\.github\hooks\hook_test_out.txt
+C:\Users\User\source\repos\QIDIStudio\.github\hooks\precompact_hook.ps1
+C:\Users\User\source\repos\QIDIStudio\.github\hooks\precompact.json
+C:\Users\User\source\repos\QIDIStudio\.github\hooks\precompact.log
+C:\Users\User\source\repos\QIDIStudio\.github\hooks\prompt_submit_hook.ps1
+C:\Users\User\source\repos\QIDIStudio\.github\workflows\main.yml
+---DONE---

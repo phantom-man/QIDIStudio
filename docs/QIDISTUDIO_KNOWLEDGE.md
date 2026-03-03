@@ -2954,3 +2954,82 @@ Single 50-line header `src/slic3r/GUI/GLResource.hpp` using `template <auto Crea
 ### §21.6 Sources
 
 cppreference.com (Feb 2026), C++ Core Guidelines, CppCon 2024 (Sean Parent, Phil Nash, Erez Strauss), Daniel Lemire Oct 2025, NVIDIA/stdexec, C++Now 2024 (Fedor G. Pikus), WG21 Feb 2025 Hagenberg trip report.
+
+---
+
+## 22. Nexus Workshop — Product Sites & Infrastructure
+
+_Last updated: 2026-03-03._
+
+Three product site domains bundled as **Nexus Workshop** (planned VS Code extension pack). All sites are static HTML deployed to Firebase Hosting with custom domains via Cloudflare DNS.
+
+### 22.1 Firebase Hosting
+
+| Firebase Site ID       | Default URL                           | Local folder             | Custom domain               |
+| ---------------------- | ------------------------------------- | ------------------------ | --------------------------- |
+| `nexuicer`             | https://nexuicer.web.app              | `sites/nexusslicer/`     | `nexusslicer.com`           |
+| `nexuicer-desktop`     | https://nexuicer-desktop.web.app      | `sites/nexusslicer-desktop/` | `desktop.nexusslicer.com` |
+| `nexusmill-app`        | https://nexusmill-app.web.app         | `sites/nexusmill/`       | `nexusmill.com`             |
+| `nexusgauge-app`       | https://nexusgauge-app.web.app        | `sites/nexusgauge/`      | `nexusgauge.com`            |
+
+**Key facts:**
+- **Firebase project ID:** `nexuicer` — Firebase auto-truncated "NexusSlicer" on project creation; this is NOT a typo
+- **Firebase project number:** `457376060296`
+- **Firebase account:** `damienfosborn@gmail.com`
+- **gcloud project** (separate, GCS): `crafty-hook-483415-b3`
+- Site IDs for mill/gauge use `-app` suffix because Firebase requires site IDs prefixed with the project ID and these names were taken without suffix
+
+**Deploy command (preferred — CLI, not REST API):**
+```powershell
+cd sites
+firebase deploy --only hosting
+```
+
+REST API deploy (`sites/deploy_all.py`) hangs on the `populateFiles` endpoint — always use the CLI.
+
+**Key config files:**
+- `sites/.firebaserc` — project mapping + hosting targets
+- `sites/firebase.json` — 4 hosting targets, cache headers, SPA rewrites
+- `sites/FIREBASE_SETTINGS.md` — full reference (project IDs, site IDs, DNS table, deploy commands)
+
+### 22.2 Cloudflare DNS
+
+**Required CNAME records (7 total):**
+
+| Zone             | Record name                   | CNAME target                    | Proxied |
+| ---------------- | ----------------------------- | ------------------------------- | ------- |
+| nexusslicer.com  | `nexusslicer.com`             | `nexuicer.web.app`              | No      |
+| nexusslicer.com  | `www.nexusslicer.com`         | `nexuicer.web.app`              | No      |
+| nexusslicer.com  | `desktop.nexusslicer.com`     | `nexuicer-desktop.web.app`      | No      |
+| nexusmill.com    | `nexusmill.com`               | `nexusmill-app.web.app`         | No      |
+| nexusmill.com    | `www.nexusmill.com`           | `nexusmill-app.web.app`         | No      |
+| nexusgauge.com   | `nexusgauge.com`              | `nexusgauge-app.web.app`        | No      |
+| nexusgauge.com   | `www.nexusgauge.com`          | `nexusgauge-app.web.app`        | No      |
+
+**`proxied: False` is required** — Firebase must provision its own SSL certificates. Cloudflare proxying (orange cloud) prevents Firebase from seeing the direct CNAME and blocks SSL issuance.
+
+**Automation script:** `sites/cf_dns.py`
+- Reads `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_EMAIL` from `.env`
+- Calls `GET /user/tokens/verify` to confirm token is active
+- Tries `GET /zones?per_page=50` then per-name fallback for each domain
+- Creates or updates each CNAME with `proxied: False`
+
+**CRITICAL PREREQUISITE:** Domains must be **added to the Cloudflare account** (Dashboard → Add a site → enter domain → select plan → update nameservers at registrar) BEFORE running `cf_dns.py`. The error signature for missing zones: `errors=[], result=[]` (token active, no permission error — zones simply don't exist in the account yet).
+
+**Credentials location:** `.env` file in repo root (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_EMAIL`).
+
+### 22.3 SSL Certificate Provisioning
+
+After adding domains to Cloudflare and pointing nameservers, Firebase needs time to provision SSL certs. While awaiting:
+1. Cloudflare records must be DNS-only (grey cloud, `proxied: False`)
+2. Firebase Hosting → Custom Domains → domain shows "Pending" until cert is issued
+3. Once Firebase SSL is active, can optionally re-enable Cloudflare proxying for DDoS protection, but NOT required
+
+### 22.4 Site Design
+
+| Site            | Theme color | Type    | Status |
+| --------------- | ----------- | ------- | ------ |
+| NexusSlicer     | Dark purple | Full    | Live   |
+| NexusSlicer Desktop | Blue    | Full    | Live   |
+| NexusMill       | Amber       | Teaser  | Live   |
+| NexusGauge      | Teal        | Teaser  | Live   |

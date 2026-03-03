@@ -286,6 +286,7 @@ def main() -> None:
             # budget. No API calls — pure Python, <10 ms.
             try:
                 from memory.predator import prune_context as _prune
+
                 matches = _prune(query_text, matches)
             except Exception:
                 pass  # silent fallback — predator failure never breaks injection

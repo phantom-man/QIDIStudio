@@ -2,9 +2,9 @@
 # Lightweight: ONLY writes the compaction flag + brief agent reminder.
 # Heavy work (extract.py + commit) is handled by the Stop hook automatically.
 
-$ts   = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+$ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 $repo = 'C:\Users\User\source\repos\QIDIStudio'
-$log  = Join-Path $repo '.github\hooks\precompact.log'
+$log = Join-Path $repo '.github\hooks\precompact.log'
 $flag = Join-Path $repo 'memory\_compaction_pending.txt'
 
 Add-Content -Path $log -Value "$ts [PreCompact] fired — writing flag"

@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "desktop-commander": {
+      "command": "node",
+      "args": [
+        "C:\\\\Users\\\\User\\\\DesktopCommanderMCP\\\\dist\\\\index.js"
+      ]
+    }
+  },
+  "preferences": {
+    "coworkScheduledTasksEnabled": false,
+    "sidebarMode": "chat",
+    "coworkWebSearchEnabled": true
+  }
+}
+---DONE---

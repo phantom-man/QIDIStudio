@@ -1,0 +1,23 @@
+{
+    "projects": {
+        "default": "nexuicer"
+    },
+    "targets": {
+        "nexuicer": {
+            "hosting": {
+                "nexusslicer": [
+                    "nexuicer"
+                ],
+                "nexusslicer-desktop": [
+                    "nexuicer-desktop"
+                ],
+                "nexusmill": [
+                    "nexusmill-app"
+                ],
+                "nexusgauge": [
+                    "nexusgauge-app"
+                ]
+            }
+        }
+    }
+}

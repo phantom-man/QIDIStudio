@@ -1,0 +1,6 @@
+
+lance-namespace                0.5.2
+lance-namespace-urllib3-client 0.5.2
+lancedb                        0.29.2
+
+done

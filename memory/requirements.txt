@@ -27,3 +27,13 @@ langchain-openai>=0.1.0
 # OCP CAD Viewer + build123d (3D part display)
 build123d>=0.8.0
 ocp_vscode>=2.7.0
+
+# ── PyTorch stack (optional — for MeshStressGNN, NozzleLSTM, TextureMLP) ─────
+# CPU-only build (no CUDA required). For GPU: swap for torch==<ver>+cu121 from pytorch.org
+# Install separately if needed:
+#   memory_env\Scripts\pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+torch>=2.2.0
+torchvision>=0.17.0
+
+# numpy-stl for fast vertex extraction in manufacturing_graph.py
+numpy-stl>=3.1.0

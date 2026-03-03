@@ -96,10 +96,63 @@ cmake --build . --target install --config Release -- /m:16 2>&1 | Tee-Object bui
 
 ---
 
+## Active Projects
+
+| Project                          | Repo                                | Spec                                                                    | Status                                                      |
+| -------------------------------- | ----------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------- |
+| QIDIStudio (C++ slicer fork)     | `phantom-man/QIDIStudio`            | —                                                                       | Active                                                      |
+| NexusSlicer Viewer (VS Code ext) | `phantom-man/NexusSlicer` (pending) | —                                                                       | Active — WebGPU PBR viewer, 3-axis precision rotation panel |
+| **NexusMill** (VS Code ext)      | `phantom-man/NexusMill` (to create) | [`docs/private/NEXUSMILL_SPEC.md`](../docs/private/NEXUSMILL_SPEC.md)   | **Spec complete — awaiting Phase 1 kick-off**               |
+| **NexusGauge** (VS Code panel)   | built into NexusSlicer              | [`docs/private/NEXUSGAUGE_SPEC.md`](../docs/private/NEXUSGAUGE_SPEC.md) | **Spec complete — awaiting Phase 2 NexusSlicer impl**       |
+| NexusWorkshop (extension pack)   | —                                   | See NexusMill spec §11                                                  | Bundles NexusSlicer + NexusMill + NexusGauge                |
+
+### NexusMill — 30-second summary
+
+Virtual CNC construction simulator. Emulates real stepper motors (NEMA 17/23/34), real drivers
+(TB6600 → DMA860S), and real lead screws (TR8×1 ACME → SFU2005 ball screw).
+At NEMA 23 + DMA860S/÷200 + TR8×1: **25 nm step resolution** (nanometer territory).
+
+Key differentiators no one else has:
+
+- **Timeline rewind + branch** — catastrophic failure → rewind to any prior step, re-engineer, replay
+- **Full hardware stack emulation** — motor torque curves, driver microstepping tables, lead screw efficiency, backlash compensation
+- **VS Code native** — same workspace, same AI pipeline, free, offline, MIT
+- **Precision dials everywhere** — the same micrometer-control UI from NexusSlicer's rotation panel applies to every numeric parameter
+
+Full spec: [`docs/private/NEXUSMILL_SPEC.md`](../docs/private/NEXUSMILL_SPEC.md)
+
+### NexusGauge — 30-second summary
+
+Computational metrology engine embedded in the NexusSlicer 3D viewport. Runs the **Dimensional
+Digester** on any STL/3MF: auto-classifies every surface into typed features (bores, bosses,
+fillets, planes, freeform NURBS), names them, and draws color-coded annotation lines in the
+viewport. Hover a hole rim → get diameter, circumference, thread detection. Select multiple
+features → get the full distance/angle/GD&T relationship matrix. See sub-visual deviations
+(< 50 µm) invisible to the naked eye via a per-triangle heat map. Export as `.nexusgauge.json`
+(vectorized — full parametric reconstruction), DXF, CSV, CadQuery script, or PDF inspection
+report.
+
+Key differentiators:
+
+- **Mathematical curve display** — curvature κ(t), torsion τ(t), NURBS equation, slope/inflection
+- **Sub-visual error detection** — 1 µm flatness errors shown as color map; human eye threshold ~300 µm
+- **Vectorization** — reduces a 50K-triangle mesh to ~200 lines of parametric JSON; recreatable in any CAD tool
+- **GD&T callout generation** — ISO 1101-compliant tolerance symbols from any relationship pair
+- **Free, offline, VS Code native** — no CMM machine, no subscription
+
+Full spec: [`docs/private/NEXUSGAUGE_SPEC.md`](../docs/private/NEXUSGAUGE_SPEC.md)
+
+---
+
 ## Session Learnings Log
 
 Append rows here — `memory/extract.py` auto-indexes them into LanceDB.
 
-| Date       | Category         | Topic                                                        | Decision                                                                                                                                                                                                                                                                                                             | Rationale                                                                                                                                                     |
-| ---------- | ---------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2025-07-14 | agents/LLM       | ChatVertexAI vs ChatGoogleGenerativeAI (#10)                 | Replaced `ChatGoogleGenerativeAI` (langchain-google-genai) with `ChatVertexAI` (langchain-google-vertexai) in `agents/agents.py`. Use `model_name=` param (not `model=`). Installed `langchain-google-vertexai==3.2.2` into memory_env. PyArrow downgraded 23→22 as dep. | ChatGGAI silently ignores `project=`/`location=`; routes to AI Studio via GOOGLE_API_KEY. ChatVertexAI uses gcloud ADC, bills to GCP project `crafty-hook-483415-b3`. |
+| Date       | Category   | Topic             | Decision                                                  | Rationale                                                                                                     |
+| ---------- | ---------- | ----------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 2026-03-03 | Infrastructure | Firebase deploy method | Use Firebase CLI (`firebase deploy --only hosting`) not REST API | REST API `populateFiles` endpoint hung consistently; CLI (Node.js HTTP) works reliably |
+| 2026-03-03 | Infrastructure | Firebase project ID | Project ID is `nexuicer` (not `nexus-workshop` or `nexusslicer`) | Firebase auto-truncated "NexusSlicer" on project creation |
+| 2026-03-03 | Infrastructure | Firebase site IDs | `nexuicer`, `nexuicer-desktop`, `nexusmill-app`, `nexusgauge-app` | Firebase requires site IDs; `-app` suffix used for mill/gauge due to name availability |
+| 2026-03-03 | Infrastructure | Cloudflare DNS | `sites/cf_dns.py` automates all 7 CNAMEs; token in `.env`; `proxied: False` required until Firebase SSL certs provision | Full programmatic control via Cloudflare REST API |
+| 2026-03-03 | Infrastructure | Cloudflare zones prerequisite | Domains must be **added to Cloudflare account** (Dashboard → Add a site) before `cf_dns.py` can create records | Token returning `errors=[], result=[]` = zones not in account, not a permissions issue |
+| 2026-03-03 | Credentials | Cloudflare API token | Token stored as `CLOUDFLARE_API_TOKEN` in `.env`; email as `CLOUDFLARE_EMAIL` | `.env` is canonical creds store; token verified active |
