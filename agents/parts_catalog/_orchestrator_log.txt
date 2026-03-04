@@ -1,0 +1,65 @@
+21:38:20  INFO      [orchestrator]  ============================================================
+21:38:20  INFO      [orchestrator]  NexusMill Parts Catalog Orchestrator
+21:38:20  INFO      [orchestrator]  Started at: 2026-03-04 04:38:20 UTC
+21:38:20  INFO      [orchestrator]  ============================================================
+21:38:20  INFO      [orchestrator]  
+21:38:20  INFO      [orchestrator]  ──────────────────────────────────────────────────
+21:38:20  INFO      [orchestrator]  [1/11] Starting: Motor Harvester
+21:38:20  INFO      [orchestrator]  ──────────────────────────────────────────────────
+21:38:20  WARNING   [dotenv.main]  python-dotenv could not parse statement starting at line 21
+21:38:20  WARNING   [dotenv.main]  python-dotenv could not parse statement starting at line 21
+21:38:20  ERROR     [orchestrator]  [1/11] FAILED: Motor Harvester — type object 'RailType' has no attribute 'MGN_MINIATURE' (0.6s)
+Traceback (most recent call last):
+  File "C:\Users\User\source\repos\QIDIStudio\agents\parts_catalog\orchestrator.py", line 158, in run_all
+    module = importlib.import_module(harvester["module"])
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1026, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "C:\Users\User\source\repos\QIDIStudio\agents\parts_catalog\motor_harvester.py", line 59, in <module>
+    from agents.parts_catalog.schema import Motor, MotorType, Tier, TorqueCurvePoint
+  File "C:\Users\User\source\repos\QIDIStudio\agents\parts_catalog\schema.py", line 271, in <module>
+    class Rail(PartBase):
+    ...<32 lines>...
+        price_carriage_usd: float | None = None
+  File "C:\Users\User\source\repos\QIDIStudio\agents\parts_catalog\schema.py", line 273, in Rail
+    rail_type: RailType = RailType.MGN_MINIATURE
+                          ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: type object 'RailType' has no attribute 'MGN_MINIATURE'
+21:38:20  ERROR     [orchestrator]  Continuing to next harvester...
+21:38:20  INFO      [orchestrator]  Pausing 10s before next harvester...
+21:38:30  INFO      [orchestrator]  
+21:38:30  INFO      [orchestrator]  ──────────────────────────────────────────────────
+21:38:30  INFO      [orchestrator]  [2/11] Starting: Driver Harvester
+21:38:30  INFO      [orchestrator]  ──────────────────────────────────────────────────
+21:38:30  WARNING   [dotenv.main]  python-dotenv could not parse statement starting at line 21
+21:38:30  ERROR     [orchestrator]  [2/11] FAILED: Driver Harvester — type object 'RailType' has no attribute 'MGN_MINIATURE' (0.0s)
+Traceback (most recent call last):
+  File "C:\Users\User\source\repos\QIDIStudio\agents\parts_catalog\orchestrator.py", line 158, in run_all
+    module = importlib.import_module(harvester["module"])
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1026, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "C:\Users\User\source\repos\QIDIStudio\agents\parts_catalog\driver_harvester.py", line 54, in <module>
+    from agents.parts_catalog.schema import Driver, DriverType, Tier
+  File "C:\Users\User\source\repos\QIDIStudio\agents\parts_catalog\schema.py", line 271, in <module>
+    class Rail(PartBase):
+    ...<32 lines>...
+        price_carriage_usd: float | None = None
+  File "C:\Users\User\source\repos\QIDIStudio\agents\parts_catalog\schema.py", line 273, in Rail
+    rail_type: RailType = RailType.MGN_MINIATURE
+                          ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: type object 'RailType' has no attribute 'MGN_MINIATURE'
+21:38:30  ERROR     [orchestrator]  Continuing to next harvester...
+21:38:30  INFO      [orchestrator]  Pausing 10s before next harvester...
