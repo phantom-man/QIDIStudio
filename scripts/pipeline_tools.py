@@ -35,6 +35,30 @@ _APPLY_BPY_SCRIPT = _REPO_ROOT / "resources" / "scripts" / "apply_texture_bpy.py
 _ASSETS_DIR = _REPO_ROOT / "resources" / "assets"
 _EXPORT_DIR = _SCRIPTS_DIR / "pipeline_exports"
 
+# ── Cross-session quality metrics log (stdlib-only, no lancedb dependency) ───
+# memory/harvest_quality.py picks this JSONL up and indexes rows to LanceDB.
+_QUALITY_METRICS_JSONL = _SCRIPTS_DIR / "quality_metrics.jsonl"
+
+
+def _log_quality_metric(result: dict[str, Any]) -> None:
+    """Append a quality assessment result to the persistent JSONL metrics log.
+
+    Written in append mode so cross-session history accumulates.
+    Silently swallows write errors to avoid disrupting the pipeline.
+    """
+    import datetime  # noqa: PLC0415
+
+    try:
+        entry = {
+            **result,
+            "logged_at": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        }
+        with _QUALITY_METRICS_JSONL.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, default=str) + "\n")
+    except Exception:
+        pass  # never let logging blow up the pipeline
+
+
 # ── Optional PyTorch pre-flight scorer ───────────────────────────────────────
 # agents/ lives at repo root — add to path so the import resolves whether this
 # module is imported from scripts/ or run directly.
@@ -493,7 +517,7 @@ def assess_quality(
             except Exception as bexc:
                 notes += f" | beauty_error={bexc}"
 
-        return {
+        result = {
             "part_name": part_name,
             "uniformity_score": uniformity_score,
             "seam_score": seam_score,
@@ -510,6 +534,8 @@ def assess_quality(
             "in_golden_zone": in_golden_zone,
             "beauty_screenshot_path": beauty_screenshot_path,
         }
+        _log_quality_metric(result)
+        return result
     except Exception as exc:
         return {
             "part_name": part_name,

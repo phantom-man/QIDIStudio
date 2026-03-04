@@ -639,6 +639,18 @@ def main() -> None:
         flag.unlink()
         print("  Compaction flag cleared.")
 
+    # ── Harvest cross-session quality metrics from pipeline_tools ───────────
+    # assess_quality() writes rows to scripts/quality_metrics.jsonl each run.
+    # Harvest them here so they persist in LanceDB across sessions.
+    try:
+        from memory.harvest_quality import harvest as harvest_quality  # noqa: PLC0415
+
+        q_count = harvest_quality()
+        if q_count:
+            print(f"\n  Quality metrics indexed: {q_count}")
+    except Exception as qexc:
+        print(f"\n  [harvest_quality] skipped — {qexc}")
+
     print("\nDone.")
 
 

@@ -41,11 +41,12 @@ import json
 import os
 import pathlib
 import sys
-# Force UTF-8 output on Windows (avoids cp1252 UnicodeEncodeError for box-drawing chars)
+
+# Force UTF-8 line-buffered output on Windows (avoids cp1252 UnicodeEncodeError for box-drawing chars)
 if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
 if hasattr(sys.stderr, "reconfigure"):
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
 import time
 import traceback
 from typing import Any
