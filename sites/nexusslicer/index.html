@@ -6,7 +6,7 @@
     <title>NexusSlicer — 3D Printing, Inside VS Code</title>
     <meta
       name="description"
-      content="A professional 3D slicer and model viewer built as a VS Code extension. WebGPU rendering, cloud material profiles, precision controls. Free and open source."
+      content="A professional 3D slicer and model viewer built as a VS Code extension. WebGPU rendering, AI-powered material profiles, precision controls. Free trial — no credit card required."
     />
     <style>
       :root {
@@ -869,7 +869,78 @@
         h1 {
           font-size: 2.4rem;
         }
+        .pg {
+          grid-template-columns: 1fr !important;
+        }
       }
+      /* pricing */
+      .pricing { padding: 7rem 1.5rem; }
+      .pricing .shl { margin-bottom: 1rem; }
+      .pg {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-top: 3.5rem;
+        max-width: 1120px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .pc {
+        background: var(--bg2);
+        border: 1px solid var(--bdr);
+        border-radius: 14px;
+        padding: 1.75rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        position: relative;
+        transition: border-color .2s;
+      }
+      .pc:hover { border-color: rgba(124,106,247,.35); }
+      .pc.featured {
+        border-color: rgba(124,106,247,.5);
+        background: rgba(124,106,247,.06);
+      }
+      .pc-badge {
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--acc);
+        color: #fff;
+        font-size: .65rem;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        padding: .2rem .75rem;
+        border-radius: 99px;
+      }
+      .pc-name { font-size: .8rem; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .75rem; }
+      .pc-price { font-size: 2.2rem; font-weight: 800; letter-spacing: -.04em; line-height: 1; margin-bottom: .2rem; }
+      .pc-price span { font-size: .85rem; font-weight: 400; color: var(--sub); }
+      .pc-sub { font-size: .75rem; color: var(--muted); margin-bottom: 1.5rem; }
+      .pc-divider { height: 1px; background: var(--bdr); margin: 0 0 1.25rem; }
+      .pc-feats { list-style: none; display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.75rem; flex: 1; }
+      .pc-feats li { font-size: .82rem; color: var(--sub); display: flex; align-items: flex-start; gap: .45rem; line-height: 1.4; }
+      .pc-feats li::before { content: '\2713'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: .05rem; }
+      .pc-feats li.muted { color: var(--muted); }
+      .pc-feats li.muted::before { color: var(--muted); content: '\2014'; }
+      .pc-btn {
+        display: block;
+        text-align: center;
+        padding: .7rem;
+        border-radius: 8px;
+        font-size: .88rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: opacity .15s, transform .15s;
+        margin-top: auto;
+      }
+      .pc-btn-out { border: 1px solid var(--bdr); color: var(--sub); }
+      .pc-btn-out:hover { border-color: var(--acc); color: var(--text); }
+      .pc-btn-acc { background: var(--acc); color: #fff; }
+      .pc-btn-acc:hover { opacity: .87; transform: translateY(-1px); }
+      .trial-note { text-align: center; margin-top: 1.5rem; font-size: .8rem; color: var(--muted); }
     </style>
   </head>
   <body>
@@ -886,13 +957,14 @@
         <ul class="nav-links">
           <li><a href="#features">Features</a></li>
           <li><a href="#compare">Compare</a></li>
+          <li><a href="#pricing">Pricing</a></li>
           <li><a href="#materials">Materials</a></li>
           <li><a href="https://desktop.nexusslicer.com">Desktop App</a></li>
           <li>
             <a href="https://github.com/phantom-man/NexusSlicer">GitHub</a>
           </li>
         </ul>
-        <a class="pill" href="#install">Get Extension</a>
+        <a class="pill" href="#pricing">See Plans</a>
       </div>
     </nav>
 
@@ -905,7 +977,7 @@
           />
         </svg>
         VS Code Extension &nbsp;&middot;&nbsp; WebGPU &nbsp;&middot;&nbsp; Free
-        &amp; Open Source
+        Trial &mdash; No Card Required
       </div>
       <h1>3D Printing Intelligence.<br />Already in Your Editor.</h1>
       <p class="hero-p">
@@ -914,7 +986,7 @@
         renderer that makes every other tool look dated.
       </p>
       <div class="cta-row">
-        <a href="#install" class="btn-lg btn-acc">Install Free</a>
+        <a href="#install" class="btn-lg btn-acc">Start Free Trial</a>
         <a
           href="https://github.com/phantom-man/NexusSlicer"
           class="btn-lg btn-out"
@@ -1123,7 +1195,7 @@
           stroke-width="2"
         >
           <polyline points="20,6 9,17 4,12" /></svg
-        >MIT licensed &middot; always free
+        >3-day trial &middot; all features unlocked &middot; no card needed
       </div>
     </div>
 
@@ -1274,12 +1346,12 @@
               Copilot sees your model and settings
             </li>
             <li>
-              <span class="ck">&#10003;</span>Completely free, no account
-              required, no telemetry
+              <span class="ck">&#10003;</span>3-day full trial &mdash; every
+              feature unlocked, no credit card
             </li>
             <li>
-              <span class="ck">&#10003;</span>Open source &mdash; fork it,
-              extend it, own it
+              <span class="ck">&#10003;</span>Free tier always available
+              &mdash; core viewer &amp; basic slicing
             </li>
           </ul>
         </div>
@@ -1468,6 +1540,81 @@
       </div>
     </div>
 
+    <div class="sec pricing" id="pricing">
+      <div class="sh">
+        <div class="shl">Pricing</div>
+        <h2 class="sht">Start free. Upgrade when you need more.</h2>
+        <p class="shs">Every plan includes a 3-day full-access trial &mdash; no credit card required.</p>
+      </div>
+      <div class="pg">
+
+        <div class="pc">
+          <div class="pc-name">Free</div>
+          <div class="pc-price">$0</div>
+          <div class="pc-sub">Forever</div>
+          <div class="pc-divider"></div>
+          <ul class="pc-feats">
+            <li>Core 3D viewer &amp; WebGPU renderer</li>
+            <li>Basic slicing — local profiles</li>
+            <li>G-code preview</li>
+            <li class="muted">No cloud features</li>
+            <li class="muted">No AI optimization</li>
+          </ul>
+          <a href="vscode:extension/nexus-workshop.nexusslicer" class="pc-btn pc-btn-out">Install Free</a>
+        </div>
+
+        <div class="pc">
+          <div class="pc-name">Maker</div>
+          <div class="pc-price">$9 <span>/ month</span></div>
+          <div class="pc-sub">or $79&thinsp;/&thinsp;year &nbsp;&middot;&nbsp; save 27%</div>
+          <div class="pc-divider"></div>
+          <ul class="pc-feats">
+            <li>Everything in Free</li>
+            <li>Cloud AI filament database &mdash; 100K+ materials</li>
+            <li>AI print optimization &amp; settings suggestions</li>
+            <li>Cloud sync across machines</li>
+            <li class="muted">No NexusGauge</li>
+            <li class="muted">No NexusMill</li>
+          </ul>
+          <a href="#install" class="pc-btn pc-btn-out">Start Free Trial</a>
+        </div>
+
+        <div class="pc featured">
+          <div class="pc-badge">Most Popular</div>
+          <div class="pc-name">Engineer</div>
+          <div class="pc-price">$29 <span>/ month</span></div>
+          <div class="pc-sub">or $249&thinsp;/&thinsp;year &nbsp;&middot;&nbsp; save 28%</div>
+          <div class="pc-divider"></div>
+          <ul class="pc-feats">
+            <li>Everything in Maker</li>
+            <li>NexusGauge dimensional analysis</li>
+            <li>NexusMill CNC simulation (NEMA 17/23 + TB6600)</li>
+            <li>Priority support</li>
+          </ul>
+          <a href="#install" class="pc-btn pc-btn-acc">Start Free Trial</a>
+        </div>
+
+        <div class="pc">
+          <div class="pc-name">Aerospace</div>
+          <div class="pc-price">$99 <span>/ month</span></div>
+          <div class="pc-sub">or $899&thinsp;/&thinsp;year &nbsp;&middot;&nbsp; save 24%</div>
+          <div class="pc-divider"></div>
+          <ul class="pc-feats">
+            <li>Everything in Engineer</li>
+            <li>Sub-50&thinsp;&micro;m flatness error maps</li>
+            <li>GD&amp;T ISO&thinsp;1101 callout generation</li>
+            <li>Export: DXF, CadQuery, PDF inspection report</li>
+            <li>25&thinsp;nm NexusMill precision (DMA860S + ball screw)</li>
+            <li>Spectral material DNA fingerprinting</li>
+            <li>API access</li>
+          </ul>
+          <a href="mailto:hello@nexusslicer.com" class="pc-btn pc-btn-out">Contact Us</a>
+        </div>
+
+      </div>
+      <p class="trial-note">3-day full trial on all paid plans &nbsp;&middot;&nbsp; Cancel any time &nbsp;&middot;&nbsp; Free core is always free</p>
+    </div>
+
     <div class="ins" id="install">
       <div class="icard">
         <div class="ic">
@@ -1516,7 +1663,7 @@
         <li><a href="https://nexusgauge.com">NexusGauge</a></li>
         <li><a href="mailto:hello@nexusslicer.com">Contact</a></li>
       </ul>
-      <div class="fn">&copy; 2026 Nexus Workshop &middot; MIT License</div>
+      <div class="fn">&copy; 2026 Nexus Workshop</div>
     </footer>
   </body>
 </html>
