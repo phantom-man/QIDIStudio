@@ -65,6 +65,31 @@
             "cacheVariables": {
                 "SLIC3R_BUILD_TESTS": "ON"
             }
+        },
+        {
+            "name": "msvc-sycl",
+            "displayName": "MSVC + Intel DPC++ SYCL (Phase 5 compute)",
+            "inherits": "base",
+            "generator": "Ninja",
+            "binaryDir": "C:/QIDISrc/QIDIStudio/build_sycl",
+            "installDir": "C:/QIDISrc/QIDIStudio/install_dir_sycl",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_COMPILER": "icx",
+                "CMAKE_C_COMPILER": "icx",
+                "QIDI_ENABLE_SYCL": "ON",
+                "QIDI_BUILD_COMPUTE_TESTS": "ON",
+                "QDT_RELEASE_TO_PUBLIC": "1"
+            },
+            "environment": {
+                "CMAKE_PREFIX_PATH": "C:/QIDISrc/QIDIStudio/deps/build/destdir/usr/local",
+                "ONEAPI_ROOT": "$penv{ONEAPI_ROOT}"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
         }
     ],
     "buildPresets": [
@@ -95,6 +120,16 @@
             "configuration": "RelWithDebInfo",
             "targets": [
                 "install"
+            ],
+            "jobs": 16
+        },
+        {
+            "name": "msvc-sycl-build",
+            "displayName": "Build SYCL compute kernels (Phase 5)",
+            "configurePreset": "msvc-sycl",
+            "configuration": "Release",
+            "targets": [
+                "qidi_compute"
             ],
             "jobs": 16
         }

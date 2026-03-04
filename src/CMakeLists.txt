@@ -101,6 +101,15 @@ if (SLIC3R_GUI)
     add_subdirectory(slic3r)
 endif()
 
+# ─── Phase 5: SYCL Compute Acceleration ──────────────────────────────────────
+# Builds qidi_compute (BVHKernel + SliceKernel) and optional pybind11 bridge.
+# Enable with: cmake -DQIDI_ENABLE_SYCL=ON -DCMAKE_CXX_COMPILER=icx
+# See src/compute/CMakeLists.txt and cmake preset 'msvc-sycl'.
+option(QIDI_ENABLE_SYCL "Enable Intel DPC++/SYCL GPU acceleration (Phase 5)" OFF)
+if(QIDI_ENABLE_SYCL OR QIDI_BUILD_COMPUTE_TESTS)
+    add_subdirectory(compute)
+endif()
+
 
 # Create a slic3r executable
 # Process mainfests for various platforms.
