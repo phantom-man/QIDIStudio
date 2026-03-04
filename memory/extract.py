@@ -496,9 +496,8 @@ def main() -> None:
         (REPO_ROOT / ".github" / "copilot-instructions.md", "copilot-instructions"),
         (REPO_ROOT / "docs" / "QIDISTUDIO_KNOWLEDGE.md", "knowledge-doc"),
         (REPO_ROOT / "memory" / "langsmith_prompt.md", "langsmith-prompt"),
-        # Compaction summaries: harvested by harvest_summaries.py from
-        # ~/.claude/projects/<QIDIStudio>/*/session-memory/summary.md.
-        # Only included if the file exists (created on first harvest).
+        # Compaction summaries written by stop_hook via prompt_store.
+        # Only included if the file exists (created on first sync run).
         *(
             (
                 (
@@ -509,6 +508,18 @@ def main() -> None:
             if (REPO_ROOT / "memory" / "compaction_summaries.md").exists()
             else ()
         ),
+        # Session Q&A archive written by sync_prompts_to_lancedb.py (30-min job).
+        # Uses ## section format — extract_sections() handles it correctly.
+        *(
+            (
+                (
+                    REPO_ROOT / "memory" / "session_learnings_archive.md",
+                    "archive/session-qa",
+                ),
+            )
+            if (REPO_ROOT / "memory" / "session_learnings_archive.md").exists()
+            else ()
+        ),
     ]
 
     for path, prefix in sources:
@@ -517,46 +528,11 @@ def main() -> None:
         print(f"  {path.name:<35} sections : {len(chunks)}")
         all_rows.extend(chunks)
 
-        # Structured learnings table rows (if present)
+        # Structured learnings table rows (if present — returns 0 for section-format files)
         learnings = extract_learnings_table(path, f"{prefix}/learnings")
         if learnings:
             print(f"  {path.name:<35} learnings: {len(learnings)}")
             all_rows.extend(learnings)
-
-    # Index the archive as a permanent learnings store.
-    # These rows survive the prune cycle — once a learning is archived here, it
-    # stays in LanceDB permanently (replace_all rebuilds from this file each run).
-    # Note: parse the entire archive file directly (no "## Session Learnings Log"
-    # heading exists; the table is the whole file content).
-    archive_rows: list[dict] = []
-    archive_path = REPO_ROOT / "memory" / "session_learnings_archive.md"
-    if archive_path.exists():
-        archive_text = archive_path.read_text(encoding="utf-8")
-        archive_parsed = _parse_learnings_table(archive_text)
-        for r in archive_parsed:
-            topic = (r.get("topic") or "").strip()
-            decision = (r.get("decision") or "").strip()
-            if not topic or not decision:
-                continue
-            rationale = (r.get("rationale") or "").strip()
-            category = (r.get("category") or "").strip() or _infer_category(
-                topic, decision
-            )
-            dt = (r.get("date") or "").strip() or None
-            archive_rows.append(
-                {
-                    "topic": topic,
-                    "decision": decision,
-                    "rationale": rationale,
-                    "content": f"**{topic}**\n{decision}\n\nRationale: {rationale}",
-                    "category": category,
-                    "date": dt,
-                    "source": "archive/learnings",
-                }
-            )
-        if archive_rows:
-            print(f"  {archive_path.name:<35} archived : {len(archive_rows)}")
-            all_rows.extend(archive_rows)
 
     print(f"\nTotal rows to sync: {len(all_rows)}")
 
@@ -566,60 +542,6 @@ def main() -> None:
         seen[r["topic"]] = r
     deduped = list(seen.values())
     print(f"After dedup        : {len(deduped)}")
-
-    # ── Prune verified learnings FIRST — before indexing ────────────────
-    # IMPORTANT: prune must run before sync_to_lancedb so that section chunks
-    # capture the already-cleaned file, not the fat unpruned table.
-    # If we indexed first, the stale 145k-char Session Learnings Log chunk
-    # would persist in GCS and match almost every prompt, consuming huge context.
-    print("\nPruning verified learnings from source files before indexing...")
-    verified, kept, archived = prune_learnings_from_instructions()
-    print(f"  Archive path: {ARCHIVE_PATH}")
-
-    # ── Re-read source files after pruning so section chunks are slim ────
-    # Rebuild all_rows from the now-pruned files
-    all_rows = []
-    for path, prefix in sources:
-        chunks = extract_sections(path, prefix)
-        all_rows.extend(chunks)
-        learnings = extract_learnings_table(path, f"{prefix}/learnings")
-        if learnings:
-            all_rows.extend(learnings)
-
-    # Re-read archive AFTER prune — prune may have appended new rows to it.
-    archive_rows = []
-    if archive_path.exists():
-        archive_text = archive_path.read_text(encoding="utf-8")
-        archive_parsed = _parse_learnings_table(archive_text)
-        for r in archive_parsed:
-            topic = (r.get("topic") or "").strip()
-            decision = (r.get("decision") or "").strip()
-            if not topic or not decision:
-                continue
-            rationale = (r.get("rationale") or "").strip()
-            category = (r.get("category") or "").strip() or _infer_category(
-                topic, decision
-            )
-            dt = (r.get("date") or "").strip() or None
-            archive_rows.append(
-                {
-                    "topic": topic,
-                    "decision": decision,
-                    "rationale": rationale,
-                    "content": f"**{topic}**\n{decision}\n\nRationale: {rationale}",
-                    "category": category,
-                    "date": dt,
-                    "source": "archive/learnings",
-                }
-            )
-    if archive_rows:
-        all_rows.extend(archive_rows)
-
-    seen = {}
-    for r in all_rows:
-        seen[r["topic"]] = r
-    deduped = list(seen.values())
-    print(f"\nPost-prune rows to sync: {len(deduped)}")
 
     print(
         "\nSyncing to LanceDB (this loads the embedding model — ~15s on first run)..."

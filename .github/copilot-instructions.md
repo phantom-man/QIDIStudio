@@ -31,10 +31,20 @@ Look above — you should see `━━━ QIDISTUDIO KNOWLEDGE BASE ━━━`.
 | Full text dump (everything verbatim) | `memory_env\Scripts\python.exe memory/inject.py --full`                     |
 | Semantic search                      | `memory_env\Scripts\python.exe memory/inject.py --query "cmake build"`      |
 | Re-index docs to LanceDB             | `memory_env\Scripts\python.exe memory/extract.py`                           |
+| Prompt/response daily stats          | `memory_env\Scripts\python.exe memory/prompt_store.py --daily-stats`        |
+| Unsynced pairs (pending LanceDB)     | `memory_env\Scripts\python.exe memory/prompt_store.py --unsynced`           |
+| Run 30-min LanceDB sync manually     | `memory_env\Scripts\python.exe memory/sync_prompts_to_lancedb.py`           |
+| Run daily LanceDB dedup manually     | `memory_env\Scripts\python.exe memory/daily_lancedb_dedupe.py`              |
 | Push prompt to LangSmith Hub         | `memory_env\Scripts\python.exe memory/push_prompt.py`                       |
 | Push ALL agent prompts to Hub        | `memory_env\Scripts\python.exe agents/push_all_prompts.py`                  |
 | Re-install deps                      | `.\memory_env\Scripts\python.exe -m pip install -r memory\requirements.txt` |
 | Run agent fleet                      | `memory_env\Scripts\python.exe agents/orchestrator.py "your request"`       |
+| List recent fleet runs               | `memory_env\Scripts\python.exe -m agents.run_store`                         |
+| Structured log (agents + rows)       | `memory_env\Scripts\python.exe -m agents.run_store --log`                   |
+| Latest run drilldown (per-agent)     | `memory_env\Scripts\python.exe -m agents.run_store --latest-detail`         |
+| Show latest run result               | `memory_env\Scripts\python.exe -m agents.run_store --latest`                |
+| Show specific run                    | `memory_env\Scripts\python.exe -m agents.run_store -r <run_id>`             |
+| Filter by fleet                      | `memory_env\Scripts\python.exe -m agents.run_store -f dev_fleet -n 5`       |
 
 ---
 
@@ -77,10 +87,335 @@ Invoke via: `memory_env\Scripts\python.exe agents/orchestrator.py "task descript
 
 ---
 
+## 🤖 Agentic Fleet Protocol
+
+> **Mandatory reading.** These rules govern every interaction with the four-agent fleet.
+> Violating them causes wasted tokens, duplicate work, or silent failures.
+
+### 1 — Agent Roles (decision table)
+
+| Agent        | Use when you need to…                                                     | Do NOT use for…                         |
+| ------------ | ------------------------------------------------------------------------- | --------------------------------------- |
+| `researcher` | Find facts, read docs, web-search specs, audit external APIs/libraries    | Writing or modifying project files      |
+| `builder`    | Write/edit Python, C++, CMake, JSON, fix bugs, implement features         | Research without a concrete code output |
+| `verifier`   | Audit code for correctness, type safety, edge cases, security, lint       | Writing new code (verdict only)         |
+| `scribe`     | Persist facts/decisions/learnings to LanceDB; update copilot-instructions | Code changes or research                |
+
+Assign **one task per agent per dispatch**. If a job needs multiple roles, give each role its own task — the director will fan them out in parallel.
+
+### 2 — Invocation Methods
+
+**CLI (fire-and-forget, redirect output to a file):**
+
+```powershell
+# Always redirect — never use captureOutput or wait synchronously
+memory_env\Scripts\python.exe agents/orchestrator.py "task string here" `
+  2>&1 | Tee-Object agents\_my_task_out.txt
+```
+
+**From terminal tool (non-blocking pattern):**
+
+```powershell
+# Send to a named terminal; read the output file as a separate step
+memory_env\Scripts\python.exe -B agents/orchestrator.py "task string here" > agents\_out.txt 2>&1; echo DONE >> agents\_out.txt
+```
+
+**Python API (inside another script):**
+
+```python
+from agents.orchestrator import run
+result = run("your natural-language task here")
+print(result["final_response"])
+```
+
+### 3 — Writing Effective Task Strings
+
+The director LLM (Gemini 2.5 Flash) decomposes your string into typed `AgentTask` objects.
+Give it enough context to make the right assignments.
+
+**Good task string anatomy:**
+
+```
+[VERB] [SUBJECT] [CONSTRAINT/GOAL] [OUTPUT FORMAT]
+
+Examples:
+  "Audit agents/parts_catalog/schema.py for non-Optional int/float fields
+   that Gemini might return as strings; report every field name and model class"
+
+  "Fix LeadScrew.starts to accept 'single'/'double' strings;
+   write a @field_validator; verify syntax; output patched schema.py snippet"
+
+  "Persist to LanceDB: root cause = Pydantic rejects null from Gemini;
+   fix = model_validator strips None before validation; topic = parts-catalog-schema"
+```
+
+**Anti-patterns to avoid:**
+
+- Too vague: `"fix the schema"` — director can't plan without knowing what's wrong
+- Too broad: `"research everything about CNC parts and then fix all the code"` — split into two dispatches
+- No output expectation: always state what you want back (snippet, verdict, LanceDB write, etc.)
+
+### 4 — Parallel Dispatch Pattern
+
+When a problem needs research + implementation + verification, dispatch all three at once:
+
+```powershell
+# Terminal: agentcomms — parallel fan-out
+memory_env\Scripts\python.exe -B agents/orchestrator.py `
+  "Task 1 for researcher: [describe]; Task 2 for builder: [describe]; Task 3 for verifier: [describe]" `
+  > agents\_parallel_out.txt 2>&1; echo DONE >> agents\_parallel_out.txt
+```
+
+The orchestrator's `Send` API runs all three as a single LangGraph superstep — true parallel.
+Copilot should then read all output files in one parallel batch.
+
+### 5 — Output File Conventions
+
+> **PRIMARY STORE: PostgreSQL `agent_runs` table.**
+> Every `orchestrator.run()` and `dev_fleet.run_fleet()` call automatically persists its
+> full result (all agent outputs as JSONB) to this table BEFORE returning. Text files are
+> ephemeral terminal output only — do NOT rely on them across sessions.
+
+**Query results — always from Postgres, not from text files:**
+
+```powershell
+# List latest 10 runs (raw blob view)
+memory_env\Scripts\python.exe -m agents.run_store
+
+# Structured fleet_runs summary table (agents, rows collected, duration)
+memory_env\Scripts\python.exe -m agents.run_store --log
+
+# Drilldown: latest run with per-agent detail
+memory_env\Scripts\python.exe -m agents.run_store --latest-detail
+
+# Latest result (full final_response text)
+memory_env\Scripts\python.exe -m agents.run_store --latest
+
+# Specific run drilldown (all agent prompts + rows)
+memory_env\Scripts\python.exe -m agents.run_store -d <run_id>
+
+# Specific run raw blobs
+memory_env\Scripts\python.exe -m agents.run_store -r <run_id>
+
+# Filter to dev_fleet only, last 5
+memory_env\Scripts\python.exe -m agents.run_store --log -f dev_fleet -n 5
+```
+
+```python
+# From Python (in any script or subagent)
+from agents.run_store import get_latest_fleet_run, list_fleet_runs, get_fleet_run
+
+# Structured summary for latest run
+run = get_latest_fleet_run()
+print(run['subject'], 'agents:', run['agent_count'], 'rows:', run['total_rows'])
+for a in run['agents']:
+    print(f"  {a['agent_id']:20s} rows={a['rows_collected']} prompt={a['task_prompt'][:60]}")
+
+# Raw blob (legacy)
+from agents.run_store import get_latest_run, list_runs
+run = get_latest_run()
+print(run['final_response'])
+```
+
+| Optional secondary artifact | File path (terminal stdout only — may not exist) |
+| --------------------------- | ------------------------------------------------ |
+| Fleet run stdout log        | `agents\_<short_label>_out.txt`                  |
+| Dev fleet team output       | `agents\_fleet_alpha_out.txt` etc.               |
+
+The `echo DONE` pattern is still useful for terminal _completion signaling_, but
+never use it as the authoritative source of agent output data.
+
+### 6 — Health Check (run before any fleet work)
+
+```powershell
+memory_env\Scripts\python.exe agents/_agentcomms_check.py > agents\_health.txt 2>&1
+```
+
+Expected output (all lines must be present):
+
+```
+researcher : CompiledStateGraph
+builder    : CompiledStateGraph
+verifier   : CompiledStateGraph
+scribe     : CompiledStateGraph
+coder      : CompiledStateGraph
+tester     : CompiledStateGraph
+dev_fleet  : CompiledStateGraph
+gemini ping: ONLINE
+postgres   : ready
+langsmith  : connected
+```
+
+If any line is missing or shows an error, **do not dispatch fleet tasks** — diagnose first.
+
+### 7 — When Copilot MUST Use the Fleet
+
+These situations require a fleet dispatch (do not attempt inline):
+
+| Situation                                      | Dispatch to        |
+| ---------------------------------------------- | ------------------ |
+| Multi-file code audit (>3 files)               | verifier           |
+| Web research on library/spec/hardware          | researcher         |
+| Schema fix + syntax verify + persist to memory | builder + scribe   |
+| Parts catalog harvester debugging              | builder + verifier |
+| Any change to LanceDB knowledge base           | scribe             |
+| Anything requiring Google Search grounding     | researcher         |
+
+### 8 — Reading Fleet Results
+
+**ALWAYS read from Postgres — not from text files.** Text files are destroyed when terminals
+close (e.g. during conversation summarization). The `agent_runs` table is durable.
+
+```powershell
+# Standard pattern: dispatch → wait for DONE signal → query Postgres
+memory_env\Scripts\python.exe -B agents/orchestrator.py "task" > agents\_out.txt 2>&1; echo DONE >> agents\_out.txt
+
+# Check completion
+Select-String "DONE" agents\_out.txt
+
+# Read results from Postgres (NOT from _out.txt)
+memory_env\Scripts\python.exe -m agents.run_store --latest
+```
+
+The `_out.txt` file only signals _completion_ — all actual content is in Postgres.
+Sub-agent results are stored under `agent_results` JSONB column (one entry per agent/team).
+
+If the file is large, tail the end:
+
+```powershell
+Get-Content agents\_my_task_out.txt -Tail 40
+```
+
+### 9 — Common Failure Modes
+
+| Symptom                                        | Cause                                   | Fix                                                   |
+| ---------------------------------------------- | --------------------------------------- | ----------------------------------------------------- |
+| `ModuleNotFoundError: agents`                  | Wrong venv or wrong CWD                 | Use `memory_env\Scripts\python.exe`, CWD = repo root  |
+| No output file created                         | Process crashed before first write      | Check stderr: `agents\_my_task_out.txt` for traceback |
+| "no results" / output file disappeared         | Terminal closed (e.g. summarization)    | Query Postgres: `python -m agents.run_store --latest` |
+| `GOOGLE_API_KEY not set`                       | `.env` not loaded                       | Confirm `.env` exists at repo root with key set       |
+| `google.api_core.exceptions.ResourceExhausted` | Gemini quota hit (free tier)            | Wait 60 s or switch to `gemini-2.0-flash`             |
+| Agent returns empty `final_response`           | Director couldn't parse task string     | Make task string more explicit (see §3)               |
+| `Unexpected argument 'tools'`                  | LangChain/google-genai version mismatch | Harmless info log — ignore                            |
+| `AFC Remote call N exceeded_limit`             | Automatic Function Calling info log     | Harmless — not an error                               |
+| Stale `.pyc` causes AttributeError             | Python bytecode cache out of date       | Always run with `-B` flag: `python -B ...`            |
+
+---
+
+## 🧑‍💻 Dev Fleet Protocol (Coder/Tester Teams)
+
+> Use this fleet for any coding task. Named teams (Alpha, Beta, Gamma) work in
+> parallel. Each team runs a coder→tester iteration loop until tests pass or budget exhausts.
+> All learnings are persisted to LanceDB after every team completes.
+
+### Quick Start
+
+```powershell
+# Single task — director assigns to best team
+memory_env\Scripts\python.exe -B agents/dev_fleet.py "Implement X feature" `
+  > agents\_fleet_alpha_out.txt 2>&1; echo DONE >> agents\_fleet_alpha_out.txt
+
+# Force a specific team
+memory_env\Scripts\python.exe -B agents/dev_fleet.py "Fix Y bug" --teams Alpha `
+  > agents\_fleet_alpha_out.txt 2>&1; echo DONE >> agents\_fleet_alpha_out.txt
+
+# Multi-task fan-out (director assigns Alpha/Beta/Gamma automatically)
+memory_env\Scripts\python.exe -B agents/dev_fleet.py `
+  "Task 1: implement schema fix; Task 2: add unit tests; Task 3: update docs" `
+  > agents\_fleet_out.txt 2>&1; echo DONE >> agents\_fleet_out.txt
+
+# Python API
+from agents.dev_fleet import run_fleet
+result = run_fleet("Implement X", teams=["Alpha"], max_iterations=3)
+print(result["final_report"])
+```
+
+### Team Architecture
+
+```
+Fleet Director (Gemini 2.5 Flash)
+  ├─ Team Alpha: coder (Pro) ──→ tester (Pro/Vision) ──┐
+  ├─ Team Beta:  coder (Pro) ──→ tester (Pro/Vision) ──┤ ← true parallel
+  └─ Team Gamma: coder (Pro) ──→ tester (Pro/Vision) ──┘
+                                         ↑ iterate on FAIL (max 5)
+```
+
+### Coder → Tester Signal Protocol
+
+The Coder always outputs a JSON signal:
+
+```json
+{
+  "status": "code_ready",
+  "changes": [
+    { "file": "...", "operation": "edit|create|delete", "content": "..." }
+  ],
+  "test_instructions": {
+    "type": "python|cpp|cmake|shell",
+    "command": "memory_env\\Scripts\\python.exe -B -m pytest agents/... -v",
+    "expected_behavior": "All N tests pass",
+    "visual_check": "optional path to image for Gemini Vision"
+  },
+  "iteration": 1,
+  "prior_failure": null
+}
+```
+
+The Tester always outputs a JSON verdict:
+
+```json
+{
+  "status": "PASS|FAIL|ERROR|VISUAL_FAIL",
+  "counts": { "passed": 12, "failed": 0, "errors": 0 },
+  "failures": [
+    { "test_name": "...", "type": "...", "coder_hint": "specific fix" }
+  ],
+  "next_action": "pass|fix_and_retry|escalate"
+}
+```
+
+### Output Files
+
+> **PRIMARY: PostgreSQL `agent_runs` table** — `fleet='dev_fleet'`, all team results as JSONB.
+> Query with `python -m agents.run_store -f dev_fleet --latest` — survives terminal closures.
+
+| Secondary artifact (stdout only) | Contents                                                 |
+| -------------------------------- | -------------------------------------------------------- |
+| `agents/_fleet_alpha_out.txt`    | Alpha team stdout (may not exist after session restarts) |
+| `agents/_fleet_beta_out.txt`     | Beta team stdout                                         |
+| `agents/_fleet_gamma_out.txt`    | Gamma team stdout                                        |
+| `agents/_test_out_alpha_N.txt`   | Raw test output for iteration N                          |
+
+**Structured log queries** (the right way to inspect past runs):
+
+```powershell
+# Top-level summary: all fleet runs, agents used, rows collected
+memory_env\Scripts\python.exe -m agents.run_store --log
+
+# Per-agent drilldown for the latest run (prompts, rows, pass/fail per team)
+memory_env\Scripts\python.exe -m agents.run_store --latest-detail
+
+# Same for a specific run
+memory_env\Scripts\python.exe -m agents.run_store -d <run_id>
+```
+
+### When to Use Dev Fleet vs Agentic Fleet
+
+| Situation                           | Use                                    |
+| ----------------------------------- | -------------------------------------- |
+| Implement a new feature / fix a bug | **Dev Fleet** (dev_fleet.py)           |
+| Research + implement + verify       | **Dev Fleet** (handles all internally) |
+| Research only, no code changes      | Agentic Fleet (orchestrator.py)        |
+| Persist facts to LanceDB            | Agentic Fleet scribe agent             |
+| Code audit without changes          | Agentic Fleet verifier agent           |
+
+---
+
 ## Minimal Reference (in case memory is unavailable)
 
 - **Build source**: `C:\QIDISrc\QIDIStudio\build\`
 - **Install dir** : `C:\QIDISrc\QIDIStudio\install_dir\`
+- **Deps destdir** : `C:\QIDIDeps\usr\local` — **actual pre-built deps install prefix** (NOT `deps/build/destdir`). `CMakePresets.json` `CMAKE_PREFIX_PATH` must point here.
 - **bpy script** : `resources\scripts\apply_texture_bpy.py`
 - **Blender** : `C:\Program Files\Blender Foundation\Blender 5.0\blender.exe`
 - **Memory venv** : `memory_env\Scripts\python.exe` (LangSmith + LanceDB + sentence-transformers — use for ALL memory commands)
@@ -144,20 +479,6 @@ Full spec: [`docs/private/NEXUSGAUGE_SPEC.md`](../docs/private/NEXUSGAUGE_SPEC.m
 
 ---
 
-## Session Learnings Log
-
-Append rows here — `memory/extract.py` auto-indexes them into LanceDB.
-
-| Date       | Category   | Topic             | Decision                                                  | Rationale                                                                                                     |
-| ---------- | ---------- | ----------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 2026-03-03 | Infrastructure | Firebase deploy method | Use Firebase CLI (`firebase deploy --only hosting`) not REST API | REST API `populateFiles` endpoint hung; CLI works reliably |
-| 2026-03-03 | Infrastructure | Firebase project ID | Project ID is `nexuicer` (not `nexus-workshop` or `nexusslicer`) | Firebase auto-truncated "NexusSlicer" on project creation |
-| 2026-03-03 | Infrastructure | Firebase site IDs | `nexuicer`, `nexuicer-desktop`, `nexusmill-app`, `nexusgauge-app` | `-app` suffix used for mill/gauge due to name availability |
-| 2026-03-03 | Infrastructure | Cloudflare DNS | `sites/cf_dns.py` automates all 7 CNAMEs; token in `.env`; `proxied: False` required until Firebase SSL certs provision | Full programmatic control via Cloudflare REST API |
-| 2026-03-03 | Infrastructure | Cloudflare zones prerequisite | Domains must be **added to Cloudflare account** first; `errors=[], result=[]` = zones not in account | Token active but zones must exist before cf_dns.py can create records |
-| 2026-03-03 | Infrastructure | Firestore creation | Firestore (default) database: `gcloud firestore databases create --location=us-central1` | Must be created once per project; not auto-provisioned |
-| 2026-03-03 | Infrastructure | GCS bucket | `qidistudio-filaments` bucket in `crafty-hook-483415-b3`, `us-central1` — auto-created by `filament_pipeline.py` | Stores raw filament JSON + slicer profiles |
-| 2026-03-03 | Agents | Filament research pipeline | `agents/filament_pipeline.py` — discovers all brands + materials via Tavily + Gemini 2.5 Flash, writes to Firestore `filaments/` + GCS | Background `Start-Process -WindowStyle Hidden`; checkpoint at `gs://qidistudio-filaments/_progress/filament_pipeline.json` |
-| 2026-03-03 | Agents | Slicer profile harvester | `agents/slicer_harvester.py` — downloads profiles from 9 OSS slicers via GitHub API | GCS `qidistudio-filaments/slicer-profiles/`; Firestore `slicers/`; logs at `agents/_slicer_log.txt` |
-| 2026-03-03 | Agents | Gemini model deprecation | `gemini-2.0-flash` deprecated for new users → use `gemini-2.5-flash` | HTTP 404: `This model is no longer available to new users` |
-| 2026-03-03 | Agents | GitHub rate limiting | Without `GITHUB_TOKEN` in `.env`: 60 req/hr; with token: 5000/hr | Create token at github.com/settings/tokens (public repos read = sufficient) |
+> **DO NOT append learnings to this file.** Learnings live in Postgres (`prompts`/`responses` tables).
+> The 30-min sync job (`sync_prompts_to_lancedb.py`) pushes them to LanceDB automatically.
+> To record a learning, include a `COMPACTION_SUMMARY` block in your response — the Stop hook persists it.
