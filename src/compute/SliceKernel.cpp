@@ -102,18 +102,123 @@ std::vector<SliceLayer> computeSlices(
     uint32_t        layerCount)
 {
 #ifdef QIDI_ENABLE_SYCL
-    // ─── SYCL path (Phase 5 full implementation) ────────────────────────────
-    // TODO Phase 5 full impl strategy:
-    //   1. Allocate sycl::buffer<float4> for edge output (faceCount * layerCount slots)
-    //   2. Submit kernel: nd_range<2>(faceCount, layerCount), work-group size {1, 64}
-    //      Each work-item: triangleSlice(v0,v1,v2, z) → atomic append to layer buffer
-    //   3. Compact output (thrust::remove_if equivalent via SYCL std::copy_if)
-    //   4. Copy back to host SliceLayer vector
+    // ─── SYCL path: nd_range<2>(faceCount × layerCount) ──────────────────────
     //
-    // Prerequisite: find_package(IntelSYCL REQUIRED) in CMakeLists.txt
+    // Grid layout:
+    //   Global:  faceCount × ceil(layerCount / 64) × 64
+    //   Local:   1 × 64   (aligns with AMD wavefront; portable to NVIDIA/Intel)
     //
-    // Fall through to CPU until full SYCL impl
-    (void)vertexCount;
+    // Each work-item (f, l) intersects one triangle against one Z-plane.
+    // Intersecting segments are written into a flat output buffer using
+    // a per-layer atomic counter.  After the kernel, we compact to SliceLayer.
+
+    constexpr uint32_t WG_Y = 64;
+
+    try {
+        sycl::queue q{ sycl::default_selector_v };
+
+        // Flatten vertex data into float4 (x,y,z,unused)
+        std::vector<sycl::float4> verts(vertexCount);
+        for (uint32_t v = 0; v < vertexCount; ++v) {
+            verts[v] = sycl::float4(vertices[3 * v + 0],
+                                    vertices[3 * v + 1],
+                                    vertices[3 * v + 2],
+                                    0.f);
+        }
+
+        const uint32_t maxPerLayer = faceCount; // upper bound on segments per layer
+
+        sycl::buffer<sycl::float4> vertBuf(verts.data(),  sycl::range<1>(vertexCount));
+        sycl::buffer<uint32_t>     idxBuf (indices,        sycl::range<1>(faceCount * 3));
+        sycl::buffer<float>        zBuf   (zHeights,       sycl::range<1>(layerCount));
+        sycl::buffer<sycl::float4> outBuf (sycl::range<1>(2 * layerCount * maxPerLayer));
+        sycl::buffer<uint32_t>     cntBuf (sycl::range<1>(layerCount));
+        {
+            auto h = cntBuf.get_host_access(sycl::write_only);
+            for (uint32_t i = 0; i < layerCount; ++i) h[i] = 0u;
+        }
+
+        const uint32_t globalY = ((layerCount + WG_Y - 1) / WG_Y) * WG_Y;
+
+        q.submit([&](sycl::handler& h) {
+            auto vA   = vertBuf.get_access<sycl::access::mode::read>(h);
+            auto iA   = idxBuf .get_access<sycl::access::mode::read>(h);
+            auto zA   = zBuf   .get_access<sycl::access::mode::read>(h);
+            auto outA = outBuf .get_access<sycl::access::mode::discard_write>(h);
+            auto cntA = cntBuf .get_access<sycl::access::mode::atomic>(h);
+
+            h.parallel_for(
+                sycl::nd_range<2>(sycl::range<2>(faceCount, globalY),
+                                  sycl::range<2>(1, WG_Y)),
+                [=](sycl::nd_item<2> item) {
+                    uint32_t f = item.get_global_id(0);
+                    uint32_t l = item.get_global_id(1);
+                    if (l >= layerCount) return;
+
+                    uint32_t i0 = iA[f * 3 + 0];
+                    uint32_t i1 = iA[f * 3 + 1];
+                    uint32_t i2 = iA[f * 3 + 2];
+                    sycl::float4 p0 = vA[i0];
+                    sycl::float4 p1 = vA[i1];
+                    sycl::float4 p2 = vA[i2];
+                    float z = zA[l];
+
+                    float zLo = sycl::fmin(sycl::fmin(p0.z(), p1.z()), p2.z());
+                    float zHi = sycl::fmax(sycl::fmax(p0.z(), p1.z()), p2.z());
+                    if (z < zLo || z >= zHi) return;
+
+                    sycl::float4 pts[2];
+                    int cnt = 0;
+                    auto edge = [&](sycl::float4 a, sycl::float4 b) {
+                        if ((a.z() <= z && b.z() > z) || (b.z() <= z && a.z() > z)) {
+                            float t = (z - a.z()) / (b.z() - a.z());
+                            if (cnt < 2) {
+                                pts[cnt++] = sycl::float4(
+                                    sycl::fma(t, b.x() - a.x(), a.x()),
+                                    sycl::fma(t, b.y() - a.y(), a.y()),
+                                    z, 0.f);
+                            }
+                        }
+                    };
+                    edge(p0, p1);
+                    edge(p1, p2);
+                    edge(p2, p0);
+                    if (cnt < 2) return;
+
+                    sycl::atomic<uint32_t> counter(cntA[l]);
+                    uint32_t slot = counter.fetch_add(1u);
+                    if (slot >= maxPerLayer) return;
+
+                    uint32_t base = 2 * (l * maxPerLayer + slot);
+                    outA[base + 0] = pts[0];
+                    outA[base + 1] = pts[1];
+                });
+        });
+        q.wait();
+
+        // Compact device output into SliceLayer host vectors
+        std::vector<SliceLayer> layers(layerCount);
+        auto hostCnt = cntBuf.get_host_access(sycl::read_only);
+        auto hostOut = outBuf.get_host_access(sycl::read_only);
+        for (uint32_t l = 0; l < layerCount; ++l) {
+            uint32_t n = std::min(hostCnt[l], maxPerLayer);
+            layers[l].z = zHeights[l];
+            layers[l].edges.reserve(n * 4);
+            for (uint32_t s = 0; s < n; ++s) {
+                uint32_t base = 2 * (l * maxPerLayer + s);
+                sycl::float4 a = hostOut[base + 0];
+                sycl::float4 b = hostOut[base + 1];
+                layers[l].edges.push_back(a.x());
+                layers[l].edges.push_back(a.y());
+                layers[l].edges.push_back(b.x());
+                layers[l].edges.push_back(b.y());
+            }
+        }
+        return layers;
+
+    } catch (const sycl::exception& e) {
+        (void)e; // SYCL device unavailable → fall through to CPU
+    }
 #endif
 
     return computeSlicesCPU(vertices, vertexCount, indices, faceCount, zHeights, layerCount);

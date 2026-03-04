@@ -174,17 +174,188 @@ BVHResult buildBVH(
     for (uint32_t i = 0; i < faceCount; ++i) primIndices[i] = static_cast<int>(i);
 
 #ifdef QIDI_ENABLE_SYCL
-    // ─── SYCL path (Phase 5 full implementation) ────────────────────────────
-    // TODO Phase 5 full impl:
-    //   1. Allocate SYCL buffer for primBounds on device
-    //   2. SYCL parallel radix sort by Morton code (work-group 64)
-    //   3. Bottom-up LBVH construction (Karras 2012)
-    //   4. SAH refinement pass on GPU
-    //   5. Copy node array back to host
+    // ─── SYCL path: Morton-code LBVH (Karras 2012) ───────────────────────────
     //
-    // For now fall through to CPU path with a log message
-    (void)faceCount;
-    // Fall-through intentional until full SYCL impl
+    // 1. Compute 30-bit Morton code for each AABB centroid.
+    // 2. Sort primitives by Morton code (host std::sort; GPU sort in Phase 5.1 upgrade).
+    // 3. Build LBVH internal nodes bottom-up on GPU using delta() longest-common-prefix.
+    // 4. Compute per-node AABB in a parallel bottom-up reduction pass.
+    //
+    // Work-group size: 64 (AMD wavefront / NVIDIA warp × 2 / Intel EU grouping).
+    // Phase 5 completion criteria: BVH 8–20× faster than CPU SAH-BVH on RTX 3060.
+
+    try {
+        sycl::queue q{ sycl::default_selector_v };
+
+        // ── Step 1: compute scene AABB ──────────────────────────────────────
+        float sceneMin[3] = { std::numeric_limits<float>::max(),
+                              std::numeric_limits<float>::max(),
+                              std::numeric_limits<float>::max() };
+        float sceneMax[3] = { std::numeric_limits<float>::lowest(),
+                              std::numeric_limits<float>::lowest(),
+                              std::numeric_limits<float>::lowest() };
+        for (uint32_t f = 0; f < faceCount; ++f) {
+            for (int a = 0; a < 3; ++a) {
+                sceneMin[a] = std::min(sceneMin[a], primBounds[f].min[a]);
+                sceneMax[a] = std::max(sceneMax[a], primBounds[f].max[a]);
+            }
+        }
+
+        // ── Step 2: compute Morton codes (30-bit, 3×10 bits) ───────────────
+        // Morton encode: expands each 10-bit coordinate to 30-bit interleaved
+        auto expandBits = [](uint32_t v) -> uint32_t {
+            v = (v * 0x00010001u) & 0xFF0000FFu;
+            v = (v * 0x00000101u) & 0x0F00F00Fu;
+            v = (v * 0x00000011u) & 0xC30C30C3u;
+            v = (v * 0x00000005u) & 0x49249249u;
+            return v;
+        };
+        auto mortonEncode = [&](float cx, float cy, float cz) -> uint32_t {
+            auto to10 = [&](float v, float mn, float mx) -> uint32_t {
+                float t = (mx > mn) ? (v - mn) / (mx - mn) : 0.5f;
+                t = std::max(0.f, std::min(1.f, t));
+                return static_cast<uint32_t>(t * 1023.f);
+            };
+            return (expandBits(to10(cx, sceneMin[0], sceneMax[0])) << 2)
+                 | (expandBits(to10(cy, sceneMin[1], sceneMax[1])) << 1)
+                 | (expandBits(to10(cz, sceneMin[2], sceneMax[2])));
+        };
+
+        std::vector<uint32_t> mortonCodes(faceCount);
+        for (uint32_t f = 0; f < faceCount; ++f) {
+            float cx = primBounds[f].centroid(0);
+            float cy = primBounds[f].centroid(1);
+            float cz = primBounds[f].centroid(2);
+            mortonCodes[f] = mortonEncode(cx, cy, cz);
+        }
+
+        // ── Step 3: sort by Morton code (key-index pair) ────────────────────
+        // Phase 5.2 upgrade: replace with SYCL device-side radix sort
+        std::sort(primIndices.begin(), primIndices.end(), [&](int a, int b) {
+            return mortonCodes[a] < mortonCodes[b];
+        });
+        // Build sorted Morton array matching primIndices order
+        std::vector<uint32_t> sortedMorton(faceCount);
+        for (uint32_t i = 0; i < faceCount; ++i) sortedMorton[i] = mortonCodes[primIndices[i]];
+
+        // ── Step 4: LBVH construction on GPU ───────────────────────────────
+        // N leaves → N-1 internal nodes. Total = 2N-1 nodes.
+        // Node layout: [0..N-2] = internal nodes, [N-1..2N-2] = leaves.
+        const uint32_t N = faceCount;
+        const uint32_t totalNodes = 2 * N - 1;
+        std::vector<BVHNode> nodes(totalNodes);
+
+        // Initialize leaf nodes
+        for (uint32_t i = 0; i < N; ++i) {
+            auto& leaf = nodes[N - 1 + i];
+            leaf.bounds   = primBounds[primIndices[i]];
+            leaf.primStart = static_cast<int>(i);
+            leaf.primCount = 1;
+        }
+
+        // Kernel: determine range and children for each internal node
+        // delta(i,j) = number of common leading bits between sortedMorton[i] and sortedMorton[j]
+        auto delta = [&](int i, int j) -> int {
+            if (j < 0 || j >= static_cast<int>(N)) return -1;
+            uint32_t m = sortedMorton[i] ^ sortedMorton[j];
+            if (m == 0) {
+                // Break ties by index XOR
+                return 32 + __builtin_clz(static_cast<uint32_t>(i) ^ static_cast<uint32_t>(j));
+            }
+#if defined(_MSC_VER)
+            unsigned long idx = 0;
+            _BitScanReverse(&idx, m);
+            return static_cast<int>(31 - idx);
+#else
+            return __builtin_clz(m);
+#endif
+        };
+
+        // SYCL parallel_for: each work-item builds one internal node
+        {
+            sycl::buffer<BVHNode>  nodeBuf(nodes.data(), sycl::range<1>(totalNodes));
+            sycl::buffer<uint32_t> mortonBuf(sortedMorton.data(), sycl::range<1>(N));
+
+            q.submit([&](sycl::handler& h) {
+                auto nodeAcc   = nodeBuf.get_access<sycl::access::mode::read_write>(h);
+                auto mortonAcc = mortonBuf.get_access<sycl::access::mode::read>(h);
+
+                h.parallel_for(sycl::nd_range<1>(
+                    sycl::range<1>((N - 1 + 63) / 64 * 64),
+                    sycl::range<1>(64)),
+                    [=, delta_fn = [&](int i_, int j_) -> int {
+                        if (j_ < 0 || j_ >= static_cast<int>(N)) return -1;
+                        uint32_t m = mortonAcc[i_] ^ mortonAcc[j_];
+                        if (m == 0) return 32;
+                        int cnt = 0;
+                        while (!(m >> (31 - cnt) & 1u) && cnt < 31) ++cnt;
+                        return cnt;
+                    }](sycl::nd_item<1> item) {
+                        const int idx = static_cast<int>(item.get_global_id(0));
+                        if (idx >= static_cast<int>(N) - 1) return;
+
+                        // Determine direction of range
+                        int d = (delta_fn(idx, idx + 1) - delta_fn(idx, idx - 1)) >= 0 ? 1 : -1;
+
+                        // Compute upper bound on range length
+                        int deltaMin = delta_fn(idx, idx - d);
+                        int lmax = 2;
+                        while (delta_fn(idx, idx + d * lmax) > deltaMin) lmax <<= 1;
+
+                        // Binary search for the other end of the range
+                        int l = 0;
+                        for (int t = lmax >> 1; t >= 1; t >>= 1) {
+                            if (delta_fn(idx, idx + d * (l + t)) > deltaMin) l += t;
+                        }
+                        int j = idx + d * l;
+
+                        // Find the split position (gamma)
+                        int deltaNode = delta_fn(idx, j);
+                        int s = 0;
+                        for (int t = (l + 1) / 2; t >= 1; t = t == 1 ? 0 : (t + 1) / 2) {
+                            if (delta_fn(idx, idx + d * (s + t)) > deltaNode) s += t;
+                        }
+                        int gamma = idx + d * s + sycl::min(d, 0);
+
+                        // Assign children
+                        int leftChild  = (sycl::min(idx, j) == gamma)     ? (static_cast<int>(N) - 1 + gamma)     : gamma;
+                        int rightChild = (sycl::max(idx, j) == gamma + 1) ? (static_cast<int>(N) - 1 + gamma + 1) : (gamma + 1);
+
+                        nodeAcc[idx].leftChild  = leftChild;
+                        nodeAcc[idx].rightChild = rightChild;
+                    });
+            });
+            q.wait();
+
+            // Retrieve node data back from device
+            auto hostAcc = nodeBuf.get_host_access();
+            for (uint32_t i = 0; i < totalNodes; ++i) nodes[i] = hostAcc[i];
+        }
+
+        // ── Step 5: bottom-up AABB propagation ─────────────────────────────
+        // Walk internal nodes in reverse order propagating leaf AABBs upward.
+        // (Full GPU pass via atomicFlag array in Phase 5.2 upgrade)
+        for (int i = static_cast<int>(N) - 2; i >= 0; --i) {
+            auto& node = nodes[i];
+            auto& L    = nodes[node.leftChild];
+            auto& R    = nodes[node.rightChild];
+            for (int a = 0; a < 3; ++a) {
+                node.bounds.min[a] = std::min(L.bounds.min[a], R.bounds.min[a]);
+                node.bounds.max[a] = std::max(L.bounds.max[a], R.bounds.max[a]);
+            }
+        }
+
+        // ── Step 6: package result ──────────────────────────────────────────
+        result.nodeCount  = totalNodes;
+        result.nodes      = std::make_unique<uint8_t[]>(totalNodes * sizeof(BVHNode));
+        result.primIndices = primIndices;
+        std::memcpy(result.nodes.get(), nodes.data(), totalNodes * sizeof(BVHNode));
+        return result;
+
+    } catch (const sycl::exception& e) {
+        // SYCL device not available → fall through to CPU path
+        (void)e;
+    }
 #endif
 
     // CPU scalar fallback (always available)
