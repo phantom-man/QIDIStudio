@@ -476,6 +476,8 @@ def assess_quality(
                 from ai_beauty_scorer import (  # noqa: PLC0415
                     analyse_skin_file,
                     BEAUTY_GOOD,
+                    BEAUTY_GOOD_ORGANIC,
+                    SYMMETRY_ACCEPTABLE,
                 )
 
                 br = analyse_skin_file(skin_path)
@@ -491,9 +493,22 @@ def assess_quality(
                 )
 
                 # Gate PASS on beauty: a geometrically clean but ugly skin fails.
-                if verdict == "PASS" and beauty_score < BEAUTY_GOOD:
+                # For organic skins (S < SYMMETRY_ACCEPTABLE), use a lower threshold
+                # since their aesthetic comes from complexity, not Fourier symmetry.
+                beauty_threshold = (
+                    BEAUTY_GOOD_ORGANIC
+                    if symmetry_score is not None
+                    and symmetry_score < SYMMETRY_ACCEPTABLE
+                    else BEAUTY_GOOD
+                )
+                if verdict == "PASS" and beauty_score < beauty_threshold:
                     verdict = "MARGINAL"
-                    notes += f" | beauty below threshold ({beauty_score:.3f} < {BEAUTY_GOOD})"
+                    is_organic = beauty_threshold == BEAUTY_GOOD_ORGANIC
+                    cat = "organic" if is_organic else "geometric"
+                    notes += (
+                        f" | beauty below {cat} threshold"
+                        f" ({beauty_score:.3f} < {beauty_threshold})"
+                    )
 
                 # Save a viewport screenshot when beauty is GOOD or better so the
                 # user can visually assess whether the AI is correct.

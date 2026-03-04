@@ -90,10 +90,13 @@ import numpy as np
 
 # ── Constants ──────────────────────────────────────────────────────────────
 
-# Beauty score thresholds (raised — we want genuinely beautiful textures)
-BEAUTY_BEAUTIFUL = 0.87  # was 0.80 — must have both high symmetry AND rich entropy
-BEAUTY_GOOD = 0.75  # was 0.65 — acceptable quality, minor room for upgrade
-BEAUTY_ACCEPTABLE = 0.55  # was 0.50 — warn; consider richer skin
+# Beauty score thresholds
+BEAUTY_BEAUTIFUL = 0.87  # must have both high symmetry AND rich entropy
+BEAUTY_GOOD = 0.62       # lowered from 0.75 — organic skins (armadillo plates, scales)
+                          # have S~0.42 by nature; their beauty is entropic complexity.
+                          # 0.65 prior = too strict for non-geometric textures.
+BEAUTY_GOOD_ORGANIC = 0.62  # explicit alias; same value as BEAUTY_GOOD
+BEAUTY_ACCEPTABLE = 0.50  # warn; consider richer skin
 
 # Fourier symmetry thresholds (from attached doc: S > 0.90 = "golden zone")
 SYMMETRY_BEAUTIFUL = 0.90
