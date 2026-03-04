@@ -150,9 +150,14 @@ Append rows here — `memory/extract.py` auto-indexes them into LanceDB.
 
 | Date       | Category   | Topic             | Decision                                                  | Rationale                                                                                                     |
 | ---------- | ---------- | ----------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 2026-03-03 | Infrastructure | Firebase deploy method | Use Firebase CLI (`firebase deploy --only hosting`) not REST API | REST API `populateFiles` endpoint hung consistently; CLI (Node.js HTTP) works reliably |
+| 2026-03-03 | Infrastructure | Firebase deploy method | Use Firebase CLI (`firebase deploy --only hosting`) not REST API | REST API `populateFiles` endpoint hung; CLI works reliably |
 | 2026-03-03 | Infrastructure | Firebase project ID | Project ID is `nexuicer` (not `nexus-workshop` or `nexusslicer`) | Firebase auto-truncated "NexusSlicer" on project creation |
-| 2026-03-03 | Infrastructure | Firebase site IDs | `nexuicer`, `nexuicer-desktop`, `nexusmill-app`, `nexusgauge-app` | Firebase requires site IDs; `-app` suffix used for mill/gauge due to name availability |
+| 2026-03-03 | Infrastructure | Firebase site IDs | `nexuicer`, `nexuicer-desktop`, `nexusmill-app`, `nexusgauge-app` | `-app` suffix used for mill/gauge due to name availability |
 | 2026-03-03 | Infrastructure | Cloudflare DNS | `sites/cf_dns.py` automates all 7 CNAMEs; token in `.env`; `proxied: False` required until Firebase SSL certs provision | Full programmatic control via Cloudflare REST API |
-| 2026-03-03 | Infrastructure | Cloudflare zones prerequisite | Domains must be **added to Cloudflare account** (Dashboard → Add a site) before `cf_dns.py` can create records | Token returning `errors=[], result=[]` = zones not in account, not a permissions issue |
-| 2026-03-03 | Credentials | Cloudflare API token | Token stored as `CLOUDFLARE_API_TOKEN` in `.env`; email as `CLOUDFLARE_EMAIL` | `.env` is canonical creds store; token verified active |
+| 2026-03-03 | Infrastructure | Cloudflare zones prerequisite | Domains must be **added to Cloudflare account** first; `errors=[], result=[]` = zones not in account | Token active but zones must exist before cf_dns.py can create records |
+| 2026-03-03 | Infrastructure | Firestore creation | Firestore (default) database: `gcloud firestore databases create --location=us-central1` | Must be created once per project; not auto-provisioned |
+| 2026-03-03 | Infrastructure | GCS bucket | `qidistudio-filaments` bucket in `crafty-hook-483415-b3`, `us-central1` — auto-created by `filament_pipeline.py` | Stores raw filament JSON + slicer profiles |
+| 2026-03-03 | Agents | Filament research pipeline | `agents/filament_pipeline.py` — discovers all brands + materials via Tavily + Gemini 2.5 Flash, writes to Firestore `filaments/` + GCS | Background `Start-Process -WindowStyle Hidden`; checkpoint at `gs://qidistudio-filaments/_progress/filament_pipeline.json` |
+| 2026-03-03 | Agents | Slicer profile harvester | `agents/slicer_harvester.py` — downloads profiles from 9 OSS slicers via GitHub API | GCS `qidistudio-filaments/slicer-profiles/`; Firestore `slicers/`; logs at `agents/_slicer_log.txt` |
+| 2026-03-03 | Agents | Gemini model deprecation | `gemini-2.0-flash` deprecated for new users → use `gemini-2.5-flash` | HTTP 404: `This model is no longer available to new users` |
+| 2026-03-03 | Agents | GitHub rate limiting | Without `GITHUB_TOKEN` in `.env`: 60 req/hr; with token: 5000/hr | Create token at github.com/settings/tokens (public repos read = sufficient) |
