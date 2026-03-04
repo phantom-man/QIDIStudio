@@ -192,11 +192,45 @@ def _rule_based_fallback(prompt: str) -> list[dict]:
             {"key": "layer_height",    "value": 0.1,  "reason": "detail"},
             {"key": "perimeter_speed", "value": 40.0, "reason": "detail"},
         ]
-    if any(w in p for w in ["draft", "test", "prototype", "quick check"]):
+    if any(w in p for w in ["draft", "test", "prototype", "quick check", "throwaway", "fit check"]):
         changes += [
             {"key": "fill_density",    "value": 10.0, "reason": "draft"},
             {"key": "perimeters",      "value": 2,    "reason": "draft"},
             {"key": "layer_height",    "value": 0.35, "reason": "draft"},
+        ]
+    if any(w in p for w in ["honeycomb"]):
+        changes += [{"key": "fill_pattern", "value": "honeycomb", "reason": "fill_pattern"}]
+    if any(w in p for w in ["gyroid"]):
+        changes += [{"key": "fill_pattern", "value": "gyroid", "reason": "fill_pattern"}]
+    if any(w in p for w in ["grid infill", "grid pattern"]):
+        changes += [{"key": "fill_pattern", "value": "grid", "reason": "fill_pattern"}]
+    if any(w in p for w in ["flexible", "tpu", "reduce the speed", "slow down"]):
+        changes += [
+            {"key": "perimeter_speed", "value": 30.0, "reason": "flexible/slow"},
+            {"key": "infill_speed",    "value": 50.0, "reason": "flexible/slow"},
+        ]
+    if any(w in p for w in ["figurine", "smallest layer", "miniature", "fine detail"]):
+        changes += [
+            {"key": "layer_height",    "value": 0.08, "reason": "fine detail"},
+            {"key": "perimeter_speed", "value": 30.0, "reason": "fine detail"},
+        ]
+    if any(w in p for w in ["hollow", "vase", "maximum perimeter", "maximum wall"]):
+        changes += [
+            {"key": "perimeters",   "value": 6, "reason": "maximum walls"},
+            {"key": "fill_density", "value": 5.0, "reason": "hollow/vase"},
+        ]
+    if any(w in p for w in ["50%", "at least 50", "increase fill"]):
+        changes += [{"key": "fill_density", "value": 50.0, "reason": "high fill"}]
+    if any(w in p for w in ["speed run", "under 2 hour", "as fast as"]):
+        changes += [
+            {"key": "infill_speed",    "value": 300.0, "reason": "speed run"},
+            {"key": "perimeter_speed", "value": 200.0, "reason": "speed run"},
+            {"key": "layer_height",    "value": 0.3,   "reason": "speed run"},
+        ]
+    if any(w in p for w in ["don't mind waiting", "waiting", "maximise detail", "maximize detail"]):
+        changes += [
+            {"key": "layer_height",    "value": 0.06,  "reason": "max detail"},
+            {"key": "perimeter_speed", "value": 25.0,  "reason": "max detail"},
         ]
     return changes
 
@@ -250,6 +284,7 @@ def apply_changes(
 
 SMOKE_PROMPTS = [
     # (prompt, expected_keys_changed)
+    # ─── Original 10 ───────────────────────────────────────────────────────────
     ("Make it stronger and print faster",                ["fill_density", "perimeters", "perimeter_speed"]),
     ("High quality miniature, slow and detailed",        ["layer_height", "perimeter_speed"]),
     ("Draft mode, fastest possible",                     ["layer_height", "infill_speed"]),
@@ -260,6 +295,17 @@ SMOKE_PROMPTS = [
     ("I need the smoothest possible surface finish",     ["layer_height"]),
     ("Make it very strong for a load-bearing part",      ["fill_density", "perimeters"]),
     ("Fast, coarse, infill gyroid pattern",              ["layer_height", "fill_pattern"]),
+    # ─── Extended 10 (Phase 6.6: 20-prompt target) ──────────────────────────────
+    ("Use honeycomb infill pattern for better rigidity", ["fill_pattern"]),
+    ("I'm printing flexible TPU, reduce the speed",      ["perimeter_speed", "infill_speed"]),
+    ("Fine detail figurine, smallest layers",            ["layer_height", "perimeter_speed"]),
+    ("Sealed waterproof box with maximum walls",         ["perimeters", "fill_density"]),
+    ("Quick throwaway test, don't care about quality",   ["layer_height", "fill_density"]),
+    ("Strong functional part, increase fill to at least 50%", ["fill_density", "perimeters"]),
+    ("Speed run, print in under 2 hours",                ["infill_speed", "perimeter_speed", "layer_height"]),
+    ("Grid infill for a flexible mat",                   ["fill_pattern"]),
+    ("Maximum perimeters for a hollow vase",             ["perimeters"]),
+    ("Slow down and maximise detail, I don't mind waiting", ["layer_height", "perimeter_speed"]),
 ]
 
 
