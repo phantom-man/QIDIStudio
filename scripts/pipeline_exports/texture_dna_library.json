@@ -1,26 +1,26 @@
 {
   "vacuum_nozzle_lower": {
     "part_name": "vacuum_nozzle_lower",
-    "skin_name": "diamond_knurl_01",
+    "skin_name": "armadillo_plates_02",
     "params": {
-      "projection": "cylindrical",
-      "gamma": 0.9,
-      "tile_mm": 8,
-      "invert": true,
       "max_edge": 2,
-      "relief": 0.6
+      "relief": 0.8,
+      "invert": true,
+      "tile_mm": 8,
+      "projection": "cylindrical",
+      "gamma": 0.7
     },
     "quality": {
-      "symmetry_score": 0.97,
-      "face_count": 1728804,
-      "verdict": "PASS",
-      "uniformity_score": 0.785,
-      "is_watertight": false,
       "seam_score": 0.819,
+      "verdict": "PASS",
+      "face_count": 1728804,
       "coverage_pct": 100,
-      "artifact_score": 1,
-      "spectral_entropy": 5.404,
-      "beauty_score": 0.982
+      "uniformity_score": 0.793,
+      "spectral_entropy": 10.526,
+      "symmetry_score": 0.415,
+      "is_watertight": false,
+      "beauty_score": 0.649,
+      "artifact_score": 1
     },
     "geometry_signature": {
       "bbox_mm": [
@@ -32,6 +32,6 @@
       "face_count": 347280,
       "is_watertight": true
     },
-    "recorded_at": "2026-03-03T23:33:36.220681"
+    "recorded_at": "2026-03-03T23:59:54.888806"
   }
 }
