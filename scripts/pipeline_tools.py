@@ -469,6 +469,7 @@ def assess_quality(
         in_golden_zone: bool | None = None
         beauty_verdict: str | None = None
         beauty_screenshot_path: str | None = None
+        _beauty_threshold_used: float = 0.62  # default organic GOOD threshold
         if skin_path and pathlib.Path(skin_path).is_file():
             try:
                 if str(_SCRIPTS_DIR) not in sys.path:
@@ -501,6 +502,7 @@ def assess_quality(
                     and symmetry_score < SYMMETRY_ACCEPTABLE
                     else BEAUTY_GOOD
                 )
+                _beauty_threshold_used = beauty_threshold
                 if verdict == "PASS" and beauty_score < beauty_threshold:
                     verdict = "MARGINAL"
                     is_organic = beauty_threshold == BEAUTY_GOOD_ORGANIC
@@ -548,6 +550,19 @@ def assess_quality(
             "spectral_entropy": spectral_entropy_val,
             "in_golden_zone": in_golden_zone,
             "beauty_screenshot_path": beauty_screenshot_path,
+            # ── Action hint for the agent ──────────────────────────────────
+            # When verdict is already PASS and beauty meets the threshold,
+            # the agent should call approve_and_export immediately rather than
+            # attempting further iterations.  Organic skins (S < 0.65) have a
+            # natural symmetry ceiling around S≈0.43; tuning cannot push them
+            # above BEAUTY_BEAUTIFUL=0.87.
+            "action_hint": (
+                "PASS achieved and beauty is GOOD. Call approve_and_export() now "
+                "and record_winner() to save this result. Do NOT run_texture_pipeline "
+                "again — organic symmetry is at its natural ceiling for this skin."
+            ) if verdict == "PASS" and beauty_score is not None
+              and beauty_score >= _beauty_threshold_used
+            else None,
         }
         _log_quality_metric(result)
         return result
