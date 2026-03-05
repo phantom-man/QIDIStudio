@@ -303,8 +303,12 @@ def _build_checkpointer() -> Any:
             conninfo=dsn,
             max_size=10,
             kwargs={"autocommit": True},
-            open=True,
+            open=False,
+            reconnect_timeout=3,
         )
+        pool.open(
+            wait=True, timeout=5.0
+        )  # raises PoolTimeout/ConnectionError if PG is down
         saver = PostgresSaver(pool)
         saver.setup()  # idempotent — creates langgraph_checkpoints tables if needed
         return saver
@@ -367,11 +371,19 @@ def build_graph() -> Any:
 _graph: Any = None
 
 
-@traceable(name="orchestrator-run", tags=["orchestrator"])
+@traceable(
+    name="orchestrator-run",
+    tags=["orchestrator"],
+    metadata={"environment": "dev", "project": "qidistudio"},
+)
 def run(request: str, thread_id: str | None = None) -> str:
     """
     Run the director-agent fleet on a user request.
     Returns the synthesised final response as a string.
+
+    Results are durably persisted to the ``agent_runs`` Postgres table so they
+    survive terminal closures and conversation summarizations.  Retrieve them
+    with ``agents.run_store.list_runs()`` or ``agents.run_store.get_latest_run()``.
 
     Args:
         request:   User instruction for the agent fleet.
@@ -385,17 +397,46 @@ def run(request: str, thread_id: str | None = None) -> str:
         # Resume same thread (state persisted in Postgres):
         result2 = run("Now apply the fix", thread_id=tid)
     """
+    from agents.run_store import (
+        save_run,
+        save_run_failed,
+    )  # lazy — avoids circular at module level
+    from datetime import datetime, timezone
+
     global _graph
     if _graph is None:
         _graph = build_graph()
 
     tid = thread_id or str(uuid.uuid4())
+    created_at = datetime.now(timezone.utc)
     config = {"configurable": {"thread_id": tid}}
-    final_state = _graph.invoke(
-        {"user_request": request, "tasks": [], "results": []},
-        config=config,
-    )
+    try:
+        final_state = _graph.invoke(
+            {"user_request": request, "tasks": [], "results": []},
+            config=config,
+        )
+    except Exception as exc:
+        save_run_failed(
+            thread_id=tid,
+            fleet="orchestrator",
+            request=request,
+            error=str(exc),
+        )
+        raise
+
     response = final_state.get("final_response", "No response synthesized.")
+
+    # ── Persist results to agent_runs table (survives terminal/session death) ──
+    save_run(
+        thread_id=tid,
+        fleet="orchestrator",
+        request=request,
+        agent_results=final_state.get("results", []),
+        final_response=response,
+        status="completed",
+        created_at=created_at,
+    )
+
     return f"[thread:{tid}] {response}"
 
 
@@ -410,4 +451,8 @@ if __name__ == "__main__":
         tid = args[idx + 1]
         args = args[:idx] + args[idx + 2 :]
     q = " ".join(args) if args else "What is the current build status?"
-    print(run(q, thread_id=tid))
+    output = run(q, thread_id=tid)
+    print(output)
+    print("\n[Results persisted to agent_runs table. Query with:]")
+    print("  python -m agents.run_store --latest")
+    print("  python -m agents.run_store -n 5")

@@ -2,16 +2,15 @@
 #
 # What this does (silently, no agent intervention required):
 #   1. Reads the session_id + transcript_path from stdin JSON.
-#   2. Extracts the last assistant message from the transcript JSONL.
-#   3. Saves the response to the `responses` table (linked to the prompt via session file).
-#   4. Writes today's session stats to memory/_session_stats.txt so the NEXT turn
-#      can display them (Stop hook stdout is NOT shown during the current turn).
+#   2. Extracts the last user + assistant messages from the transcript JSONL.
+#   3. Saves prompt+response pair to Postgres (self-contained — no UserPromptSubmit needed).
+#   4. Writes today's session stats to memory/_session_stats.txt.
 #   5. Runs extract.py to sync LanceDB with any new archive/compaction content.
-#   6. Auto-commits changed memory files to git.
+#   6. Runs sync_prompts_to_lancedb.py to push new Postgres pairs to LanceDB.
+#   7. Auto-commits changed memory files to git.
 #
-# NOTE: Session learnings are NO LONGER written to copilot-instructions.md.
-# All learnings flow through the prompts/responses DB → 30-min sync job → LanceDB.
-# See memory/setup_tasks.ps1 for the scheduler setup.
+# NOTE: UserPromptSubmit is permanently removed (VS Code 1.109 crash bug).
+# The Stop hook is now fully self-contained for all DB writes.
 
 $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 $date = Get-Date -Format 'yyyy-MM-dd'
@@ -38,54 +37,83 @@ catch {
     Add-Content -Path $log -Value "$ts [Stop] stdin parse failed: $_"
 }
 
-# ── Extract last assistant message from transcript ────────────────────────────
+# ── Extract last user + assistant messages from transcript ────────────────────
 $responseText = ""
+$promptText = ""
 if ($transcriptPath -and (Test-Path $transcriptPath)) {
     try {
-        # Transcript is JSONL — one JSON object per line, last assistant role is the response
         $lines = Get-Content $transcriptPath -Encoding UTF8 -ErrorAction Stop
+        $foundAssistant = $false
+        $foundUser = $false
         for ($i = $lines.Count - 1; $i -ge 0; $i--) {
             $line = $lines[$i].Trim()
             if (-not $line) { continue }
             try {
                 $obj = $line | ConvertFrom-Json -ErrorAction Stop
-                if ($obj.role -eq 'assistant') {
+                if (-not $foundAssistant -and $obj.role -eq 'assistant') {
                     if ($obj.content -is [string]) {
                         $responseText = $obj.content
                     }
                     elseif ($obj.content -is [System.Array]) {
-                        # Content blocks — join text blocks
                         $responseText = ($obj.content | Where-Object { $_.type -eq 'text' } |
                             ForEach-Object { $_.text }) -join "`n"
                     }
+                    $foundAssistant = $true
+                }
+                elseif ($foundAssistant -and -not $foundUser -and $obj.role -eq 'user') {
+                    if ($obj.content -is [string]) {
+                        $promptText = $obj.content
+                    }
+                    elseif ($obj.content -is [System.Array]) {
+                        $promptText = ($obj.content | Where-Object { $_.type -eq 'text' } |
+                            ForEach-Object { $_.text }) -join "`n"
+                    }
+                    $foundUser = $true
                     break
                 }
             }
             catch { continue }
         }
-        Add-Content -Path $log -Value "$ts [Stop] transcript read OK (len=$($responseText.Length))"
+        Add-Content -Path $log -Value "$ts [Stop] transcript read OK (prompt=$($promptText.Length) response=$($responseText.Length))"
     }
     catch {
         Add-Content -Path $log -Value "$ts [Stop] transcript read failed: $_"
     }
 }
 
-# ── Save response to DB ──────────────────────────────────────────────────────
-$safeSession = $sessionId -replace '[^a-zA-Z0-9]', '_'
-$sessionFile = Join-Path $tmpDir "_session_$safeSession.txt"
-$promptId = $null
-
-if (Test-Path $sessionFile) {
-    $promptId = (Get-Content $sessionFile -Raw -ErrorAction SilentlyContinue).Trim()
-}
-
-if ($promptId -and $responseText -ne "" -and (Test-Path $py)) {
+# ── Save prompt + response to DB (self-contained, no UserPromptSubmit needed) ─
+if ($responseText -ne "" -and (Test-Path $py)) {
+    $promptId = [System.Guid]::NewGuid().ToString()
     try {
-        # Check if this response is a compaction summary
-        $isCompaction = if ($responseText -match 'COMPACTION_SUMMARY') { "--compaction" } else { "" }
+        # 1. Write prompt row first
+        if ($promptText -ne "") {
+            $promptFile = Join-Path $tmpDir "_prompt_tmp_$([System.Guid]::NewGuid()).txt"
+            [System.IO.File]::WriteAllText($promptFile, $promptText, (New-Object System.Text.UTF8Encoding($false)))
 
+            & $py -B $store --save-prompt `
+                --prompt-id  $promptId `
+                --session-id $sessionId `
+                --file       $promptFile 2>$null | Out-Null
+
+            Remove-Item $promptFile -ErrorAction SilentlyContinue
+            Add-Content -Path $log -Value "$ts [Stop] saved prompt $promptId"
+        }
+        else {
+            # No user message found; write a placeholder so the FK is satisfied
+            $placeholderFile = Join-Path $tmpDir "_prompt_tmp_$([System.Guid]::NewGuid()).txt"
+            [System.IO.File]::WriteAllText($placeholderFile, "[session $sessionId — prompt not captured]", (New-Object System.Text.UTF8Encoding($false)))
+            & $py -B $store --save-prompt `
+                --prompt-id  $promptId `
+                --session-id $sessionId `
+                --file       $placeholderFile 2>$null | Out-Null
+            Remove-Item $placeholderFile -ErrorAction SilentlyContinue
+            Add-Content -Path $log -Value "$ts [Stop] saved placeholder prompt $promptId"
+        }
+
+        # 2. Write response row (linked to prompt above)
+        $isCompaction = if ($responseText -match 'COMPACTION_SUMMARY') { "--compaction" } else { "" }
         $respFile = Join-Path $tmpDir "_response_tmp_$([System.Guid]::NewGuid()).txt"
-        [System.IO.File]::WriteAllText($respFile, $responseText, [System.Text.Encoding]::UTF8)
+        [System.IO.File]::WriteAllText($respFile, $responseText, (New-Object System.Text.UTF8Encoding($false)))
 
         & $py -B $store --save-response `
             --prompt-id  $promptId `
@@ -97,18 +125,16 @@ if ($promptId -and $responseText -ne "" -and (Test-Path $py)) {
         Add-Content -Path $log -Value "$ts [Stop] saved response for prompt $promptId"
     }
     catch {
-        Add-Content -Path $log -Value "$ts [Stop] DB save response failed: $_"
+        Add-Content -Path $log -Value "$ts [Stop] DB save failed: $_"
+        Remove-Item $promptFile -ErrorAction SilentlyContinue
         Remove-Item $respFile -ErrorAction SilentlyContinue
     }
-
-    # Clean up session file — prevents stale FK on next run
-    Remove-Item $sessionFile -ErrorAction SilentlyContinue
 }
-elseif (-not $promptId) {
-    Add-Content -Path $log -Value "$ts [Stop] no session file for session=$sessionId — response not saved"
+else {
+    Add-Content -Path $log -Value "$ts [Stop] no response text — DB write skipped (session=$sessionId)"
 }
 
-# ── Write daily stats to file (injected into NEXT turn by UserPromptSubmit) ───
+# ── Write daily stats to file (for visibility in log) ────────────────────────
 if (Test-Path $py) {
     try {
         $statsOut = & $py -B $store --daily-stats 2>$null
@@ -121,7 +147,7 @@ if (Test-Path $py) {
     }
 }
 
-# ── Sync LanceDB (extract.py) ────────────────────────────────────────────────
+# ── Sync LanceDB (extract.py — static docs) ─────────────────────────────────
 $extract = Join-Path $repo 'memory\extract.py'
 if ((Test-Path $extract) -and (Test-Path $py)) {
     try {
@@ -130,6 +156,18 @@ if ((Test-Path $extract) -and (Test-Path $py)) {
     }
     catch {
         Add-Content -Path $log -Value "$ts [Stop] extract FAILED: $_"
+    }
+}
+
+# ── Sync prompts/responses Postgres → LanceDB (replaces 30-min scheduler) ───
+$syncScript = Join-Path $repo 'memory\sync_prompts_to_lancedb.py'
+if ((Test-Path $syncScript) -and (Test-Path $py)) {
+    try {
+        & $py -B $syncScript >> $log 2>&1
+        Add-Content -Path $log -Value "$ts [Stop] prompt sync done"
+    }
+    catch {
+        Add-Content -Path $log -Value "$ts [Stop] prompt sync FAILED: $_"
     }
 }
 

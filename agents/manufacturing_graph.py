@@ -140,9 +140,17 @@ def stress_analysis_node(state: ManufacturingState) -> dict:
     """
     PyTorch Execution Node — "The Motor Cortex"
 
-    Loads the STL, extracts vertices + normals, runs MeshStressGNN,
-    updates state with sub-symbolic tensor results + semantic recommendation.
+    Loads the STL, extracts vertices + normals, runs MeshStressPointNet
+    (a PointNet-style per-vertex regressor, not a graph network — see
+    agents/torch_tools.py for architecture notes), then writes sub-symbolic
+    tensor results + a semantic recommendation into state.
     The LLM in reasoning_node reads the recommendation string, not raw tensors.
+
+    Weight status: the PointNet ships with *randomly initialised* weights until
+    a supervised training run on FEA-derived stress labels is complete
+    (Phase 4.3).  Until then, failure_probability and risk_label values are
+    statistically meaningless — routing decisions are effectively random and
+    should NOT be used to block production prints.
     """
     from agents.torch_tools import evaluate_mesh_structural_integrity
 
@@ -427,7 +435,9 @@ def _get_graph() -> Any:
 
 
 @traceable(
-    name="manufacturing-pipeline", tags=["manufacturing", "pytorch", "cyber-physical"]
+    name="manufacturing-pipeline",
+    tags=["manufacturing", "pytorch", "cyber-physical"],
+    metadata={"environment": "dev", "project": "qidistudio"},
 )
 def run_manufacturing_pipeline(
     stl_path: str,

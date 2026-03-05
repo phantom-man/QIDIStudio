@@ -1,7 +1,10 @@
 """
-memory/sync_prompts_to_lancedb.py — 30-minute incremental sync job.
+memory/sync_prompts_to_lancedb.py — Stop-hook incremental sync.
 
-What it does (runs every 30 minutes via Windows Task Scheduler):
+Called synchronously by .github/hooks/stop_hook.ps1 at the end of every
+agent session (replaced the former 30-minute Windows Task Scheduler job).
+
+What it does:
   1. Queries `responses` WHERE synced_at IS NULL (unsynced pairs) from Postgres.
   2. Pushes each pair to LanceDB as a searchable knowledge row.
   3. Marks each synced response with synced_at = now().
