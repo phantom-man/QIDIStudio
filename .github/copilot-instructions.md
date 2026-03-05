@@ -218,6 +218,204 @@ The `✓ HH:MM:SS` suffix is required — it provides a per-task audit trail.
 
 ---
 
+# 📚 KNOWLEDGE DOCUMENT CREATION PROTOCOL — MANDATORY
+
+> **Every durable insight, decision, pattern, or directive generated in this repo MUST be
+> captured as a knowledge document in `docs/`.  
+> Knowledge not written down does not exist for future agents.**
+
+---
+
+## When to Create a Knowledge Document
+
+Create a knowledge document **immediately** whenever any of the following triggers occur:
+
+| Trigger Category                  | Examples                                                                                  |
+| --------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Architectural decision**        | Choosing LanceDB over Chroma; adopting SYCL for GPU portability; switching to USM buffers |
+| **New pipeline or workflow**      | AI debug pipeline; knowledge-validation pipeline; PhD doc rewrite workflow                |
+| **Protocol established**          | Prompt execution protocol; knowledge doc protocol; build protocol                        |
+| **Structural / directory change** | New `logs/` dir; `scripts/` reorganisation; `agents/` fleet launch                       |
+| **Algorithm or technique adopted**| ICP alignment; AMEO bead-width PID; NURBS vectorisation; CSM symmetry scoring            |
+| **Tool or library integrated**    | LangGraph state machines; paperscraper; arXiv.py; Tavily search; pdfplumber              |
+| **Agent directive or rule**       | Fleet dispatch protocol; parallelism rules; coder→tester signal protocol                 |
+| **Debugging insight**             | Root cause of a non-obvious failure; fix strategy that should never be forgotten          |
+| **Research finding**              | Benchmark results; literature survey outcome; hardware characterisation                   |
+| **External API behaviour**        | Gemini quota limits; CrossRef polite pool; arXiv rate limiting; NIST endpoint changes    |
+| **Security / compliance decision**| API key scoping; .gitignore patterns; credential rotation strategy                        |
+
+**When in doubt, create the doc.**  The cost of an unneeded doc is low.
+The cost of a lost architectural decision is a re-investigation.
+
+---
+
+## Anatomy of a Knowledge Document
+
+Every doc in `docs/` MUST follow this canonical structure:
+
+```markdown
+# <Title>  (H1 — exactly one, reflects the precise topic)
+
+> **One-sentence abstract** — state what this document establishes and why it matters.
+
+## 1. Motivation
+
+Why does this knowledge exist? What problem does it solve?
+Include the context that would help a future agent understand the "why".
+
+## 2. Core Concepts / Background
+
+PhD-level technical exposition. Use LaTeX for all equations:
+  - Inline:  $E = mc^2$
+  - Display: $$\nabla^2 \phi = \rho / \varepsilon_0$$
+
+Reference primary literature with full citations:
+  [Author et al., YYYY, Title, Journal/Conference, DOI]
+
+## 3. Implementation / Decision
+
+Concrete code, CMake, SQL, or configuration that enacts the concept.
+All code blocks MUST be typed Python (3.11+), modern C++20, or valid shell.
+
+## 4. Validation Rationale
+
+How was this knowledge verified?  State which sources corroborate it.
+(Filled automatically when doc passes through `knowledge_validator.py`.)
+
+## 5. Consequences & Trade-offs
+
+What does adopting this change? What is deferred or deprecated?
+
+## 6. References
+
+- [1] Author, Title, Venue, Year. DOI: …
+- [2] …
+```
+
+**Layout rules:**
+- Title: H1 only; no subtitle H1s. All other headings are H2–H4.
+- Math: KaTeX-compatible LaTeX. No Unicode math substitutes (`ℝ` → `$\mathbb{R}$`).
+- Code: fenced blocks with language identifier; type-annotated; runnable.
+- Length: ≥ 400 words. No maximum. Depth over brevity.
+- Tone: third person, technical, PhD thesis register.
+- No conversational openers ("In this document we will…").
+
+---
+
+## Knowledge Validation Gate (MANDATORY)
+
+Before finalising or committing any knowledge document, run it through the
+**Knowledge Validator** to purge hallucinations and ground every claim in an
+authoritative source.
+
+### Step K.1 — Validate a single document
+
+```powershell
+# From repo root, scripts terminal
+memory_env\Scripts\python.exe scripts\knowledge_validator.py docs\<YourDoc>.md
+```
+
+The validator will:
+1. Parse the document (`.md`, `.txt`, `.pdf`, `.docx`, `.html`, `.csv`, `.json`, `.tex`, `.py`, `.cpp`)
+2. Extract every testable factual claim (numerical, definitional, attributive, methodological)
+3. Query all nine authoritative repositories in parallel:
+   - **CrossRef** (authority 0.92) — 145M+ DOI publications  
+   - **arXiv** (authority 0.90) — 2.4M+ preprints  
+   - **PubMed/NCBI** (authority 0.91) — 37M+ biomedical citations  
+   - **MathWorld/Wolfram** (authority 0.93) — mathematical definitions  
+   - **NIST** (authority 0.95) — metrology and standards  
+   - **Semantic Scholar** (authority 0.88) — 220M+ papers  
+   - **Wikipedia** (authority 0.72) — encyclopaedic baseline  
+   - **Tavily** (authority 0.70) — real-time web search  
+   - **GitHub Search** (authority 0.65) — algorithmic implementation check  
+4. Score each claim: `confidence = Σ(authority × relevance) / Σ(authority)`
+5. Flag claims below the threshold (default 0.60)
+6. Use Gemini 2.5 Flash to rewrite flagged sentences with sourced corrections
+7. Output `<doc>_validated.md` + `<doc>.validation.json`
+
+### Step K.2 — Validate all docs in bulk
+
+```powershell
+Get-ChildItem docs\*.md | ForEach-Object {
+    Write-Host "Validating: $($_.Name)"
+    memory_env\Scripts\python.exe scripts\knowledge_validator.py $_.FullName
+}
+```
+
+### Step K.3 — Review the JSON report
+
+```python
+import json, pathlib
+report = json.loads(pathlib.Path("docs/MyDoc.validation.json").read_text())
+for v in report["verdicts"]:
+    if v["confidence"] < 0.60:
+        print(f"  [{v['confidence']:.2f}] {v['claim']}")
+        print(f"       → {v['corrected']}")
+```
+
+### Confidence Thresholds
+
+| Confidence Range | Verdict          | Action                                         |
+| ---------------- | ---------------- | ---------------------------------------------- |
+| 0.80 – 1.00      | ✅ VERIFIED       | No change required                             |
+| 0.60 – 0.79      | 🟢 SUPPORTED      | No change; add citation in § References        |
+| 0.40 – 0.59      | 🟡 UNCERTAIN      | Rewrite for precision; add hedge language      |
+| 0.20 – 0.39      | 🟠 DISPUTED       | Replace with validator-corrected sentence      |
+| 0.00 – 0.19      | 🔴 HALLUCINATION  | Remove or fully replace; citation required     |
+
+---
+
+## Knowledge Doc Creation Workflow (Step by Step)
+
+> This workflow is **part of the session log** — each step is a checklist item.
+
+```
+[ ] K1.  Trigger identified (see trigger table above)
+[ ] K2.  Draft document created in docs/ using canonical structure
+[ ] K3.  All equations written in KaTeX LaTeX
+[ ] K4.  All code blocks typed, fenced, language-tagged
+[ ] K5.  Run knowledge_validator.py
+[ ] K6.  Review validation.json; apply all corrections where confidence < 0.60
+[ ] K7.  Re-run validator on corrected doc; confirm zero hallucinations
+[ ] K8.  Add validated References section (DOIs where available)
+[ ] K9.  Run LanceDB reindex: memory_env\Scripts\python.exe memory/extract.py
+[ ] K10. git add docs/<YourDoc>.md docs/<YourDoc>.validation.json && git commit
+```
+
+Checklist items K1–K10 MUST appear verbatim in the session log Task Checklist
+when a knowledge doc is being created.
+
+---
+
+## Storage Rules
+
+| Rule                        | Requirement                                                         |
+| --------------------------- | ------------------------------------------------------------------- |
+| Location                    | Always `docs/` at workspace root — never `logs/`, `.github/`, `agents/` |
+| Naming                      | `Title Case With Spaces.md` — matching the H1 exactly              |
+| Validated copy              | `<stem>_validated.md` (auto-generated; DO NOT commit directly)      |
+| JSON report                 | `<stem>.validation.json` — commit alongside the doc                 |
+| Binary attachments          | `docs/assets/<DocStem>/` — figures, diagrams, data files            |
+| Index                       | `docs/QIDISTUDIO_KNOWLEDGE.md` — master manifest; update after each new doc |
+
+---
+
+## Knowledge Doc Quality Gate (Checklist)
+
+Before a doc is considered complete, ALL must be true:
+
+- [ ] H1 title matches filename (sans `.md`)
+- [ ] One-sentence abstract present
+- [ ] All equations use LaTeX (no Unicode math)
+- [ ] All code is typed and syntactically valid
+- [ ] At least one primary source cited per major claim
+- [ ] `knowledge_validator.py` exit code = 0 (no hallucinations)
+- [ ] `validation.json` committed alongside the doc
+- [ ] `docs/QIDISTUDIO_KNOWLEDGE.md` manifest updated
+- [ ] LanceDB reindexed after commit
+
+---
+
 # QIDIStudio Copilot — Session Bootstrap
 
 You are **GitHub Copilot**, engineering AI for the **QIDIStudio** fork.
