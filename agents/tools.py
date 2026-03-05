@@ -241,7 +241,7 @@ def run_command(cmd: str, output_file: str = "agents/_cmd_out.txt") -> str:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         # Fire and forget — write PID to file header
-        full_cmd = f'powershell -NoProfile -Command "& {{ {cmd} }}" 2>&1 | Tee-Object "{out_path}"'
+        full_cmd = f'powershell -NoProfile -Command "& {{ {cmd} }}" > "{out_path}" 2>&1'
         proc = subprocess.Popen(
             full_cmd,
             shell=True,
@@ -290,6 +290,148 @@ def reindex_memory() -> str:
         return json.dumps({"status": "error", "error": str(exc)})
 
 
+@tool
+def write_file(path: str, content: str) -> str:
+    """
+    Write (or overwrite) a file in the QIDIStudio workspace.
+    path:    relative to repo root OR absolute path.
+    content: full UTF-8 text content to write.
+    Returns: confirmation JSON with the absolute path and byte count.
+    Use this to apply code changes produced by the Coder agent.
+    """
+    try:
+        p = Path(path)
+        if not p.is_absolute():
+            p = REPO_ROOT / path
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content, encoding="utf-8")
+        return json.dumps(
+            {"status": "ok", "path": str(p), "bytes": len(content.encode())}
+        )
+    except Exception as exc:
+        return json.dumps({"status": "error", "error": str(exc)})
+
+
+@tool
+def run_tests(
+    command: str,
+    output_file: str = "agents/_test_out.txt",
+    timeout_seconds: int = 120,
+) -> str:
+    """
+    Run a test command synchronously and return the captured output.
+    Designed for the Tester agent — blocks until the test suite completes or times out.
+
+    command:         Full test command, e.g. 'memory_env\\Scripts\\python.exe -B -m pytest
+                     agents/parts_catalog/test_schema.py -v'
+    output_file:     Relative path where stdout+stderr are also written (for file_read).
+    timeout_seconds: Hard limit (default 120 s). Raises TimeoutError if exceeded.
+    Returns:         JSON with returncode, stdout (truncated to 4000 chars), output_file path.
+    """
+    out_path = REPO_ROOT / output_file
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+            cwd=str(REPO_ROOT),
+        )
+        combined = result.stdout + (
+            "\n--- STDERR ---\n" + result.stderr if result.stderr.strip() else ""
+        )
+        out_path.write_text(combined, encoding="utf-8", errors="replace")
+        # Truncate for inline return; full output always in the file
+        preview = combined[:4000]
+        if len(combined) > 4000:
+            preview += f"\n... [{len(combined) - 4000} chars truncated — read {output_file} for full output]"
+        return json.dumps(
+            {
+                "returncode": result.returncode,
+                "passed": "passed" in combined.lower() or result.returncode == 0,
+                "output": preview,
+                "output_file": str(out_path.relative_to(REPO_ROOT)),
+            },
+            indent=2,
+        )
+    except subprocess.TimeoutExpired:
+        return json.dumps(
+            {
+                "returncode": -999,
+                "passed": False,
+                "output": f"TIMEOUT after {timeout_seconds}s",
+                "output_file": output_file,
+            }
+        )
+    except Exception as exc:
+        return json.dumps(
+            {
+                "returncode": -1,
+                "passed": False,
+                "output": str(exc),
+                "output_file": output_file,
+            }
+        )
+
+
+@tool
+def read_image(image_path: str, question: str) -> str:
+    """
+    Analyze an image using Gemini Vision (gemini-2.5-pro multimodal).
+    For the Tester agent to inspect rendered meshes, screenshots, texture maps,
+    toolpath visualizations, and any other visual test artifacts.
+
+    image_path: absolute path to a .png / .jpg / .webp image.
+    question:   specific question about what to look for in the image.
+    Returns:    JSON with Gemini's analysis and a confidence verdict.
+    """
+    try:
+        import base64
+        from google import genai
+        from google.genai import types
+
+        img_path = Path(image_path)
+        if not img_path.is_absolute():
+            img_path = REPO_ROOT / image_path
+        if not img_path.exists():
+            return json.dumps({"error": f"Image not found: {img_path}"})
+
+        image_bytes = img_path.read_bytes()
+        mime = (
+            "image/jpeg"
+            if img_path.suffix.lower() in (".jpg", ".jpeg")
+            else "image/png"
+        )
+
+        client = genai.Client(
+            vertexai=True,
+            project=_GCP_PROJECT,
+            location=_GCP_LOCATION,
+        )
+        response = client.models.generate_content(
+            model="gemini-2.5-pro",
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=mime),
+                f"Analyze this image carefully and answer: {question}\n"
+                'Respond in JSON: {{"verdict": "ok|defect|unclear", '
+                '"description": "what you see", "confidence": 0.0-1.0}}',
+            ],
+            config=types.GenerateContentConfig(temperature=0.0),
+        )
+        return json.dumps(
+            {
+                "image": str(img_path.name),
+                "question": question,
+                "analysis": response.text,
+            },
+            indent=2,
+        )
+    except Exception as exc:
+        return json.dumps({"error": str(exc), "image": image_path})
+
+
 # ── Tool sets per agent ───────────────────────────────────────────────────────
 
 # google_search is uniform across all web-capable agents — same quality, same ADC auth.
@@ -300,3 +442,21 @@ SCRIBE_TOOLS = [memory_read, memory_write, file_read, run_command, reindex_memor
 LIBRARIAN_TOOLS = [memory_read, file_read, file_search, google_search]
 SKEPTIC_TOOLS = [memory_read, file_read, file_search, run_command]
 SYNTHESIZER_TOOLS = [memory_read, memory_write, file_read, file_search]
+
+# Coder/Tester dev fleet tool sets
+CODER_TOOLS = [
+    memory_read,
+    memory_write,
+    file_read,
+    file_search,
+    write_file,
+    run_command,
+]
+TESTER_TOOLS = [
+    memory_read,
+    memory_write,
+    file_read,
+    file_search,
+    run_tests,
+    read_image,
+]

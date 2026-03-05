@@ -591,10 +591,24 @@ Look above — you should see `━━━ QIDISTUDIO KNOWLEDGE BASE ━━━`.
 
 These rules are **mandatory**. Violating them is the #1 performance problem.
 
+### 🚫 BANNED: `Tee-Object`
+
+**`Tee-Object` is permanently forbidden in this repo.** It buffers the entire stream in
+memory, causes silent hangs on long-running processes, loses output on early exit, and
+has caused repeated debugging disasters. It is anathema.
+
+| ❌ FORBIDDEN | ✅ CORRECT replacement |
+|---|---|
+| `command 2>&1 \| Tee-Object out.txt` | `command > out.txt 2>&1; echo 'DONE' >> out.txt` |
+| `cmake ... 2>&1 \| Tee-Object build.txt` | `cmake ... > build.txt 2>&1; echo 'DONE' >> build.txt` |
+| `python script.py 2>&1 \| Tee-Object run.txt` | `python script.py > run.txt 2>&1; echo 'DONE' >> run.txt` |
+
+Then use `read_file` on the output file — never poll the terminal.
+
 ### Parallelism Rules
 
 1. **NEVER use `captureOutput: true`** on terminal commands. They block until the shell
-   closes. Instead: pipe to a file (`2>&1 | Tee-Object out.txt`) then `read_file` it.
+   closes. Instead: redirect to a file (`> out.txt 2>&1`) then `read_file` it.
 
 2. **NEVER wait sequentially** for unrelated operations. Fire all independent tool calls
    in a single `<function_calls>` block. If calls don't depend on each other, they run together.
@@ -647,9 +661,8 @@ Assign **one task per agent per dispatch**. If a job needs multiple roles, give 
 **CLI (fire-and-forget, redirect output to a file):**
 
 ```powershell
-# Always redirect — never use captureOutput or wait synchronously
-memory_env\Scripts\python.exe agents/orchestrator.py "task string here" `
-  2>&1 | Tee-Object agents\_my_task_out.txt
+# Always redirect — never use captureOutput or Tee-Object
+memory_env\Scripts\python.exe agents/orchestrator.py "task string here" > agents\_my_task_out.txt 2>&1; echo "DONE" >> agents\_my_task_out.txt
 ```
 
 **From terminal tool (non-blocking pattern):**
@@ -965,7 +978,7 @@ memory_env\Scripts\python.exe -m agents.run_store -d <run_id>
 
 ```powershell
 Set-Location C:\QIDISrc\QIDIStudio\build
-cmake --build . --target install --config Release -- /m:16 2>&1 | Tee-Object build_out.txt; echo "DONE" >> build_out.txt
+cmake --build . --target install --config Release -- /m:16 > build_out.txt 2>&1; echo "DONE" >> build_out.txt
 ```
 
 ---

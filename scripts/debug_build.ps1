@@ -62,7 +62,7 @@ try {
         "-DCMAKE_CXX_FLAGS=/fsanitize=address /Zi /RTC1" `
         "-DCMAKE_C_FLAGS=/fsanitize=address /Zi /RTC1" `
         -DQDT_RELEASE_TO_PUBLIC=0 `
-        2>&1 | Tee-Object "$BuildDir\configure_debug_out.txt"
+        > "$BuildDir\configure_debug_out.txt" 2>&1
 
     if ($LASTEXITCODE -ne 0) {
         Write-Error "CMake configure failed (exit $LASTEXITCODE). See $BuildDir\configure_debug_out.txt"
@@ -73,7 +73,7 @@ try {
     Write-Host ""
     Write-Host "To build (will take ~20-40 min first time):" -ForegroundColor Cyan
     Write-Host "  cd $BuildDir"
-    Write-Host "  cmake --build . --target install --config RelWithDebInfo -- /m:8 2>&1 | Tee-Object build_debug_out.txt"
+    Write-Host "  cmake --build . --target install --config RelWithDebInfo -- /m:8 > build_debug_out.txt 2>&1; echo 'DONE' >> build_debug_out.txt"
     Write-Host ""
     Write-Host "ASan violations appear in the terminal as:" -ForegroundColor Yellow
     Write-Host "  ==<pid>==ERROR: AddressSanitizer: heap-buffer-overflow on address ..."
