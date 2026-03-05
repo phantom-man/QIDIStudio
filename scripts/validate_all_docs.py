@@ -21,6 +21,7 @@ Failed documents are logged but do not abort the run.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import sys
@@ -84,6 +85,163 @@ SUPPORTED_EXTENSIONS = {
     ".cpp",
 }
 
+# Persistent checksum log — records SHA-256 of every validated doc so we
+# can skip re-validating unchanged files on subsequent runs.
+CHECKSUM_LOG_PATH = Path("logs") / "validation_checksums.log"
+
+
+# ---------------------------------------------------------------------------
+# Checksum helpers
+# ---------------------------------------------------------------------------
+
+
+def _file_sha256(path: Path) -> str:
+    """Return the hex-encoded SHA-256 digest of a file's bytes."""
+    h = hashlib.sha256()
+    h.update(path.read_bytes())
+    return h.hexdigest()
+
+
+def _load_checksum_log(log_path: Path) -> dict:
+    """Load the persistent checksum log, returning an empty dict on any error."""
+    if log_path.exists():
+        try:
+            return json.loads(log_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            log.warning(
+                "Could not parse checksum log (%s) — starting fresh: %s", log_path, exc
+            )
+    return {}
+
+
+def _save_checksum_log(log_data: dict, log_path: Path) -> None:
+    """Atomically persist the checksum log to disk."""
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.write_text(
+        json.dumps(log_data, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Fix-only mode — apply corrections from existing .validation.json files
+# without any network / LLM calls.
+# ---------------------------------------------------------------------------
+
+
+def apply_fixes_only(docs_dir: Path) -> None:
+    """
+    Read every ``<doc>.validation.json`` in *docs_dir*, apply the stored
+    corrected text for each flagged verdict back to the source document,
+    write the result as ``<doc>_validated.md``, and record the new SHA-256
+    in the persistent checksum log.
+
+    No network calls are made — this just replays previously-computed
+    corrections.
+    """
+    checksum_log = _load_checksum_log(CHECKSUM_LOG_PATH)
+    fixed_count = 0
+    skipped_count = 0
+    clean_count = 0
+
+    json_paths = sorted(docs_dir.glob("*.validation.json"))
+    if not json_paths:
+        print("No .validation.json files found — run full validation first.")
+        return
+
+    log.info("Fix-only mode: processing %d .validation.json files", len(json_paths))
+
+    for json_path in json_paths:
+        # json_path.stem strips only ".json", leaving ".validation" — strip the full suffix manually
+        doc_stem = json_path.name.replace(
+            ".validation.json", ""
+        )  # e.g. "3D Printing Physics-Informed Function"
+        doc_path = docs_dir / f"{doc_stem}.md"
+
+        if not doc_path.exists():
+            log.warning("  Source doc not found for %s — skipping", json_path.name)
+            skipped_count += 1
+            continue
+
+        try:
+            data = json.loads(json_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            log.error("  Cannot read %s: %s", json_path.name, exc)
+            skipped_count += 1
+            continue
+
+        verdicts_to_fix = [v for v in data.get("verdicts", []) if v.get("corrected")]
+
+        if not verdicts_to_fix:
+            clean_count += 1
+            sha = _file_sha256(doc_path)
+            checksum_log.setdefault(doc_path.name, {}).update(
+                {
+                    "sha256": sha,
+                    "validated_at": datetime.now().isoformat(),
+                    "claims": data.get("claims", 0),
+                    "corrections": 0,
+                    "hallucinations": 0,
+                    "flag": "✅ clean",
+                }
+            )
+            log.info("  CLEAN (no corrections needed): %s", doc_stem)
+            continue
+
+        source_text = doc_path.read_text(encoding="utf-8", errors="replace")
+        corrected_text = source_text
+        applied = 0
+
+        for v in verdicts_to_fix:
+            sentence = v.get("sentence", "")
+            corrected = v.get("corrected", "")
+            if sentence and corrected and sentence in corrected_text:
+                corrected_text = corrected_text.replace(sentence, corrected, 1)
+                applied += 1
+            else:
+                log.debug(
+                    "  Sentence not found verbatim in %s — skipping verdict", doc_stem
+                )
+
+        validated_path = doc_path.with_name(f"{doc_stem}_validated.md")
+        validated_path.write_text(corrected_text, encoding="utf-8")
+
+        sha = _file_sha256(doc_path)
+        checksum_log[doc_path.name] = {
+            "sha256": sha,
+            "validated_at": datetime.now().isoformat(),
+            "claims": data.get("claims", 0),
+            "corrections": data.get("corrections", 0),
+            "hallucinations": data.get("hallucinations", 0),
+            "flag": f"🔧 fixed ({applied}/{len(verdicts_to_fix)} corrections applied)",
+        }
+
+        if applied > 0:
+            log.info(
+                "  FIXED (%d/%d corrections): %s → %s",
+                applied,
+                len(verdicts_to_fix),
+                doc_stem,
+                validated_path.name,
+            )
+            fixed_count += 1
+        else:
+            log.warning(
+                "  No sentences matched verbatim in %s — _validated.md written unchanged",
+                doc_stem,
+            )
+            skipped_count += 1
+
+    _save_checksum_log(checksum_log, CHECKSUM_LOG_PATH)
+    log.info("Checksum log updated: %s", CHECKSUM_LOG_PATH)
+
+    print("\n" + "=" * 70)
+    print(f"FIX-ONLY COMPLETE")
+    print(f"  🔧 Fixed   : {fixed_count}")
+    print(f"  ✅ Clean   : {clean_count}")
+    print(f"  ⏭ Skipped : {skipped_count}")
+    print(f"\nChecksum log: {CHECKSUM_LOG_PATH}")
+    print("=" * 70)
+
 
 # ---------------------------------------------------------------------------
 # Batch runner
@@ -114,10 +272,41 @@ def run_batch(
     report_rows: list[dict] = []  # per-doc summary row
     failed_docs: list[str] = []
 
+    # Load persistent checksum log — docs with matching hashes are skipped.
+    checksum_log = _load_checksum_log(CHECKSUM_LOG_PATH)
+    skipped_unchanged = 0
+
     t0_total = time.monotonic()
 
     for idx, doc_path in enumerate(docs, start=1):
         short = doc_path.name
+
+        # ------------------------------------------------------------------
+        # Checksum gate — skip docs that haven't changed since last validate
+        # ------------------------------------------------------------------
+        current_sha = _file_sha256(doc_path)
+        cached = checksum_log.get(short)
+        if cached and cached.get("sha256") == current_sha:
+            log.info(
+                "[%d/%d] SKIP (sha256 match, unchanged): %s",
+                idx,
+                total,
+                short,
+            )
+            # Replay cached row into report so totals stay accurate
+            report_rows.append(
+                {
+                    "doc": short,
+                    "claims": cached.get("claims", 0),
+                    "corrections": cached.get("corrections", 0),
+                    "hallucinations": cached.get("hallucinations", 0),
+                    "flag": cached.get("flag", "✅ clean (cached)"),
+                    "elapsed": 0.0,
+                }
+            )
+            skipped_unchanged += 1
+            continue
+
         log.info("[%d/%d] Validating: %s", idx, total, short)
         t0 = time.monotonic()
 
@@ -159,16 +348,26 @@ def run_batch(
         else:
             row_flag = "✅ clean"
 
-        report_rows.append(
-            {
-                "doc": short,
-                "claims": len(report.verdicts),
-                "corrections": report.correction_count,
-                "hallucinations": report.hallucination_count,
-                "flag": row_flag,
-                "elapsed": round(elapsed, 1),
-            }
-        )
+        row = {
+            "doc": short,
+            "claims": len(report.verdicts),
+            "corrections": report.correction_count,
+            "hallucinations": report.hallucination_count,
+            "flag": row_flag,
+            "elapsed": round(elapsed, 1),
+        }
+        report_rows.append(row)
+
+        # Update checksum log after every validated doc
+        checksum_log[short] = {
+            "sha256": current_sha,
+            "validated_at": datetime.now().isoformat(),
+            "claims": len(report.verdicts),
+            "corrections": report.correction_count,
+            "hallucinations": report.hallucination_count,
+            "flag": row_flag,
+        }
+        _save_checksum_log(checksum_log, CHECKSUM_LOG_PATH)
 
         log.info(
             "  → %s  [%d claims, %d⚑ corrections, %.1fs]",
@@ -177,6 +376,9 @@ def run_batch(
             report.correction_count,
             elapsed,
         )
+
+    if skipped_unchanged:
+        log.info("Skipped %d unchanged docs (checksum match).", skipped_unchanged)
 
     total_elapsed = time.monotonic() - t0_total
 
@@ -388,6 +590,15 @@ def _cli() -> None:
         default=0.60,
         help="Confidence threshold for flagging (default: 0.60)",
     )
+    parser.add_argument(
+        "--fix-only",
+        action="store_true",
+        help=(
+            "Apply corrections from existing .validation.json files without "
+            "re-validating against external sources. Uses the persistent checksum "
+            "log to track which docs have been fixed."
+        ),
+    )
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
@@ -399,11 +610,14 @@ def _cli() -> None:
         print(f"Error: docs directory not found: {docs_dir}", file=sys.stderr)
         sys.exit(2)
 
-    run_batch(
-        docs_dir=docs_dir,
-        use_llm=not args.no_llm,
-        confidence_threshold=args.threshold,
-    )
+    if args.fix_only:
+        apply_fixes_only(docs_dir=docs_dir)
+    else:
+        run_batch(
+            docs_dir=docs_dir,
+            use_llm=not args.no_llm,
+            confidence_threshold=args.threshold,
+        )
 
 
 if __name__ == "__main__":
