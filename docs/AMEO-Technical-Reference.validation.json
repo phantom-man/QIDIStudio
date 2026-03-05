@@ -1,0 +1,18 @@
+{
+  "source": "c:\\Users\\User\\source\\repos\\QIDIStudio\\docs\\AMEO-Technical-Reference.md",
+  "claims": 1,
+  "corrections": 1,
+  "hallucinations": 1,
+  "elapsed_seconds": 2.082329800003208,
+  "verdicts": [
+    {
+      "claim": "is called with `${HOME}` expanded by the shell at runtime, so it works\nwhether the printer host is a Raspberry Pi, an Orange Pi, a Debian VM, or a BTT CB1 —\nno hardcoded `/home/pi/` anywhere",
+      "sentence": "**Path resolution:** The script is called with `${HOME}` expanded by the shell at runtime, so it works\nwhether the printer host is a Raspberry Pi, an Orange Pi, a Debian VM, or a BTT CB1 —\nno hardcoded `/home/pi/` anywhere.",
+      "offset": 33536,
+      "confidence": 0.0,
+      "corrected": "**Path resolution:** The script is called with `${HOME}` expanded by the POSIX shell at runtime (per IEEE Std 1003.1-2017 §2.6.1 Parameter Expansion), ensuring compatibility across any POSIX-compliant host — Raspberry Pi, Orange Pi, Debian VM, or BTT CB1 — with no hardcoded `/home/pi/` path.",
+      "source": "https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_02",
+      "evidence": []
+    }
+  ]
+}

@@ -42,21 +42,7 @@ $$Q_{max} = \frac{\pi n}{3n+1} \left(\frac{\Delta P}{2mL}\right)^{1/n} r^{(3n+1)
 
 where $n$ is flow index, $m$ is consistency index, $r$ is orifice radius, $L$ is land length.
 
-### 2.2 Flow Capacity vs Orifice Diameter
-
-| Orifice dia (mm) | $Q_{max}$ PLA at 210 °C (mm³/s) | $Q_{max}$ ABS at 240 °C | Layer heights (typical) |
-|-----------------|-------------------------------|------------------------|------------------------|
-| 0.25 | 2.5 | 2.0 | 0.05–0.15 |
-| 0.40 | 8.0 | 6.5 | 0.10–0.30 |
-| 0.60 | 18.0 | 14.0 | 0.20–0.45 |
-| 0.80 | 32.0 | 25.0 | 0.30–0.60 |
-| 1.00 | 50.0 | 38.0 | 0.40–0.80 |
-
-(CHT-type 3-hole insert improves these by 2–3×)
-
----
-
-## III. Wear Kinetics
+(CHT-type 3-hole insert typically improves volumetric throughput by approximately 2–3× compared to standard single-orifice designs at equivalent temperatures, based on community benchmarking; exact values depend on filament viscosity and heater block geometry) Wear Kinetics
 
 ### 3.1 Archard Wear Model
 

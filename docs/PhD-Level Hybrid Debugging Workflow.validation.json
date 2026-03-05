@@ -1,0 +1,18 @@
+{
+  "source": "c:\\Users\\User\\source\\repos\\QIDIStudio\\docs\\PhD-Level Hybrid Debugging Workflow.md",
+  "claims": 1,
+  "corrections": 1,
+  "hallucinations": 1,
+  "elapsed_seconds": 8.493265499942936,
+  "verdicts": [
+    {
+      "claim": "is called from Python via pybind11, the debugger sees a `PyObject*` that GDB cannot dereference meaningfully without Python-aware extensions",
+      "sentence": "The Abstraction Gap Problem\n\n### 1.1 Two Execution Models\n\nPython and C++ operate on fundamentally different memory and execution models:\n\n| Property | Python | C++ (via pybind11) |\n|---------|--------|------------------|\n| Heap | `PyHeap` — GC-managed | `malloc/new` — manual/RAII |\n| Stack frame | `PyFrameObject*` chain | Hardware stack (DWARF metadata) |\n| Debugger | `sys.settrace()` / `pdb` | DWARF + GDB/LLDB |\n| Exception | `PyObject* (PyExc_*)` | `std::exception` hierarchy |\n| Threads | GIL-serialized | Native OS threads |\n\nWhen C++ code is called from Python via pybind11, the debugger sees a `PyObject*` that GDB cannot dereference meaningfully without Python-aware extensions.",
+      "offset": 785,
+      "confidence": 0.0,
+      "corrected": "When C++ code is called from Python via pybind11, the debugger sees a `PyObject*` that GDB cannot dereference meaningfully without Python-aware extensions such as `libpython` debug symbols and the `python-gdb.py` pretty-printers (GDB Python API: https://sourceware.org/gdb/current/onlinedocs/gdb.html/Python-API.html).",
+      "source": "https://sourceware.org/gdb/current/onlinedocs/gdb.html/Python-API.html",
+      "evidence": []
+    }
+  ]
+}

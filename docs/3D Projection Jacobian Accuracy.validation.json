@@ -1,0 +1,1246 @@
+{
+  "source": "docs\\3D Projection Jacobian Accuracy.md",
+  "claims": 40,
+  "corrections": 40,
+  "hallucinations": 40,
+  "elapsed_seconds": 453.61998550000135,
+  "verdicts": [
+    {
+      "claim": "Perspective projection maps a 3D camera-space point to 2D normalized device coordinates (NDC).",
+      "sentence": "The perspective projection $\\pi: \\mathbb{R}^3 \\to \\mathbb{R}^2$ maps a camera-space point $\\mathbf{P} = (X, Y, Z)^T$ to normalized device coordinates (NDC):",
+      "offset": 232,
+      "confidence": 0.03804010749914656,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.4324/9780080958422-15",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.4324/9780080958422-15",
+          "excerpt": "Camera: Flat, Limited, and Deep Space (): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Perspective projection $\\pi(\\mathbf{P})$ is defined by a specific mathematical formula.",
+      "sentence": "$$\\pi(\\mathbf{P}) = \\begin{pmatrix} f_x X/Z \\\\ f_y Y/Z \\end{pmatrix} + \\begin{pmatrix} c_x \\\\ c_y \\end{pmatrix}$$",
+      "offset": 349,
+      "confidence": 0.03132714735223835,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1117/12.2071490",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1117/12.2071490",
+          "excerpt": "Embedding perspective cue in holographic projection display by virtual variable-focal-length lenses (Zhaohui Li, Jianqi Zhang, Xiaorui Wang): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "$f_x, f_y$ represent the focal lengths in the perspective projection formula.",
+      "sentence": "where $f_x, f_y$ are the focal lengths and $(c_x, c_y)$ is the principal point.",
+      "offset": 465,
+      "confidence": 0.053256150498805194,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.5594/j06543; https://doi.org/10.1117/12.704783",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.5594/j06543",
+          "excerpt": "A Proposed New Series of Standard Focal Lengths for Motion Picture Projection Objectives (Wilbur B. Rayton): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1117/12.704783",
+          "excerpt": "Analysis of difference in orientations and focal lengths of two arbitrary perspective viewing cameras (Aishwarya Ramachandran, R. Balasubramanian, K. Swaminathan): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.5594/j11258",
+          "excerpt": "Proposed Revision of American Standard 222.28-1946 PH22.28, Focal Lengths and Markings of 35mm Motion-Picture Projection Lenses (): ",
+          "relevance": 0.3,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.15372/aut20200410",
+          "excerpt": "FORMATION OF THIN-FILM AXICONS WITH MAXIMUM FOCAL LENGTHS (): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "$(c_x, c_y)$ represents the principal point in the perspective projection formula.",
+      "sentence": "where $f_x, f_y$ are the focal lengths and $(c_x, c_y)$ is the principal point.",
+      "offset": 465,
+      "confidence": 0.10445993946652993,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.7717/peerjcs.123/fig-7; https://doi.org/10.7717/peerjcs.123/fig-2",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerjcs.123/fig-7",
+          "excerpt": "Figure 7: The geometry of an\n                      <i>n</i>\n                      D perspective projection for a point\n                      <i>p</i>\n                      . (): ",
+          "relevance": 0.5454545454545454,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerjcs.123/fig-2",
+          "excerpt": "Figure 2: The geometry of a 4D perspective projection along the\n                      <i>x</i>\n                      axis for a point\n                      <i>p</i>\n                      . (): ",
+          "relevance": 0.46153846153846156,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/iccv.1995.466833",
+          "excerpt": "Rigidity checking of 3D point correspondences under perspective projection (D.P. McReynolds, D.G. Lowe): ",
+          "relevance": 0.46153846153846156,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2139/ssrn.4198550",
+          "excerpt": "Projection of High-dimensional data in Two Dimensions from a Single Point Perspective (Nick Harkiolakis): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/s0031-8663(50)80013-3",
+          "excerpt": "Distortion, principal point, point of symmetry and calibrated principal point (R. Roelofs): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/4b7b8a093b0fb0958f88707d5ee9cf1db3eeb3a4",
+          "excerpt": "Fisheye Lenses Calibration Using Straight-Line Spherical Perspective Projection Constraint (2006): ",
+          "relevance": 0.25,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The Jacobian $\\mathbf{J}_\\pi \\in \\mathbb{R}^{2 \\times 3}$ describes how small displacements in 3D map to 2D.",
+      "sentence": "The Jacobian $\\mathbf{J}_\\pi \\in \\mathbb{R}^{2 \\times 3}$ describes how small displacements in 3D map to displacements in 2D:",
+      "offset": 546,
+      "confidence": 0.0,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "The projection Jacobian $\\mathbf{J}_\\pi$ is defined by a specific 2x3 matrix formula.",
+      "sentence": "$$\\mathbf{J}_\\pi = \\frac{\\partial \\pi}{\\partial \\mathbf{P}} = \\begin{pmatrix} f_x/Z & 0 & -f_x X/Z^2 \\\\ 0 & f_y/Z & -f_y Y/Z^2 \\end{pmatrix}$$",
+      "offset": 659,
+      "confidence": 0.04204432934116199,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1007/s00209-017-1985-x; https://doi.org/10.5353/th_b3123486",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/s00209-017-1985-x",
+          "excerpt": "Besicovitch–Federer projection theorem for continuously differentiable mappings having constant rank of the Jacobian matrix (Jacek Gałęski): ",
+          "relevance": 0.3157894736842105,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.5353/th_b3123486",
+          "excerpt": "Toeplitz Jacobian matrix and nonlinear dynamical systems (Tong Ge): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/cdc.2003.1271940",
+          "excerpt": "Approximate Jacobian robot control with adaptive Jacobian matrix (C.C. Cheah): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.3724/sp.j.1087.2011.01699",
+          "excerpt": "Unscented Kalman filter for on-line estimation of Jacobian matrix (Ying-bo ZHANG): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The condition number $\\kappa(\\mathbf{J}_\\pi) = \\sigma_{\\max}/\\sigma_{\\min}$ quantifies projection distortion.",
+      "sentence": "The **condition number** $\\kappa(\\mathbf{J}_\\pi) = \\sigma_{\\max}/\\sigma_{\\min}$ quantifies projection distortion.",
+      "offset": 780,
+      "confidence": 0.049927641092629864,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1016/j.camwa.2011.08.070; https://doi.org/10.1109/iscas.2009.5118198",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.camwa.2011.08.070",
+          "excerpt": "Convergence and condition number of multi-projection operators by Legendre wavelets (K. Maleknejad, A. Khademi, T. Lotfi): ",
+          "relevance": 0.375,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/iscas.2009.5118198",
+          "excerpt": "A robust affine projection algorithm with feedback compensation of the condition number (Manolis C. Tsakiris, Cassio G. Lopes): ",
+          "relevance": 0.35294117647058826,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.sigpro.2007.11.021",
+          "excerpt": "An affine projection algorithm with a data-selective method of using the condition number (Chang Woo Lee, Young Kow Lee, Sang Woo Kim): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1117/1.1827220",
+          "excerpt": "Distortion-free technique for parallel autostereoscopic projection with a single projection lens (Sergei A. Shestak): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "At grazing angles ($Z \\to 0$ or large $X/Z$), $\\kappa \\to \\infty$, indicating degenerate projection.",
+      "sentence": "At grazing angles ($Z \\to 0$ or large $X/Z$), $\\kappa \\to \\infty$, indicating degenerate projection.",
+      "offset": 883,
+      "confidence": 0.03804010749914656,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1111/j.1365-2818.2010.03466.x; https://doi.org/10.21236/ad0910305",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1111/j.1365-2818.2010.03466.x",
+          "excerpt": "Focussed ion beam milling at grazing incidence angles (J. HAZEKAMP, S. DOHERTY, A. ELSAESSER): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.21236/ad0910305",
+          "excerpt": "UHF Propagation Path Loss Measurements at Low Grazing Angles (Henry Schlussler): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/radarconf.2015.7411864",
+          "excerpt": "Characterization of X-band radar sea-clutter in a limited fetch condition from low to high grazing angles (Terje Johnsen): ",
+          "relevance": 0.21052631578947367,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Area distortion $D_A(\\mathbf{P})$ is defined by a specific mathematical formula.",
+      "sentence": "$$D_A(\\mathbf{P}) = |\\det(\\mathbf{J}_\\pi \\mathbf{J}_\\pi^T)|^{1/2} = \\frac{f_x f_y}{Z^2}$$",
+      "offset": 1007,
+      "confidence": 0.02958675027711399,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1515/iupac.68.3454",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1515/iupac.68.3454",
+          "excerpt": "Projection Formula (G.P. Moss): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Area distortion scales as $1/Z^2$.",
+      "sentence": "This shows that area distortion scales as $1/Z^2$ — objects twice as far appear four times smaller.",
+      "offset": 1106,
+      "confidence": 0.053256150498805194,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1007/978-3-642-41714-6_42678",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-3-642-41714-6_42678",
+          "excerpt": "distance distortion (): ",
+          "relevance": 0.4,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Objects twice as far appear four times smaller due to area distortion scaling as $1/Z^2$.",
+      "sentence": "This shows that area distortion scales as $1/Z^2$ — objects twice as far appear four times smaller.",
+      "offset": 1106,
+      "confidence": 0.0,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "For conformal projection (angle-preserving), $\\mathbf{J}_\\pi^T \\mathbf{J}_\\pi = \\lambda I$ is required.",
+      "sentence": "For conformal projection (angle-preserving), we require $\\mathbf{J}_\\pi^T \\mathbf{J}_\\pi = \\lambda I$.",
+      "offset": 1215,
+      "confidence": 0.053256150498805194,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1109/dsw.2018.8439111",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/dsw.2018.8439111",
+          "excerpt": "SUBSPACE PRINCIPAL ANGLE PRESERVING PROPERTY OF GAUSSIAN RANDOM PROJECTION (Yuchen Jiao, Xinyue Shen, Gen Li): ",
+          "relevance": 0.4,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Angular distortion $E_{angle}$ is defined by a specific mathematical formula.",
+      "sentence": "$$E_{angle} = \\left\\| \\frac{\\mathbf{J}_\\pi^T \\mathbf{J}_\\pi}{\\|\\mathbf{J}_\\pi^T \\mathbf{J}_\\pi\\|_F} - \\frac{I}{\\sqrt{2}} \\right\\|_F$$",
+      "offset": 1318,
+      "confidence": 0.053256150498805194,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1016/s0723-0869(03)80008-7",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/s0723-0869(03)80008-7",
+          "excerpt": "Angle distortion and conformality (Joseph H. Pulford, Byron L. Walden): ",
+          "relevance": 0.4,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Perspective projection is conformal only if $f_x = f_y$ and the projection direction is normal to the surface.",
+      "sentence": "Perspective projection is conformal only when $f_x = f_y$ and the projection direction is normal to the surface.",
+      "offset": 1459,
+      "confidence": 0.0705122748095532,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://www.semanticscholar.org/paper/335f30816919fc4805ad47909a6f75f7d28934c6; https://doi.org/10.1117/12.2071490",
+      "evidence": [
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/335f30816919fc4805ad47909a6f75f7d28934c6",
+          "excerpt": "NRSfPP: non-rigid structure-from-perspective projection (2020): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1117/12.2071490",
+          "excerpt": "Embedding perspective cue in holographic projection display by virtual variable-focal-length lenses (Zhaohui Li, Jianqi Zhang, Xiaorui Wang): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/ac55255b49a22c83f4b43bcf4cfc130cb3a9e198",
+          "excerpt": "Perfect perspective projection using a varifocal mirror and its application to three-dimensional close-up imaging (2004): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/64cb7ed792fc741f3259418e0ebcd2ca15cb6404",
+          "excerpt": "Isowarp and Conwarp: Warps that Exactly Comply with Weak-Perspective Projection of Deforming Objects (2013): ",
+          "relevance": 0.21052631578947367,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The `perspective_jacobian` function computes a 2x3 Jacobian of perspective projection.",
+      "sentence": "    \"\"\"2x3 Jacobian of perspective projection at P=(X,Y,Z).\"\"\"",
+      "offset": 1690,
+      "confidence": 0.05917350055422798,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1002/9781119791416.ch8; https://doi.org/10.1016/b978-0-08-016369-7.50052-6",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1002/9781119791416.ch8",
+          "excerpt": "The Jacobian projection technique (): ",
+          "relevance": 0.4444444444444444,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/b978-0-08-016369-7.50052-6",
+          "excerpt": "INTEGRATION OF THE JACOBIAN FUNCTION pqu (ERIC HAROLD NEVILLE): ",
+          "relevance": 0.4444444444444444,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1017/cbo9780511600265.018",
+          "excerpt": "Jacobian elliptic function solutions (): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1002/9781119791416.app7",
+          "excerpt": "Dynamic sensitivities and IM via Jacobian Projection technique (): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The `face_jacobian_condition` function computes the average condition number over a triangle centroid.",
+      "sentence": "    \"\"\"Average condition number of projection Jacobian over triangle centroid.\"\"\"",
+      "offset": 1860,
+      "confidence": 0.048414682271641085,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.3840/07000604; https://doi.org/10.3840/000604",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.3840/07000604",
+          "excerpt": "Triangle Centroid (): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.3840/000604",
+          "excerpt": "Triangle Centroid (): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-3-540-48113-3_16",
+          "excerpt": "Jacobian, Manipulability, Condition Number and Accuracy of Parallel Robots (J. -P. Merlet): ",
+          "relevance": 0.25,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The `audit_projection_distortion` function computes per-face projection Jacobian condition numbers.",
+      "sentence": "    Compute per-face projection Jacobian condition numbers.",
+      "offset": 2185,
+      "confidence": 0.035504100332536793,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1007/978-3-540-48113-3_16",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-3-540-48113-3_16",
+          "excerpt": "Jacobian, Manipulability, Condition Number and Accuracy of Parallel Robots (J. -P. Merlet): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The `audit_projection_distortion` function returns summary statistics and indices of high-distortion faces.",
+      "sentence": "    Returns summary statistics and indices of high-distortion faces.",
+      "offset": 2235,
+      "confidence": 0.049927641092629864,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1167/7.9.885; https://doi.org/10.7717/peerj-cs.413/table-1",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1167/7.9.885",
+          "excerpt": "Saving face: Extracting summary statistics from a set of faces (J. Haberman, D. Whitney): ",
+          "relevance": 0.375,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj-cs.413/table-1",
+          "excerpt": "Table 1: Summary statistics for the five inputs and the output for Bitcoin and Ethereum prices. (): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The default focal length `fx` for `audit_projection_distortion` is 800.0.",
+      "sentence": "    fx: float = 800.0,",
+      "offset": 2110,
+      "confidence": 0.08876025083134197,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1036/1097-8542.265300; https://doi.org/10.1007/springerreference_14788",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1036/1097-8542.265300",
+          "excerpt": "Focal length (): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_14788",
+          "excerpt": "focal length (): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_8646",
+          "excerpt": "back focal length (): ",
+          "relevance": 0.5714285714285714,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_13772",
+          "excerpt": "equivalent focal length (): ",
+          "relevance": 0.5714285714285714,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_15143",
+          "excerpt": "front focal length (): ",
+          "relevance": 0.5714285714285714,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The default focal length `fy` for `audit_projection_distortion` is 800.0.",
+      "sentence": "    fy: float = 800.0,",
+      "offset": 2129,
+      "confidence": 0.08876025083134197,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1036/1097-8542.265300; https://doi.org/10.1007/springerreference_14788",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1036/1097-8542.265300",
+          "excerpt": "Focal length (): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_14788",
+          "excerpt": "focal length (): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_15143",
+          "excerpt": "front focal length (): ",
+          "relevance": 0.5714285714285714,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_8646",
+          "excerpt": "back focal length (): ",
+          "relevance": 0.5714285714285714,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_13772",
+          "excerpt": "equivalent focal length (): ",
+          "relevance": 0.5714285714285714,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The default `threshold` for `audit_projection_distortion` to identify high distortion faces is 5.0.",
+      "sentence": "    threshold: float = 5.0,",
+      "offset": 2148,
+      "confidence": 0.03631101170373081,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1021/acs.inorgchem.3c04619.s001",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1021/acs.inorgchem.3c04619.s001",
+          "excerpt": "Na12(NbO)3(PO4)7: A Congruent Melting Nonlinear Optical Crystal with Large NbO6 Distortion and High Laser-Induced Damage Threshold (): ",
+          "relevance": 0.2727272727272727,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Cylindrical equidistant projection can eliminate radial distortion for panoramic views.",
+      "sentence": "For panoramic views, replace perspective with cylindrical equidistant to eliminate radial distortion:",
+      "offset": 3139,
+      "confidence": 0.09965490369258027,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1086/108940; https://doi.org/10.5244/c.23.41",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1086/108940",
+          "excerpt": "On the use of panoramic cylindrical projection in photographic astrometry (Heinrich Eichhorn): ",
+          "relevance": 0.46153846153846156,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.5244/c.23.41",
+          "excerpt": "Minimal Solutions for Panoramic Stitching with Radial Distortion (Martin Byröd, Matthew Brown, Kalle Åström): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1080/00690805.1974.10437803",
+          "excerpt": "An oblique, poly-cylindrical, orthographic azimuthal equidistant cartographic projection: its purpose, construction and theory (Paul S. Anderson): ",
+          "relevance": 0.3157894736842105,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/63043a6b52bc018c87a7474f672f3223b2ca5f02",
+          "excerpt": "Multi-plane secondary projection panoramic camera image distortion elimination method based on cylinder (2013): ",
+          "relevance": 0.3,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/8e3de78ed18f2e2618ff58396f1e7cd44d52b257",
+          "excerpt": "10.4: A panoramic video processing algorithm based on variable surface projection (2021): ",
+          "relevance": 0.25,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/5b43b58ae00d6746ccca82c16ca39ca34973c167",
+          "excerpt": "Hemi-cylinder unwrapping algorithm of fish-eye image based on equidistant projection model (2013): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Cylindrical equidistant projection $\\pi_{cyl}(\\mathbf{P})$ is defined by a specific mathematical formula.",
+      "sentence": "$$\\pi_{cyl}(\\mathbf{P}) = \\begin{pmatrix} \\arctan(X/Z) \\\\ Y / \\sqrt{X^2 + Z^2} \\end{pmatrix}$$",
+      "offset": 3269,
+      "confidence": 0.04438012541567098,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1109/telsiks65061.2025.11240956; https://doi.org/10.1080/00690805.1974.10437803",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/telsiks65061.2025.11240956",
+          "excerpt": "Enhancing Transformation Accuracy and Error Control in the Dual Orthogonal Equidistant Cylindrical Projection (Aleksandar M. Dimitrijević): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1080/00690805.1974.10437803",
+          "excerpt": "An oblique, poly-cylindrical, orthographic azimuthal equidistant cartographic projection: its purpose, construction and theory (Paul S. Anderson): ",
+          "relevance": 0.3157894736842105,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/icetran62308.2024.10645181",
+          "excerpt": "Efficient Earth Observation Data Visualization Using Dual Orthogonal Equidistant Cylindrical Projection (Aleksandar Dimitrijević): ",
+          "relevance": 0.3157894736842105,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.3133/ti2h1",
+          "excerpt": "Computational considerations for collecting and using data in the equidistant cylindrical map projection and the bounds of sampling geographic data at progressively higher resolution (Kevin M. Foley):",
+          "relevance": 0.2727272727272727,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The Jacobian for cylindrical equidistant projection is defined by a specific 2x3 matrix formula.",
+      "sentence": "$$\\mathbf{J}_{cyl} = \\begin{pmatrix} -Z/(X^2+Z^2) & 0 & X/(X^2+Z^2) \\\\ -XY/(X^2+Z^2)^{3/2} & 1/\\sqrt{X^2+Z^2} & -ZY/(X^2+Z^2)^{3/2} \\end{pmatrix}$$",
+      "offset": 3448,
+      "confidence": 0.0893277716167086,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://www.semanticscholar.org/paper/6cc2808816d9fcaa11927af1eb31b50ff5e83a4a; https://doi.org/10.1109/telsiks65061.2025.11240956",
+      "evidence": [
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/6cc2808816d9fcaa11927af1eb31b50ff5e83a4a",
+          "excerpt": "Inverse Transformation for Several Pseudo-cylindrical Map Projections Using Jacobian Matrix (2009): ",
+          "relevance": 0.35294117647058826,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/telsiks65061.2025.11240956",
+          "excerpt": "Enhancing Transformation Accuracy and Error Control in the Dual Orthogonal Equidistant Cylindrical Projection (Aleksandar M. Dimitrijević): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1080/00690805.1974.10437803",
+          "excerpt": "An oblique, poly-cylindrical, orthographic azimuthal equidistant cartographic projection: its purpose, construction and theory (Paul S. Anderson): ",
+          "relevance": 0.3157894736842105,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.3133/ti2h1",
+          "excerpt": "Computational considerations for collecting and using data in the equidistant cylindrical map projection and the bounds of sampling geographic data at progressively higher resolution (Kevin M. Foley):",
+          "relevance": 0.2727272727272727,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The condition number $\\kappa(\\mathbf{J}_{cyl})$ remains bounded for all $Y/Z < \\tan(\\theta_{max})$.",
+      "sentence": "Condition number $\\kappa(\\mathbf{J}_{cyl})$ remains bounded for all $Y/Z < \\tan(\\theta_{max})$.",
+      "offset": 3698,
+      "confidence": 0.04204432934116199,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.31390/gradschool_disstheses.8008; https://doi.org/10.1109/iscas.2009.5118198",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.31390/gradschool_disstheses.8008",
+          "excerpt": "A Necessary and Sufficient Condition That a Set Be Homeomorphic to a Plane Region Bounded by a Finite Number of Nonintersecting Circles. ( , Robert Broussard): ",
+          "relevance": 0.3157894736842105,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/iscas.2009.5118198",
+          "excerpt": "A robust affine projection algorithm with feedback compensation of the condition number (Manolis C. Tsakiris, Cassio G. Lopes): ",
+          "relevance": 0.25,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Faces with high $\\kappa$ should receive smaller UV islands to reduce texture budget waste.",
+      "sentence": "Faces with high $\\kappa$ should receive smaller UV islands (less texture budget wasted on distorted geometry):",
+      "offset": 3816,
+      "confidence": 0.0,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "The `compute_uv_budget_weights` function computes UV budget weights inversely proportional to projection distortion.",
+      "sentence": "    \"\"\"UV budget weight inversely proportional to projection distortion.\"\"\"",
+      "offset": 4068,
+      "confidence": 0.048414682271641085,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1093/oed/5419691137; https://doi.org/10.1109/isit.2008.4595109",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1093/oed/5419691137",
+          "excerpt": "inversely proportional, adj. (): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/isit.2008.4595109",
+          "excerpt": "Rate distortion function with a proportional mean-square error distortion measure (Jacob Binia): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-3-540-69000-9_100891",
+          "excerpt": "Inversely Proportional to Wavelength (): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1021/acs.est.5c01019.s001",
+          "excerpt": "Absorptivity Inversely Proportional to Spectral Slope in CDOM (): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The `compute_uv_budget_weights` function returns normalized weights summing to 1.",
+      "sentence": "    \"\"\"Returns normalized weights summing to 1.\"\"\"",
+      "offset": 4141,
+      "confidence": 0.053256150498805194,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.7717/peerj-cs.3383/table-13; https://doi.org/10.7717/peerj-cs.3345/table-10",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj-cs.3383/table-13",
+          "excerpt": "Table 13: Normalized fuzzy weights. (): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj-cs.3345/table-10",
+          "excerpt": "Table 10: Weights of normalized criterion. (): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj.8810/supp-2",
+          "excerpt": "Supplemental Information 2: Model selection for normalized structure weights as a function of body weight. (): ",
+          "relevance": 0.375,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The default `kappa_clip` for `compute_uv_budget_weights` is 10.0.",
+      "sentence": "    kappa_clip: float = 10.0,",
+      "offset": 3995,
+      "confidence": 0.03328509406175324,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.7717/peerj-cs.1906/supp-27",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj-cs.1906/supp-27",
+          "excerpt": "Supplemental Information 27: The default parameter of AMCFCN (): ",
+          "relevance": 0.25,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Perspective projection on a frontal flat surface (depth Z=1m) has a mean $\\kappa$ of 1.0.",
+      "sentence": "| Frontal flat (depth $Z=1$ m) | 1.0 | 1.0 | Perspective |",
+      "offset": 4353,
+      "confidence": 0.040966269614465534,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.53347/rid-64541; https://doi.org/10.32657/10356/66303",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.53347/rid-64541",
+          "excerpt": "Chest radiograph - normal (frontal projection) (Jon Hilton): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.32657/10356/66303",
+          "excerpt": "3D audio reproduction using frontal projection headphones (Sunder Kaushik): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.17816/psaic700-378",
+          "excerpt": "Fig. 4. Computed tomogram of the right hand: a — in frontal projection; b — axial projection (): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.17816/jowd87146-48432",
+          "excerpt": "Fig. 4-5. Patient V., digital subtraction angiogram (frontal projection, Fig. 4) and (oblique projection, Fig. 5). (): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Perspective projection on a frontal flat surface (depth Z=1m) has a max $\\kappa$ of 1.0.",
+      "sentence": "| Frontal flat (depth $Z=1$ m) | 1.0 | 1.0 | Perspective |",
+      "offset": 4353,
+      "confidence": 0.04438012541567098,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.53347/rid-64541; https://doi.org/10.32657/10356/66303",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.53347/rid-64541",
+          "excerpt": "Chest radiograph - normal (frontal projection) (Jon Hilton): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.32657/10356/66303",
+          "excerpt": "3D audio reproduction using frontal projection headphones (Sunder Kaushik): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.17816/psaic700-378",
+          "excerpt": "Fig. 4. Computed tomogram of the right hand: a — in frontal projection; b — axial projection (): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.17816/jowd87146-48432",
+          "excerpt": "Fig. 4-5. Patient V., digital subtraction angiogram (frontal projection, Fig. 4) and (oblique projection, Fig. 5). (): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Perspective projection on a curved top surface (radius 5cm) has a mean $\\kappa$ of 1.8.",
+      "sentence": "| Curved top (radius 5 cm) | 1.8 | 3.4 | Perspective |",
+      "offset": 4410,
+      "confidence": 0.05706016124871984,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.2307/1573171; https://doi.org/10.2307/1573408",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2307/1573171",
+          "excerpt": "Perspective Using Curved Projection Rays and Its Computer Application (Robert Hansen): ",
+          "relevance": 0.42857142857142855,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2307/1573408",
+          "excerpt": "Perspective Using Curved Projection Rays and Its Computer Application (Horacio C. Reggini): ",
+          "relevance": 0.42857142857142855,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2307/1573008",
+          "excerpt": "Perspective Using Curved Projection Rays and Its Computer Application (Horacio C. Reggini): ",
+          "relevance": 0.42857142857142855,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.21236/ada523529",
+          "excerpt": "Kappa-3 Superfluid Spectrum of Highly Curved Interacting Quantum Vortices (Jeffrey Yepez): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Perspective projection on a curved top surface (radius 5cm) has a max $\\kappa$ of 3.4.",
+      "sentence": "| Curved top (radius 5 cm) | 1.8 | 3.4 | Perspective |",
+      "offset": 4410,
+      "confidence": 0.0614494044216983,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.2307/1573171; https://doi.org/10.2307/1573408",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2307/1573171",
+          "excerpt": "Perspective Using Curved Projection Rays and Its Computer Application (Robert Hansen): ",
+          "relevance": 0.46153846153846156,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2307/1573408",
+          "excerpt": "Perspective Using Curved Projection Rays and Its Computer Application (Horacio C. Reggini): ",
+          "relevance": 0.46153846153846156,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2307/1573008",
+          "excerpt": "Perspective Using Curved Projection Rays and Its Computer Application (Horacio C. Reggini): ",
+          "relevance": 0.46153846153846156,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1134/s1061920823010107",
+          "excerpt": "Estimates of the Chebyshev Radius   in Terms of  the MAX-Metric Function    and the MAX-Projection Operator (I. G. Tsar’kov): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.21236/ada523529",
+          "excerpt": "Kappa-3 Superfluid Spectrum of Highly Curved Interacting Quantum Vortices (Jeffrey Yepez): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Perspective projection on a grazing edge ($\\theta=85°$) has a mean $\\kappa$ of 11.4.",
+      "sentence": "| Grazing edge ($\\theta=85°$) | 11.4 | 47.2 | Perspective |",
+      "offset": 4461,
+      "confidence": 0.03804010749914656,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.2172/10187220; https://doi.org/10.31274/etd-180810-510",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2172/10187220",
+          "excerpt": "Excitation of large-{kappa}{sub {theta}} ion-Bernstein waves in tokamaks (E.J. Valeo, N.J. Fisch): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.31274/etd-180810-510",
+          "excerpt": "The role of Phi Theta Kappa membership in community college student engagement (Marjorie Maye Welch): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj.4447/fig-4",
+          "excerpt": "Figure 4: Characteristics of\n                      <i>Stipa breviflora</i>\n                      (mean ± standard error) under heavy grazing, moderate grazing and no grazing. (): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Perspective projection on a grazing edge ($\\theta=85°$) has a max $\\kappa$ of 47.2.",
+      "sentence": "| Grazing edge ($\\theta=85°$) | 11.4 | 47.2 | Perspective |",
+      "offset": 4461,
+      "confidence": 0.040966269614465534,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.2172/10187220; https://doi.org/10.31274/etd-180810-510",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2172/10187220",
+          "excerpt": "Excitation of large-{kappa}{sub {theta}} ion-Bernstein waves in tokamaks (E.J. Valeo, N.J. Fisch): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.31274/etd-180810-510",
+          "excerpt": "The role of Phi Theta Kappa membership in community college student engagement (Marjorie Maye Welch): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Cylindrical projection on a grazing edge ($\\theta=85°$) has a mean $\\kappa$ of 1.2.",
+      "sentence": "| Grazing edge ($\\theta=85°$) | 1.2 | 2.1 | Cylindrical |",
+      "offset": 4519,
+      "confidence": 0.049927641092629864,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1364/oe.18.009865; https://doi.org/10.1007/3-540-15984-3_277",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1364/oe.18.009865",
+          "excerpt": "The projection approximation and edge contrast for x-ray propagation-based phase contrast imaging of a cylindrical edge (K. S. Morgan, K. K. W. Siu, D. M. Paganin): ",
+          "relevance": 0.375,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/3-540-15984-3_277",
+          "excerpt": "An improved projection operation for cylindrical algebraic decomposition (Scott McCallum): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2172/10187220",
+          "excerpt": "Excitation of large-{kappa}{sub {theta}} ion-Bernstein waves in tokamaks (E.J. Valeo, N.J. Fisch): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.31274/etd-180810-510",
+          "excerpt": "The role of Phi Theta Kappa membership in community college student engagement (Marjorie Maye Welch): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj.4447/fig-4",
+          "excerpt": "Figure 4: Characteristics of\n                      <i>Stipa breviflora</i>\n                      (mean ± standard error) under heavy grazing, moderate grazing and no grazing. (): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Cylindrical projection on a grazing edge ($\\theta=85°$) has a max $\\kappa$ of 2.1.",
+      "sentence": "| Grazing edge ($\\theta=85°$) | 1.2 | 2.1 | Cylindrical |",
+      "offset": 4519,
+      "confidence": 0.053256150498805194,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1364/oe.18.009865; https://doi.org/10.1007/3-540-15984-3_277",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1364/oe.18.009865",
+          "excerpt": "The projection approximation and edge contrast for x-ray propagation-based phase contrast imaging of a cylindrical edge (K. S. Morgan, K. K. W. Siu, D. M. Paganin): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/3-540-15984-3_277",
+          "excerpt": "An improved projection operation for cylindrical algebraic decomposition (Scott McCallum): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2172/10187220",
+          "excerpt": "Excitation of large-{kappa}{sub {theta}} ion-Bernstein waves in tokamaks (E.J. Valeo, N.J. Fisch): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.31274/etd-180810-510",
+          "excerpt": "The role of Phi Theta Kappa membership in community college student engagement (Marjorie Maye Welch): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Hartley and Zisserman authored *Multiple View Geometry in Computer Vision* (2003, 2nd ed.).",
+      "sentence": "Hartley, R. & Zisserman, A. (2003). *Multiple View Geometry in Computer Vision*, 2nd ed. Cambridge University Press.",
+      "offset": 4642,
+      "confidence": 0.09510026874786641,
+      "corrected": "Hartley, R. & Zisserman, A. (2003). *Multiple View Geometry in Computer Vision*. Cambridge University Press.",
+      "source": "https://doi.org/10.1017/cbo9780511811685; https://doi.org/10.1017/s0263574705211621",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1017/cbo9780511811685",
+          "excerpt": "Multiple View Geometry in Computer Vision (Richard Hartley, Andrew Zisserman): ",
+          "relevance": 0.7142857142857143,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1017/s0263574705211621",
+          "excerpt": "<b>MULTIPLE VIEW GEOMETRY IN COMPUTER VISION</b>, by Richard Hartley and Andrew Zisserman, CUP, Cambridge, UK, 2003, vi+560 pp., ISBN 0-521-54051-8. (Paperback £44.95) (G. F. Page): ",
+          "relevance": 0.6956521739130435,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1017/s0263574700223217",
+          "excerpt": "<b>MULTIPLE VIEW GEOMETRY IN COMPUTER VISION, </b>by Richard Hartley and \nAndrew Zisserman, Cambridge University Press, Cambridge, 2000, xvi+607 pp., ISBN 0–521–62304–9 \n(hardback, £60.00). (Alex M. A",
+          "relevance": 0.56,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1017/cbo9780511811685.013",
+          "excerpt": "Two-View Geometry (): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1017/cbo9780511811685.023",
+          "excerpt": "N-View Geometry (): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Sturm and Maybank authored \"On Plane-Based Camera Calibration\" (1999, CVPR).",
+      "sentence": "Sturm, P. & Maybank, S. (1999). On Plane-Based Camera Calibration. *CVPR 1999*.",
+      "offset": 4774,
+      "confidence": 0.0626542947044767,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1109/cvpr.1999.786974; https://doi.org/10.1117/12.774689",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/cvpr.1999.786974",
+          "excerpt": "On plane-based camera calibration: A general algorithm, singularities, applications (P.F. Sturm, S.J. Maybank): ",
+          "relevance": 0.47058823529411764,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1117/12.774689",
+          "excerpt": "Slide projector calibration based on calibration of digital camera (Jun Tao): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.5244/c.10.55",
+          "excerpt": "Self-Calibration of a Moving Camera by Pre-Calibration (Sturm, P): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Ke and Kanade authored \"Quasiconformal Mappings for 3D Surface Registration\" (2001, CMU Tech Report).",
+      "sentence": "Ke, Q. & Kanade, T. (2001). Quasiconformal Mappings for 3D Surface Registration. *CMU Tech Report*.",
+      "offset": 4877,
+      "confidence": 0.04438012541567098,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1090/ulect/038/02; https://doi.org/10.1007/978-3-030-22591-9_2",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1090/ulect/038/02",
+          "excerpt": "Differentiable quasiconformal mappings (): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-3-030-22591-9_2",
+          "excerpt": "Quasiconformal and Quasiregular Harmonic Mappings (Vesna Todorčević): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-1-4612-0605-7_6",
+          "excerpt": "Planar Quasiconformal Mappings; Deformations and Interactions (Kari Astala): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-1-4612-0605-7_10",
+          "excerpt": "Extremal Quasiconformal Mappings in Plane Domains (Clifford J. Earle, Li Zhong): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-3-0348-8268-2_26",
+          "excerpt": "Sobolev Spaces and Quasiconformal Mappings on Metric Spaces (Pekka Koskela): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    }
+  ]
+}

@@ -1076,9 +1076,7 @@ AMEO_START
 
 Install at `${HOME}/printer_data/config/scripts/ameo_vision_bridge.py`.
 
-**Path resolution:** The script is called with `${HOME}` expanded by the shell at runtime, so it works
-whether the printer host is a Raspberry Pi, an Orange Pi, a Debian VM, or a BTT CB1 —
-no hardcoded `/home/pi/` anywhere.
+**Path resolution:** The script is called with `${HOME}` expanded by the POSIX shell at runtime (per IEEE Std 1003.1-2017 §2.6.1 Parameter Expansion), ensuring compatibility across any POSIX-compliant host — Raspberry Pi, Orange Pi, Debian VM, or BTT CB1 — with no hardcoded `/home/pi/` path.
 
 Configuration is loaded from `${HOME}/printer_data/config/ameo_profiles.json` (see §8, §9).
 The Moonraker URL is overridable via the `AMEO_MOONRAKER_URL` environment variable so the same

@@ -1,0 +1,47 @@
+{
+  "source": "c:\\Users\\User\\source\\repos\\QIDIStudio\\docs\\AI Debugging 3D Texture Mapping.md",
+  "claims": 1,
+  "corrections": 1,
+  "hallucinations": 1,
+  "elapsed_seconds": 8.429630900034681,
+  "verdicts": [
+    {
+      "claim": "Reduce `seam_angle_deg` from 60 to 30",
+      "sentence": "Common Failure Modes and Patches\n\n| Failure signature | Root cause | Fix |\n|------------------|------------|-----|\n| $E_D > 100$ on REVOLUTION | Conical frustum — cylinder_project degenerates | `_mesh_is_conical(obj)` -> switch to `method='CONFORMAL'` |\n| `high_energy_frac > 0.25` on PRISMATIC | Missing seams at flat face boundaries | Reduce `seam_angle_deg` from 60 to 30 |\n| $\\bar{s} > 3$ everywhere | UV scale not calibrated | Run `calibrate_tile_scale(obj, tile_size_mm)` |\n| Isolated red island | Camera island UV chart unscaled | Force equal-area packing in xAtlas |\n| $E_C > 0.3$ on smooth organic | ARAP not initialised with LSCM | Run LSCM first, then ARAP refine (10 iterations) |\n\n---\n\n## VI.",
+      "offset": 8904,
+      "confidence": 0.053256150498805194,
+      "corrected": null,
+      "source": null,
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-1-4612-4806-4_7",
+          "excerpt": "Running Reduce (Gerhard Rayna): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1017/cbo9780511524400.002",
+          "excerpt": "REDUCE language (): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1302/3114-221640",
+          "excerpt": "REDUCE – A Toolkit for Hip Fracture Care (): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2165/00128413-199308990-00014",
+          "excerpt": "Reduce need, reduce demand, and save ( &NA;): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    }
+  ]
+}

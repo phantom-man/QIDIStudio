@@ -1,0 +1,40 @@
+{
+  "source": "c:\\Users\\User\\source\\repos\\QIDIStudio\\docs\\PyTorch, LangChain, and Cyber-Physical Graphs.md",
+  "claims": 1,
+  "corrections": 1,
+  "hallucinations": 1,
+  "elapsed_seconds": 4.780090700020082,
+  "verdicts": [
+    {
+      "claim": "introduced by Buldyrev",
+      "sentence": "The **interdependency graph** (introduced by Buldyrev et al., 2010) models mutual dependencies between cyber and physical subgraphs and shows that interdependency drastically increases fragility — coupled networks can suffer abrupt, first-order phase transitions in connectivity at failure thresholds far below what either network would exhibit alone.",
+      "offset": 14634,
+      "confidence": 0.03183791605906832,
+      "corrected": "The **interdependency graph** (introduced by Buldyrev et al., 2010, doi:10.1038/nature08932) models mutual dependencies between cyber and physical subgraphs and shows that interdependency drastically increases fragility — coupled networks can suffer abrupt, first-order phase transitions in connectivity at failure thresholds far below what either network would exhibit alone.",
+      "source": "https://doi.org/10.1038/nature08932",
+      "evidence": [
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/4eab9666ed4b88040c947bb8c110ab7ef53c5462",
+          "excerpt": "An Interference Head Wave (Buldyrev Wave) and the Locality Principle (2017): ",
+          "relevance": 0.25,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/207310e8cc03c21de481c25207c2122eda7f3e9f",
+          "excerpt": "An Interference Head Wave (Buldyrev Wave) and the Locality Principle (2017): ",
+          "relevance": 0.25,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/8bac81a108f17d697482da2305875470ff1d65c9",
+          "excerpt": "The Buldyrev interference head wave and the locality principle (2015): ",
+          "relevance": 0.25,
+          "supports": true
+        }
+      ]
+    }
+  ]
+}

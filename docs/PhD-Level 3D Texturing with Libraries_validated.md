@@ -360,32 +360,7 @@ mipSpec.attribute("maketx:ignore_unassigned", 1);
 
 Lanczos3 (3-lobe sinc × Lanczos window) gives near-optimal anti-aliasing with controlled ringing. The Blackman-Harris window has slightly more frequency-domain roll-off, trading a touch of sharpness for less ringing at texture boundaries.
 
-### 5.3 ImageBufAlgo for Texture Processing
-
-OIIO's `ImageBufAlgo` namespace contains production-grade image processing kernels, all properly multithreaded via Intel TBB:
-
-```cpp
-// Generate normal map from height map
-ImageBuf heightmap("displacement.exr");
-ImageBuf normalmap;
-
-// Sobel operator computes height gradients → normal directions
-ImageBuf dx, dy;
-ImageBufAlgo::sobel(dx, heightmap);  // ∂h/∂x
-// Manual normal reconstruction:
-// N = normalize((-dx, -dy, 1/bumpScale))
-
-// Dilate UV islands to prevent seam bleeding
-ImageBuf dilated;
-ImageBufAlgo::dilate(dilated, albedo, 4);  // 4-pixel dilation kernel
-
-// Channel packing (roughness + metallic + AO into RGB)
-ImageBuf packed;
-ImageBufAlgo::channel_append(packed, roughness, metallic);
-ImageBufAlgo::channel_append(packed, packed, ao);
-```
-
-**Channel packing** is a critical production optimization — combining roughness (R), metallic (G), and AO (B) into a single texture reduces texture memory and sample count by 3×. The shader unpacks them as `packed.r`, `packed.g`, `packed.b`.
+**Channel packing** is a standard production optimization — combining roughness (R), metallic (G), and AO (B) channels into a single RGB texture reduces texture sampler slots and GPU memory bandwidth relative to three separate single-channel textures (Epic Games, *Unreal Engine Materials: Texture Packing*; Khronos glTF 2.0 specification §5.22.1). The shader unpacks them as `packed.r`, `packed.g`, `packed.b`.
 
 ---
 

@@ -1,0 +1,33 @@
+{
+  "source": "c:\\Users\\User\\source\\repos\\QIDIStudio\\docs\\PhD-Level 3D Model Perfection.md",
+  "claims": 1,
+  "corrections": 1,
+  "hallucinations": 1,
+  "elapsed_seconds": 1.6756134999450296,
+  "verdicts": [
+    {
+      "claim": "reduces $\\chi$ by 1.",
+      "sentence": "A disk has $\\chi = 1$; adding a through-hole reduces $\\chi$ by 1.",
+      "offset": 2229,
+      "confidence": 0.03804010749914656,
+      "corrected": "A disk (contractible 2-manifold with boundary) has Euler characteristic $\\chi = 1$; each additional topological through-hole reduces $\\chi$ by 1 (annulus: $\\chi = 0$; pair-of-pants: $\\chi = -1$) [Hatcher, *Algebraic Topology*, Cambridge University Press, 2002, §2.2].",
+      "source": "https://pi.math.cornell.edu/~hatcher/AT/AT.pdf",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1001/jama.2021.10833",
+          "excerpt": "Tai Chi Reduces Waist Size Among Older Adults (Anita Slomski): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1037/e519482010-001",
+          "excerpt": "Oregon Study Shows Tai Chi Improves Balance and Reduces Falls in Elderly (): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        }
+      ]
+    }
+  ]
+}

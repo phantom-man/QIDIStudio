@@ -1,0 +1,1993 @@
+{
+  "source": "docs\\3D Printing Physics-Informed Function.md",
+  "claims": 65,
+  "corrections": 65,
+  "hallucinations": 65,
+  "elapsed_seconds": 761.9911345000146,
+  "verdicts": [
+    {
+      "claim": "A model combines Hagen-Poiseuille, Arrhenius, reptation, and Stefan cooling into an operating-window function for FDM.",
+      "sentence": "A physics-derived model for computing optimal FDM extrusion parameters, combining Hagen-Poiseuille melt flow, Arrhenius viscosity, reptation bonding theory, and Stefan cooling into a unified operating-window function.",
+      "offset": 31,
+      "confidence": 0.035504100332536793,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1007/springerreference_211862; https://doi.org/10.1007/978-0-387-30160-0_5664",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_211862",
+          "excerpt": "Hagen-Poiseuille Equation (): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-0-387-30160-0_5664",
+          "excerpt": "Hagen–Poiseuille equation (): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-1-4419-6247-8_5752",
+          "excerpt": "Hagen-Poiseuille Equation (Jan W. Gooch): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2139/ssrn.6028268",
+          "excerpt": "Numerical evaluation of shale distribution controls on sandstone permeability using a Hagen–Poiseuille pore-thoat-network model (Chongwang Yue, Xu Chen, Jia Chai): ",
+          "relevance": 0.23076923076923078,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Three governing equations constrain the FDM extrusion operating window.",
+      "sentence": "Three governing equations constrain the FDM extrusion operating window:",
+      "offset": 163,
+      "confidence": 0.05917350055422798,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1049/sbew569g_ch4; https://doi.org/10.1007/978-1-56990-648-4_4",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1049/sbew569g_ch4",
+          "excerpt": "Governing equations (): ",
+          "relevance": 0.4444444444444444,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-1-56990-648-4_4",
+          "excerpt": "Extrusion (Tim A. Osswald): ",
+          "relevance": 0.25,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.3139/9781569909379.004",
+          "excerpt": "4 Extrusion (): ",
+          "relevance": 0.25,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.3139/9783446446038.004",
+          "excerpt": "Extrusion (Tim A. Osswald): ",
+          "relevance": 0.25,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.3139/9781569906484.004",
+          "excerpt": "Extrusion (Tim A. Osswald): ",
+          "relevance": 0.25,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Hagen-Poiseuille theory controls the maximum volumetric flow rate.",
+      "sentence": "Fluid mechanics | Hagen-Poiseuille | Max volumetric flow rate $Q_{max}$",
+      "offset": 223,
+      "confidence": 0.046990721028357524,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.36884/jafm.7.01.19506",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.36884/jafm.7.01.19506",
+          "excerpt": "Intermittency in the Transition to Turbulence for a Shear-Thinning Fluid in Hagen-Poiseuille Flow (): ",
+          "relevance": 0.35294117647058826,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Arrhenius theory controls temperature–viscosity coupling.",
+      "sentence": "Chemical kinetics | Arrhenius | Temperature–viscosity coupling",
+      "offset": 295,
+      "confidence": 0.12387843702982945,
+      "corrected": "Arrhenius theory describes the temperature dependence of viscosity.",
+      "source": "https://doi.org/10.32388/8hr1qb; https://doi.org/10.1016/j.cplett.2009.10.005",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.32388/8hr1qb",
+          "excerpt": "Viscosity Arrhenius temperature (Noureddine Ouerfelli): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.cplett.2009.10.005",
+          "excerpt": "Temperature dependence of respiration rates of leaves, 18O-experiments and super-Arrhenius kinetics (Masayoshi Nishiyama, Steven Kleijn, Vincenzo Aquilanti): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "PubMed",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/28320904/",
+          "excerpt": "Kinetics of low-temperature transitions and a reaction rate theory from non-equilibrium distributions. (Philos Trans A Math Phys Eng Sci)",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1021/acsnano.9b00068.s001",
+          "excerpt": "Non-Arrhenius Reaction-Diffusion Kinetics for Protein Inactivation over a Large Temperature Range (): ",
+          "relevance": 0.25,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Reptation theory controls inter-layer bonding time.",
+      "sentence": "Polymer physics | Reptation theory | Inter-layer bonding time $\\tau_{rep}$",
+      "offset": 361,
+      "confidence": 0.11097214126169158,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1016/j.conbuildmat.2020.118063; https://doi.org/10.26434/chemrxiv-2024-fv341",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.conbuildmat.2020.118063",
+          "excerpt": "Mechanical characterization of asphalt mixes inter-layer bonding based on reptation theory (Saannibe Ciryle Somé, Arnaud Feeser, Mouna Jaoua): ",
+          "relevance": 0.5882352941176471,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.26434/chemrxiv-2024-fv341",
+          "excerpt": "Nuclear Quantum Effects in Chemical Bonding Theory: Inter/Intramolecular Hydrogen-Bonding Interactions (Kohei Motoki, Hirotoshi Mori): ",
+          "relevance": 0.35294117647058826,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1115/1.0002100v",
+          "excerpt": "Temperature Control to Increase Inter-Layer Bonding Strength in Fused Deposition Modelling (Qing Wang, Raoul Kumrai-Woodruff): ",
+          "relevance": 0.35294117647058826,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2139/ssrn.3692911",
+          "excerpt": "Effect of Microwave Heating on Inter-Layer Bonding and Build-Ability of Geo-Polymer 3D Concrete Printing (Shravan Muthukrishnan): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/bff7cefc3f2228aa4455d7b854be6cd7c7f2b9c2",
+          "excerpt": "Mechanical characterization of asphalt mixes inter-layer bonding based on reptation theory (2020): Abstract A bituminous pavement is composed of several layers. The bonding of the interfaces between t",
+          "relevance": 0.2564102564102564,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Stefan-Boltzmann theory controls the minimum cooling time between layers.",
+      "sentence": "Heat transfer | Stefan-Boltzmann | Minimum cooling time between layers",
+      "offset": 430,
+      "confidence": 0.048414682271641085,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1615/atoz.s.stefan-boltzmann_law; https://doi.org/10.1016/j.ijheatmasstransfer.2005.08.003",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1615/atoz.s.stefan-boltzmann_law",
+          "excerpt": "STEFAN-BOLTZMANN LAW (I. G. Zaltsman): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.ijheatmasstransfer.2005.08.003",
+          "excerpt": "Multi-length and time scale thermal transport using the lattice Boltzmann method with application to electronics cooling (Rodrigo A. Escobar, Sartaj S. Ghai, Myung S. Jhon): ",
+          "relevance": 0.2608695652173913,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Volumetric flow rate Q is defined as $\\frac{\\pi r^4 \\Delta P}{8 \\mu L}$ for laminar flow.",
+      "sentence": "For laminar flow through a cylindrical nozzle of radius $r$ and length $L$ under pressure $\\Delta P$: $$Q = \\frac{\\pi r^4 \\Delta P}{8 \\mu L}$$",
+      "offset": 525,
+      "confidence": 0.09213699950427347,
+      "corrected": "For laminar flow through a cylindrical pipe of radius $r$ and length $L$ under a pressure difference $\\Delta P$, the volumetric flow rate $Q$ is given by the Hagen-Poiseuille equation: $Q = \\frac{\\pi r^4 \\Delta P}{8 \\mu L}$.",
+      "source": "https://www.semanticscholar.org/paper/3c0868317d25a7f491b37ac576ca7e6c52b2859e; https://doi.org/10.1017/cbo9781139565387.012",
+      "evidence": [
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/3c0868317d25a7f491b37ac576ca7e6c52b2859e",
+          "excerpt": "Secondary Migration of Fang Crude Petroleum Related to Volumetric Flow Rate (2018): ",
+          "relevance": 0.375,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1017/cbo9781139565387.012",
+          "excerpt": "Hagen–Poiseuille equation (and laminar flow) (): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1115/icone24-60686",
+          "excerpt": "Analysing Laminar Flow Numerical Simulation Error of Fluent in Circular Tube Based on Hagen Poiseuille Formula (Yaoxin Wang, Tao Zhou, Lanyu Zhou): <jats:p>Firstly, using Fluent laminar model simulate",
+          "relevance": 0.21621621621621623,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Apparent viscosity for power-law fluids is defined as $\\mu_{app} = K \\dot{\\gamma}^{n-1}$.",
+      "sentence": "The apparent viscosity $\\mu$ for a power-law fluid (most polymer melts) is: $$\\mu_{app} = K \\dot{\\gamma}^{n-1}$$",
+      "offset": 650,
+      "confidence": 0.0,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "Most polymer melts are power-law fluids.",
+      "sentence": "The apparent viscosity $\\mu$ for a power-law fluid (most polymer melts) is: $$\\mu_{app} = K \\dot{\\gamma}^{n-1}$$",
+      "offset": 689,
+      "confidence": 0.04438012541567098,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.3403/03246474u; https://doi.org/10.3403/03246474",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.3403/03246474u",
+          "excerpt": "Plastics. Determination of the transient extensional viscosity of polymer melts (): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.3403/03246474",
+          "excerpt": "Plastics. Determination of the transient extensional viscosity of polymer melts (): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.3403/30406609",
+          "excerpt": "Plastics. Determination of the transient extensional viscosity of polymer melts (): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "K is the consistency index in the power-law viscosity model.",
+      "sentence": "where $K$ is the consistency index, $\\dot{\\gamma} = 4Q/(\\pi r^3)$ is the wall shear rate, and $n < 1$ (shear-thinning).",
+      "offset": 770,
+      "confidence": 0.07566673556895458,
+      "corrected": "where $K$ is the consistency index in the power-law viscosity model, $\\dot{\\gamma} = 4Q/(\\pi r^3)$ is the wall shear rate, and $n < 1$ (shear-thinning).",
+      "source": "https://doi.org/10.1016/j.fluid.2011.08.016; https://doi.org/10.1016/j.jnnfm.2012.12.001",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.fluid.2011.08.016",
+          "excerpt": "Power-law behavior in the viscosity of ionic liquids: Existing a similarity in the power law and a new proposed viscosity equation (Mohammad Hadi Ghatee, Morteza Zare): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.jnnfm.2012.12.001",
+          "excerpt": "Slow, steady ascent in a power-law fluid with temperature-dependent viscosity (M. Vynnycky, M.A. O’Brien): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "PubMed",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/1296211/",
+          "excerpt": "Non-Newtonian rheology of leukemic blood and plasma: are n and k parameters of power law model diagnostic? (Physiol Chem Phys Med NMR)",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Wall shear rate $\\dot{\\gamma}$ is defined as $4Q/(\\pi r^3)$.",
+      "sentence": "where $K$ is the consistency index, $\\dot{\\gamma} = 4Q/(\\pi r^3)$ is the wall shear rate, and $n < 1$ (shear-thinning).",
+      "offset": 797,
+      "confidence": 0.10900821318925398,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1253/jjcsc.9.1_118_1; https://doi.org/10.26481/dis.19960531pb",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1253/jjcsc.9.1_118_1",
+          "excerpt": "壁せん断応力 (wall shear stress) と壁せん断速度 (wall shear rate) (): ",
+          "relevance": 0.5454545454545454,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.26481/dis.19960531pb",
+          "excerpt": "Non-invasive methods for the assessment of wall shear rate and arterial impedance (P.J. Brands): ",
+          "relevance": 0.46153846153846156,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/3fd33761394aa02bdee9516d2e686a5475837d2e",
+          "excerpt": "Effects Of Red Blood Cell Aggregation On Wall Shear Stress In μ-Tube System (2009): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "For power-law fluids, n < 1 indicates shear-thinning behavior.",
+      "sentence": "where $K$ is the consistency index, $\\dot{\\gamma} = 4Q/(\\pi r^3)$ is the wall shear rate, and $n < 1$ (shear-thinning).",
+      "offset": 842,
+      "confidence": 0.056059105788215984,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.2139/ssrn.4923982; https://doi.org/10.1016/j.carbon.2024.119766",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2139/ssrn.4923982",
+          "excerpt": "Investigation into Shear-Thinning Behavior in Wet Spinning of Carbon Nanotube Fibers Modeled by Power Law Viscosity Model (Jaegyun Im, Min Chan Kim, Chanwoo Park): ",
+          "relevance": 0.42105263157894735,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.carbon.2024.119766",
+          "excerpt": "Investigation into shear-thinning behavior in wet spinning of carbon nanotube fibers modeled by power law viscosity model (Jaegyun Im, Min Chan Kim, Chanwoo Park): ",
+          "relevance": 0.42105263157894735,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2172/10114004",
+          "excerpt": "Two-phase power-law modeling of pipe flows displaying shear-thinning phenomena (Jianmin Ding, R.W. Lyczkowski, W.T. Sha): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.jnnfm.2004.01.002",
+          "excerpt": "The adhesive or slippery flat plate viscoplastic boundary layer for a shear-thinning power-law viscosity (J.-M. Piau, K. Debiane): ",
+          "relevance": 0.35294117647058826,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1021/acs.biomac.3c01348.s001",
+          "excerpt": "Oglycans Expand Lubricin and Attenuate Its Viscosity and Shear Thinning (): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Laminar flow requires a Reynolds number (Re) less than 2100.",
+      "sentence": "Laminar flow requires $Re < 2100$:",
+      "offset": 920,
+      "confidence": 0.10170168170592671,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.2514/6.2010-4579; https://doi.org/10.12783/dtetr/icmm2017/20348",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2514/6.2010-4579",
+          "excerpt": "Low Reynolds Number Laminar Airfoil with Active Flow Control (Michael Thake, Nathan Packard, Carlos Bonilla): ",
+          "relevance": 0.5,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.12783/dtetr/icmm2017/20348",
+          "excerpt": "A New Reynolds Number (Re) Criterion for Using Newtonian/nonnewtonian Constitutive Models in Blood Flow Simulations (Yue ZHOU, Jing-Ying WANG, Zhi-Chao ZHANG): ",
+          "relevance": 0.3157894736842105,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/369e23b32cd11dea4c3a7e17d9226195162e4595",
+          "excerpt": "Stability and dynamics of the laminar flow past rectangular prisms (2024): Abstract The laminar flow past rectangular prisms is studied in the space of length-to-height ratio ( \n$1 \\leqslant L/H \\leqs",
+          "relevance": 0.27586206896551724,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/b978-0-7506-9117-8.50018-4",
+          "excerpt": "Thermal Boundary-Layer Theory at Large Reynolds Number (L. Gary Leal): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.5772/32019",
+          "excerpt": "Modeling the Wake Behind Bluff Bodies for Flow Control at Laminar and Turbulent Reynolds Numbers Using Artificial Neural Networks (Selin Aradag, Akin Paksoy): ",
+          "relevance": 0.2608695652173913,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Reynolds number (Re) is defined as $\\frac{\\rho Q}{\\pi r \\mu}$.",
+      "sentence": "Laminar flow requires $Re < 2100$: $$Re = \\frac{\\rho Q}{\\pi r \\mu}$$",
+      "offset": 946,
+      "confidence": 0.1312108055767664,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1007/978-0-387-30160-0_9831; https://doi.org/10.1007/978-3-642-56940-1_41",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-0-387-30160-0_9831",
+          "excerpt": "Reynolds number (Re, N Re ) (): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-3-642-56940-1_41",
+          "excerpt": "Reynolds-Zahl Re (Reynolds number Re) (Heinz Herwig): ",
+          "relevance": 0.5714285714285714,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/d930b5f700e4a7984064fe1d0863677eee90124f",
+          "excerpt": "Pair-sphere trajectories in finite-Reynolds-number shear flow (2008): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/6c3259f3f9f87d90c361f1f66bd05b46930183a9",
+          "excerpt": "Suspension properties at finite Reynolds number from simulated shear flow (2008): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/4700020056bf2fdc3673b93698dec38b8d23cece",
+          "excerpt": "Stability of the flow of a fluid through a flexible tube at high Reynolds number (1995): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2514/5.9781600865770.0445.0477",
+          "excerpt": "Chemical and Thermal Nonequilibrium Heat-Transfer Analysis for Hypervelocity, Low Reynolds Number Flow (): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/a4702a8315db17896f5e6a230e55c546c438735a",
+          "excerpt": "Dynamics and rheology of concentrated, finite-Reynolds-number suspensions in a homogeneous shear flow (2013): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2139/ssrn.4644186",
+          "excerpt": "Hydrodynamic Characteristics of Hyperbolic Cylinder Under   Periodic Pulsating Flow  at Moderately High Reynolds Number (Re=3900) (Wen-Quan Wang, Jia-Ling Luo, Yan Yan): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Most FDM materials have a viscosity of approximately $10^3$ Pa·s.",
+      "sentence": "For most FDM materials ($\\,\\mu \\sim 10^3$ Pa·s) and typical nozzle radii ($r = 0.2$ mm), $Re \\ll 1$ — confirming laminar flow is always satisfied.",
+      "offset": 1017,
+      "confidence": 0.0,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "Typical nozzle radii for FDM are $r = 0.2$ mm.",
+      "sentence": "For most FDM materials ($\\,\\mu \\sim 10^3$ Pa·s) and typical nozzle radii ($r = 0.2$ mm), $Re \\ll 1$ — confirming laminar flow is always satisfied.",
+      "offset": 1063,
+      "confidence": 0.0,
+      "corrected": "For most FDM materials ($\\,\\mu \\sim 10^3$ Pa·s) and nozzle radii ($r = 0.2$ mm), $Re \\ll 1$ — confirming laminar flow is always satisfied.",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "For most FDM materials and typical nozzle radii, Reynolds number $Re \\ll 1$.",
+      "sentence": "For most FDM materials ($\\,\\mu \\sim 10^3$ Pa·s) and typical nozzle radii ($r = 0.2$ mm), $Re \\ll 1$ — confirming laminar flow is always satisfied.",
+      "offset": 1113,
+      "confidence": 0.05917350055422798,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1007/978-0-387-30160-0_9831; https://doi.org/10.1007/978-981-10-6946-8_300661",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-0-387-30160-0_9831",
+          "excerpt": "Reynolds number (Re, N Re ) (): ",
+          "relevance": 0.4444444444444444,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-981-10-6946-8_300661",
+          "excerpt": "Reynolds Number (Re) (): ",
+          "relevance": 0.4444444444444444,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2514/6.1991-3558",
+          "excerpt": "Numerical and experimental investigation of low Reynolds number nozzle flows (M. MICCI, L. LONG): ",
+          "relevance": 0.42857142857142855,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-3-642-56940-1_41",
+          "excerpt": "Reynolds-Zahl Re (Reynolds number Re) (Heinz Herwig): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1063/1.1581594",
+          "excerpt": "Low Reynolds Number Performance Comparison of an Underexpanded Orifice and a DeLaval Nozzle (Andrew J. Jamison): ",
+          "relevance": 0.4,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Laminar flow is always satisfied for most FDM materials with typical nozzle radii.",
+      "sentence": "For most FDM materials ($\\,\\mu \\sim 10^3$ Pa·s) and typical nozzle radii ($r = 0.2$ mm), $Re \\ll 1$ — confirming laminar flow is always satisfied.",
+      "offset": 1141,
+      "confidence": 0.04438012541567098,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.2514/6.2010-4579; https://doi.org/10.2514/6.2006-3056",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2514/6.2010-4579",
+          "excerpt": "Low Reynolds Number Laminar Airfoil with Active Flow Control (Michael Thake, Nathan Packard, Carlos Bonilla): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2514/6.2006-3056",
+          "excerpt": "High Reynolds-Number Laminar Flow in the Mach-6 Quiet-Flow Ludwieg Tube (Steven Schneider, Thomas Juliano, Matthew Borg): ",
+          "relevance": 0.21052631578947367,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The Arrhenius equation defines apparent viscosity as $\\mu(T) = A \\exp\\left(\\frac{E_a}{R T}\\right)$.",
+      "sentence": "The Arrhenius equation for apparent viscosity: $$\\mu(T) = A \\exp\\left(\\frac{E_a}{R T}\\right)$$",
+      "offset": 1225,
+      "confidence": 0.053256150498805194,
+      "corrected": "The Arrhenius equation models the temperature dependence of apparent viscosity as: $$\\mu(T) = A \\exp\\left(\\frac{E_a}{R T}\\right)$$",
+      "source": "https://doi.org/10.1007/springerreference_206910; https://doi.org/10.32388/8hr1qb",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_206910",
+          "excerpt": "Arrhenius Equation (): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.32388/8hr1qb",
+          "excerpt": "Viscosity Arrhenius temperature (Noureddine Ouerfelli): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.26434/chemrxiv-2024-k0ml1-v2",
+          "excerpt": "New modified Arrhenius equation to describe the temperature dependence of liquid phase reaction rates (Yunsie Chung, William H. Green): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1520/d4684-07",
+          "excerpt": "Test Method for Determination of Yield Stress and Apparent Viscosity of Engine Oils at Low Temperature ( ): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1520/d4684-12",
+          "excerpt": "Test Method for Determination of Yield Stress and Apparent Viscosity of Engine Oils at Low Temperature ( ): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "$E_a$ is the flow activation energy (J/mol).",
+      "sentence": "where $E_a$ is the flow activation energy (J/mol), $R = 8.314$ J/(mol·K), $T$ in Kelvin, and $A$ is the pre-exponential factor.",
+      "offset": 1328,
+      "confidence": 0.12897656585332298,
+      "corrected": "where $E_a$ is the Arrhenius activation energy (J/mol), $R = 8.314$ J/(mol·K), $T$ in Kelvin, and $A$ is the pre-exponential factor.",
+      "source": "https://doi.org/10.1515/iupac.66.0564; https://doi.org/10.1515/iupac.51.0266",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1515/iupac.66.0564",
+          "excerpt": "Energy of Activation (Arrhenius Energy of Activation; Activation Energy) (P. Muller): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1515/iupac.51.0266",
+          "excerpt": "Energy of Activation, E a(Arrhenius Energy of Activation; Activation Energy) (Victor Gold): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/abdbf92ee514f2969665fdc0c32e04e5f8c29ce3",
+          "excerpt": "Impact of the nonlinear thermal radiation on the Arrhenius activation energy of tangent hyperbolic micropolar hybrid nanofluid flow across an extending surface (2025): ",
+          "relevance": 0.3157894736842105,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/1908b9444a184a77692b2273f4fe5f8f7755c6f5",
+          "excerpt": "A numerical approach to MHD Maxwell fluid flow over a vertical plate in a non-Darcian porous regime with Arrhenius activation energy and viscous dissipation effect (2025): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/72d0c01e56276e8ea7b71a22c6832bd1e8bfa58d",
+          "excerpt": "Buoyancy driven bioconvective Casson nanofluid flow over a vertical stretching cylinder in Darcy–Forchheimer permeable medium with Arrhenius activation energy and chemical reaction (2025): ",
+          "relevance": 0.2608695652173913,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The gas constant R is $8.314$ J/(mol·K).",
+      "sentence": "where $E_a$ is the flow activation energy (J/mol), $R = 8.314$ J/(mol·K), $T$ in Kelvin, and $A$ is the pre-exponential factor.",
+      "offset": 1366,
+      "confidence": 0.21700434150260428,
+      "corrected": "where $E_a$ is the flow activation energy (J/mol), $R = 8.314$ J/(mol·K), $T$ in Kelvin, and $A$ is the pre-exponential factor.",
+      "source": "https://doi.org/10.1036/1097-8542.280700; https://doi.org/10.32388/835tsq",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1036/1097-8542.280700",
+          "excerpt": "Gas constant (): ",
+          "relevance": 1.0,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.32388/835tsq",
+          "excerpt": "Constant Data Value ( ): ",
+          "relevance": 0.5,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/651a27a854ddd9a8bb0a84a1b1b2365bbc876efa",
+          "excerpt": "Determination of the gas constant by an acoustical method (1974): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/d37f9e1d416196493f3d8a8c14290cdeb3b3ba43",
+          "excerpt": "New measurement of the Boltzmann constant k by acoustic thermometry of helium-4 gas (2017): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/27e2041fea033dec6af34ed593ec60c717393526",
+          "excerpt": "A determination of the molar gas constant R by acoustic thermometry in helium (2015): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "PubMed",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/34245488/",
+          "excerpt": "Optimal heating rate in constant pressure and constant flow gas chromatography. (J Sep Sci)",
+          "relevance": 0.25,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Temperature T in the Arrhenius equation is in Kelvin.",
+      "sentence": "where $E_a$ is the flow activation energy (J/mol), $R = 8.314$ J/(mol·K), $T$ in Kelvin, and $A$ is the pre-exponential factor.",
+      "offset": 1401,
+      "confidence": 0.1337078970323796,
+      "corrected": "where $E_a$ is the flow activation energy (J/mol), $R = 8.314$ J/(mol·K), and $T$ is the absolute temperature in Kelvin, as is standard for the Arrhenius equation and consistent with the units of R, and $A$ is the pre-exponential factor.",
+      "source": "https://doi.org/10.1007/springerreference_206910; https://doi.org/10.2507/22nd.daaam.proceedings.192",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_206910",
+          "excerpt": "Arrhenius Equation (): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2507/22nd.daaam.proceedings.192",
+          "excerpt": "Arrhenius Equation Parameters Identification from Temperature Profiles (Lubomir Macku): ",
+          "relevance": 0.5454545454545454,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.26434/chemrxiv-2024-k0ml1-v2",
+          "excerpt": "New modified Arrhenius equation to describe the temperature dependence of liquid phase reaction rates (Yunsie Chung, William H. Green): ",
+          "relevance": 0.42857142857142855,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/54c162a4f5554226258e78ef8397dc31681200f2",
+          "excerpt": "Calculating the Confidence and Prediction Limits of a Rate Constant at a Given Temperature from an Arrhenius Equation Using Excel (2017): ",
+          "relevance": 0.35294117647058826,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.sse.2021.108011",
+          "excerpt": "Introducing effective temperature into Arrhenius equation with Meyer-Neldel rule for describing both Arrhenius and non-Arrhenius dependent drain current of amorphous InGaZnO TFTs (Hongyu He, Yuan Liu,",
+          "relevance": 0.2727272727272727,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/cbd3b5f2b081d2572de055c4f24e1b6582fda774",
+          "excerpt": "The Arrhenius Equation is Still a Useful Tool in Chemical Engineering (2017): The Arrhenius equation correlates the rate of a chemical reaction with the corresponding activation energy, reaction time ",
+          "relevance": 0.25,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1093/hesc/9780198847816.003.0096",
+          "excerpt": "The Arrhenius equation (Peter Atkins, Julio de Paula, James Keeler): <p>This chapter discusses how rate constants of most reactions increase with increasing temperature. It introduces the ‘Arrhenius e",
+          "relevance": 0.20689655172413793,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "A is the pre-exponential factor in the Arrhenius equation.",
+      "sentence": "where $E_a$ is the flow activation energy (J/mol), $R = 8.314$ J/(mol·K), $T$ in Kelvin, and $A$ is the pre-exponential factor.",
+      "offset": 1421,
+      "confidence": 0.08193253922893107,
+      "corrected": "where $E_a$ is the flow activation energy (J/mol), $R = 8.314$ J/(mol·K), $T$ in Kelvin, and $A$ is the pre-exponential factor in the Arrhenius equation.",
+      "source": "https://doi.org/10.1007/s10853-006-1065-9; https://doi.org/10.4236/ce.2010.12019",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/s10853-006-1065-9",
+          "excerpt": "Pre-exponential factor of Arrhenius equation for the isothermal crystallization of some Se–Ge, Se–In and Se–Te chalcogenide glasses (N. Mehta, A. Kumar): ",
+          "relevance": 0.6153846153846154,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.4236/ce.2010.12019",
+          "excerpt": "How Do We Introduce the Arrhenius Pre-Exponential Factor (A) to Graduate Students? (Vandanapu Jagannadham): ",
+          "relevance": 0.6,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/bf01903693",
+          "excerpt": "Methods to determine the temperature dependence of the pre-exponential factor of the Arrhenius equation from thermogravimetric data (H. R. Petty, E. T. Arakawa, J. K. Baird): ",
+          "relevance": 0.5333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/s10570-019-02746-w",
+          "excerpt": "Estimation of power transformer remaining life from activation energy and pre-exponential factor in the Arrhenius equation (Ashkan Teymouri, Behrooz Vahidi): ",
+          "relevance": 0.5,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.20944/preprints202304.0215.v1",
+          "excerpt": "Deriving the Arrhenius Equation and the Pre-Exponential Factor (Rupeng Dou): <jats:p>Proposed in 1889 by Svante Arrhenius, the Arrhenius equation is an important result in physical chemistry which aim",
+          "relevance": 0.24242424242424243,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "For PLA, $E_a$ is approximately $110$ kJ/mol.",
+      "sentence": "For PLA: $E_a \\approx 110$ kJ/mol, $A \\approx 10^{-15}$ Pa·s.",
+      "offset": 1484,
+      "confidence": 0.0,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "For PLA, A is approximately $10^{-15}$ Pa·s.",
+      "sentence": "For PLA: $E_a \\approx 110$ kJ/mol, $A \\approx 10^{-15}$ Pa·s.",
+      "offset": 1508,
+      "confidence": 0.0,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "Optimal print temperature balances low viscosity (high T) and sufficient cooling time (low T).",
+      "sentence": "The optimal print temperature balances: - Low $\\mu$ (high $T$) → better flow, more detail - Sufficient cooling time (low $T$ limit) → no layer collapse",
+      "offset": 1565,
+      "confidence": 0.046990721028357524,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1007/978-3-642-82345-9_42; https://doi.org/10.2139/ssrn.4821544",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-3-642-82345-9_42",
+          "excerpt": "Long Time Measurements of the Effects of Water and Temperature on Cooling Towers (U. Stoffregen): ",
+          "relevance": 0.35294117647058826,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2139/ssrn.4821544",
+          "excerpt": "Viscosity Solutions for Mean Field Optimal Switching with a Two-Time-Scale Markov Chain (Tian Chen, Guanxu Li, Zhen Wu): ",
+          "relevance": 0.3,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-88-470-2892-0_5",
+          "excerpt": "Viscosity Solutions and Large-Time Behavior for Non-Resonant Balance Laws (Laurent Gosse): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Low viscosity (high T) leads to better flow and more detail in prints.",
+      "sentence": "The optimal print temperature balances: - Low $\\mu$ (high $T$) → better flow, more detail - Sufficient cooling time (low $T$ limit) → no layer collapse",
+      "offset": 1609,
+      "confidence": 0.02958675027711399,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1016/j.fuel.2018.03.031; https://doi.org/10.15372/pmtf202515714",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.fuel.2018.03.031",
+          "excerpt": "Flow behaviour of crystallising coal ash slags: Shear viscosity, non-Newtonian flow and temperature of critical viscosity (Alex Kondratiev, Alexander Ilyushechkin): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.15372/pmtf202515714",
+          "excerpt": "PLANE-PARALLEL POISEUILLE FLOW WITH TEMPERATURE DEPENDENT VISCOSITY UNDER PRESSURE AND TEMPERATURE GRADIENTS (Д.В. КНЯЗЕВ): ",
+          "relevance": 0.21052631578947367,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Sufficient cooling time (low T limit) prevents layer collapse.",
+      "sentence": "The optimal print temperature balances: - Low $\\mu$ (high $T$) → better flow, more detail - Sufficient cooling time (low $T$ limit) → no layer collapse",
+      "offset": 1670,
+      "confidence": 0.04438012541567098,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.2139/ssrn.5933314; https://doi.org/10.1007/978-3-642-82345-9_42",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2139/ssrn.5933314",
+          "excerpt": "When Independent Constraints Collapse: Why Real-Time Systems Need a Missing Control Layer (Thomas Rocha III): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-3-642-82345-9_42",
+          "excerpt": "Long Time Measurements of the Effects of Water and Temperature on Cooling Towers (U. Stoffregen): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.17816/brmma58206-41182",
+          "excerpt": "Fig. 3. Dependence of phase transitions of fish oil on temperature and time of cooling and freezing (): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.31274/rtd-20200817-14",
+          "excerpt": "Cooling meat products in foodservice: time, temperature, and growth of Clostridium perfringens ATCC 10388 (David A Olds): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2172/5277470",
+          "excerpt": "Diurnal wind and temperature profiles in the atomspheric layer (0-150 meters) of interest for natural draft cooling towers (K. E. Torrance): ",
+          "relevance": 0.21052631578947367,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The optimal temperature $T^*$ is defined as $\\frac{E_a}{R \\ln(A/\\mu_{target})}$.",
+      "sentence": "$$T^* = \\frac{E_a}{R \\ln(A/\\mu_{target})}$$",
+      "offset": 1708,
+      "confidence": 0.0773524593962579,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.7717/peerj.2289/fig-2; https://www.semanticscholar.org/paper/a1233efb98593641db76db129c0020049fdbd148",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj.2289/fig-2",
+          "excerpt": "Figure 2: Effect of temperature and pH on Bgxg1 activity (A) optimal pH, (B) optimal temperature, (C) pH stability, (D) thermal stability. (): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/a1233efb98593641db76db129c0020049fdbd148",
+          "excerpt": "Optimal temperature for malaria transmission is dramatically lower than previously predicted. (2013): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/7bedbef2144f31d9db57f95cb57c50b765e5b365",
+          "excerpt": "'Optimal thermal range' in ectotherms: Defining criteria for tests of the temperature-size-rule. (2016): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/afba4c12e1918b31956c043517467dca5a0a3dc9",
+          "excerpt": "Water and temperature stress define the optimal flowering period for wheat in south-eastern Australia (2017): ",
+          "relevance": 0.25,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1021/acs.jpcb.3c06526.s001",
+          "excerpt": "Artificial Intelligence-Powered Construction of a Microbial Optimal Growth Temperature Database and Its Impact on Enzyme Optimal Temperature Prediction (): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Polymer chains diffuse across the layer interface via reptation.",
+      "sentence": "Polymer chains diffuse across the layer interface via reptation.",
+      "offset": 1809,
+      "confidence": 0.053256150498805194,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1002/9783527644346.ch4; https://doi.org/10.1016/0032-3861(83)90245-8",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1002/9783527644346.ch4",
+          "excerpt": "Reptation Model for the Dynamics and Rheology of Particle Reinforced Polymer Chains (Kalonji K. Kabanemi, Jean‐François Hétu): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/0032-3861(83)90245-8",
+          "excerpt": "Entangled linear polymer chains in melts: n.m.r. and Rouse or reptation models; stress relaxation (J.P. Cohen-Addad): ",
+          "relevance": 0.35294117647058826,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1201/b16895-8",
+          "excerpt": "CONFORMATION OF LINEAR POLYMERIC CHAINS AT THE INTERFACE LAYER LIQUID / SOLID AND ADSORPTION ISOTHERM (): ",
+          "relevance": 0.35294117647058826,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1021/ma00159a019",
+          "excerpt": "Self-diffusion and reptation in semidilute polymer solutions (W. Hess): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/0032-3861(90)90034-v",
+          "excerpt": "Self-diffusion: an experimental demonstration of the non-applicability of the reptation model to semidilute polymer solutions (Wyn Brown, Pu Zhou): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Welding time $t_w$ required for full bond strength is $\\frac{M_w^3}{K_{rep} T}$.",
+      "sentence": "The welding time $t_w$ required for full bond strength (Wool & O'Connor, 1981): $$t_w = \\frac{M_w^3}{K_{rep} T}$$",
+      "offset": 1878,
+      "confidence": 0.05706016124871984,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1080/13621718.2019.1613010; https://doi.org/10.1080/13621718.2021.2023964",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1080/13621718.2019.1613010",
+          "excerpt": "Evaluation of corona bond strength of resistance spot welding (Kazuki Matsuda, Shinji Kodama): ",
+          "relevance": 0.42857142857142855,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1080/13621718.2021.2023964",
+          "excerpt": "Effect of galvannealed coating on corona bond strength of resistance spot welding (Kazuki Matsuda, Shinji Kodama): ",
+          "relevance": 0.375,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.17077/etd.2not5n6h",
+          "excerpt": "Impact of different acid etching time on microtensile bond strength to vital dentin (Aadarsh Gopalakrishna): ",
+          "relevance": 0.35294117647058826,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1080/09507119909452077",
+          "excerpt": "Effect of oxide film on bond strength of ultrasonically welded joints, and welding process. Study of ultrasonic welding of dissimilar metals (2nd Report) (T Watanabe, A Yanagisawa, S Konuma): ",
+          "relevance": 0.2727272727272727,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1080/09507110902843115",
+          "excerpt": "Production and bond strength of similar-titanium ultrasonic welded joints (Tomonobu Owa, Tomohiro Kondo, Hidekazu Takizawa): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Wool & O'Connor proposed the welding time equation for full bond strength in 1981.",
+      "sentence": "The welding time $t_w$ required for full bond strength (Wool & O'Connor, 1981): $$t_w = \\frac{M_w^3}{K_{rep} T}$$",
+      "offset": 1929,
+      "confidence": 0.035504100332536793,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1007/978-1-4899-2073-7_7; https://doi.org/10.1080/09507110902843115",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-1-4899-2073-7_7",
+          "excerpt": "Welding, Tack, and Green Strength of Polymers (Richard P. Wool): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1080/09507110902843115",
+          "excerpt": "Production and bond strength of similar-titanium ultrasonic welded joints (Tomonobu Owa, Tomohiro Kondo, Hidekazu Takizawa): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2172/5229088",
+          "excerpt": "Study of inertia welding: the sensitivity of weld configuration and strength to variations in welding parameters (M.W. Mote): ",
+          "relevance": 0.21052631578947367,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "$M_w$ is the weight-average molecular weight.",
+      "sentence": "where $M_w$ is weight-average molecular weight and $K_{rep}$ is a reptation constant.",
+      "offset": 2016,
+      "confidence": 0.13111432704325407,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1002/(sici)1097-4628(19990124)71:4<579::aid-app9>3.3.co;2-y; https://pubmed.ncbi.nlm.nih.gov/35651162/",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1002/(sici)1097-4628(19990124)71:4<579::aid-app9>3.3.co;2-y",
+          "excerpt": "Crystallization regimes and reptation in polypropylene molecular weight fractions (A. O. Ibhadon): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "PubMed",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/35651162/",
+          "excerpt": "Molecular Weight Dependence of Crystal Growth in Isotactic Polystyrene Ultrathin Films. (ACS Macro Lett)",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/187564b9d7921afb3423df109a1f577b29ecf928",
+          "excerpt": "An equal force theory for network models of soft materials with arbitrary molecular weight distribution (2017): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/6f37481d187824e305468aa9c64927351a76b267",
+          "excerpt": "Linear viscoelastic behavior of narrow molecular weight distribution 1,4 polybutadiene: Comparison with Doi-Edwards theory of reptation (1990): ",
+          "relevance": 0.25,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/3b0cafc9f951539084bbf3e30dc5e50ce69831bd",
+          "excerpt": "Temperature and molecular weight dependence of the zero shear‐rate viscosity of an entangled polymer melt from simulation and theory (2001): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "$K_{rep}$ is a reptation constant.",
+      "sentence": "where $M_w$ is weight-average molecular weight and $K_{rep}$ is a reptation constant.",
+      "offset": 2050,
+      "confidence": 0.08876025083134197,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.29172/033555f3-f2e5-4e9d-afdf-ff358604c622; https://doi.org/10.29172/033555f3f2e54e9dafdfff358604c622",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.29172/033555f3-f2e5-4e9d-afdf-ff358604c622",
+          "excerpt": "Reptation (): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.29172/033555f3f2e54e9dafdfff358604c622",
+          "excerpt": "Reptation (): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_67586",
+          "excerpt": "Reptation Tube (): ",
+          "relevance": 0.5,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1209/0295-5075/6/5/018",
+          "excerpt": "Double Reptation\n                    <i>vs.</i>\n                    Simple Reptation in Polymer Melts (J. des Cloizeaux): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1209/0295-5075/5/5/010",
+          "excerpt": "Double Reptation\n                    <i>vs.</i>\n                    Simple Reptation in Polymer Melts (J. des Cloizeaux): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Layers deposited faster than $t_w$ have reduced inter-layer adhesion.",
+      "sentence": "Layers deposited faster than $t_w$ have reduced inter-layer adhesion.",
+      "offset": 2090,
+      "confidence": 0.03328509406175324,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1109/ltb-3d64053.2024.10774106",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/ltb-3d64053.2024.10774106",
+          "excerpt": "Perhydropolysilazane as an Adhesion Layer for Vacuum Sealing Wafer Bonding (Kai Takeuchi, Daiki Nemoto, Eiji Higurashi): ",
+          "relevance": 0.25,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Bond strength ratio $\\sigma_{rel}(t)$ is $\\left(\\frac{t}{t_w}\\right)^{1/4}$ for $t \\leq t_w$.",
+      "sentence": "The bond strength ratio at deposition time $t$: $$\\sigma_{rel}(t) = \\left(\\frac{t}{t_w}\\right)^{1/4}, \\quad t \\leq t_w$$",
+      "offset": 2179,
+      "confidence": 0.04438012541567098,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1016/0042-207x(65)90006-0; https://doi.org/10.2139/ssrn.5081597",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/0042-207x(65)90006-0",
+          "excerpt": "Bond strength and mean time of adsorption (Franklin A Baker): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.2139/ssrn.5081597",
+          "excerpt": "Fractional Deposition: Enhancing the Bond Strength between Diamond-Like Carbon with High Sp3/Sp2 Ratio and Alumina (An Zhengjie, Junping Zhao, Sheng Lin): ",
+          "relevance": 0.3,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.17077/etd.2not5n6h",
+          "excerpt": "Impact of different acid etching time on microtensile bond strength to vital dentin (Aadarsh Gopalakrishna): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "Full bond strength is achieved only when deposition time $t \\geq t_w$.",
+      "sentence": "Full strength is achieved only when $t \\geq t_w$.",
+      "offset": 2291,
+      "confidence": 0.10166571944367933,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1016/0042-207x(65)90006-0; https://doi.org/10.1038/d41586-021-03480-9",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/0042-207x(65)90006-0",
+          "excerpt": "Bond strength and mean time of adsorption (Franklin A Baker): ",
+          "relevance": 0.46153846153846156,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1038/d41586-021-03480-9",
+          "excerpt": "Daily briefing: Time to rewrite the textbooks on chemical-bond strength (Flora Graham): ",
+          "relevance": 0.375,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.17077/etd.2not5n6h",
+          "excerpt": "Impact of different acid etching time on microtensile bond strength to vital dentin (Aadarsh Gopalakrishna): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/6f0d3738ab30019c27838c9eddca0cb48a020e8e",
+          "excerpt": "Effect of Deposition Time on Hardness and Bonding Strength of Magnetron Sputtered TiN Coatings on 316 Stainless Steel (2017): ",
+          "relevance": 0.3157894736842105,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.11606/d.25.2019.tde-05092019-205033",
+          "excerpt": "Influence of etching time and adhesive system on shear bond strength and compression resistance of the reinforced leucite ceramic (Camila Cruz Libardi): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The gas constant R_gas is 8.314 J/(mol K).",
+      "sentence": "    R_gas = 8.314",
+      "offset": 2716,
+      "confidence": 0.12059816689041028,
+      "corrected": "The molar gas constant R is 8.314 J/(mol K).",
+      "source": "https://doi.org/10.1036/1097-8542.280700; https://doi.org/10.32388/835tsq",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1036/1097-8542.280700",
+          "excerpt": "Gas constant (): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.32388/835tsq",
+          "excerpt": "Constant Data Value ( ): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/27e2041fea033dec6af34ed593ec60c717393526",
+          "excerpt": "A determination of the molar gas constant R by acoustic thermometry in helium (2015): ",
+          "relevance": 0.25,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "PLA has a density (rho) of 1240 kg/m^3 in the model.",
+      "sentence": "PLA = FilamentProps(\n    name=\"PLA\", rho=1240, K=8500, n=0.35,\n    E_a=110_000, A=1e-15, Mw=150_000,\n    K_rep=2.5e17, T_melt=473.15, T_degrade=503.15,\n)",
+      "offset": 2549,
+      "confidence": 0.0,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "PLA has a power-law consistency index (K) of 8500 Pa*s^n in the model.",
+      "sentence": "PLA = FilamentProps(\n    name=\"PLA\", rho=1240, K=8500, n=0.35,\n    E_a=110_000, A=1e-15, Mw=150_000,\n    K_rep=2.5e17, T_melt=473.15, T_degrade=503.15,\n)",
+      "offset": 2566,
+      "confidence": 0.048414682271641085,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.5040/9781509930401.ch-013; https://doi.org/10.4337/9781035303793.00020",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.5040/9781509930401.ch-013",
+          "excerpt": "Discretionary Power and Consistency: Is the Sentencing Discretion Different? (Chris Maxwell): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.4337/9781035303793.00020",
+          "excerpt": "Index (): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/b978-0-12-810987-8.09989-4",
+          "excerpt": "Index (): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "PLA has a power-law index (n) of 0.35 in the model.",
+      "sentence": "PLA = FilamentProps(\n    name=\"PLA\", rho=1240, K=8500, n=0.35,\n    E_a=110_000, A=1e-15, Mw=150_000,\n    K_rep=2.5e17, T_melt=473.15, T_degrade=503.15,\n)",
+      "offset": 2574,
+      "confidence": 0.06657018812350649,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1016/b978-0-12-810987-8.09989-4",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/b978-0-12-810987-8.09989-4",
+          "excerpt": "Index (): ",
+          "relevance": 0.5,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "PLA has an Arrhenius activation energy ($E_a$) of 110,000 J/mol in the model.",
+      "sentence": "PLA = FilamentProps(\n    name=\"PLA\", rho=1240, K=8500, n=0.35,\n    E_a=110_000, A=1e-15, Mw=150_000,\n    K_rep=2.5e17, T_melt=473.15, T_degrade=503.15,\n)",
+      "offset": 2583,
+      "confidence": 0.14885259456187783,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1515/iupac.66.0564; https://doi.org/10.1515/iupac.51.0266",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1515/iupac.66.0564",
+          "excerpt": "Energy of Activation (Arrhenius Energy of Activation; Activation Energy) (P. Muller): ",
+          "relevance": 0.8571428571428571,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1515/iupac.51.0266",
+          "excerpt": "Energy of Activation, E a(Arrhenius Energy of Activation; Activation Energy) (Victor Gold): ",
+          "relevance": 0.8571428571428571,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/arms.1991.154451",
+          "excerpt": "On the notion of activation energy in reliability: Arrhenius, Eyring, and thermodynamics (D.J. Klinger): ",
+          "relevance": 0.5454545454545454,
+          "supports": true
+        },
+        {
+          "source": "arXiv",
+          "url": "http://arxiv.org/abs/2111.12450v2",
+          "excerpt": "Arrhenius activation energy and transitivity in fission-track annealing equations: Fission-track annealing models aim to extrapolate laboratory annealing kinetics to the geological timescale for appli",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "PLA has an Arrhenius pre-exponential factor (A) of $1 \\times 10^{-15}$ Pa*s in the model.",
+      "sentence": "PLA = FilamentProps(\n    name=\"PLA\", rho=1240, K=8500, n=0.35,\n    E_a=110_000, A=1e-15, Mw=150_000,\n    K_rep=2.5e17, T_melt=473.15, T_degrade=503.15,\n)",
+      "offset": 2595,
+      "confidence": 0.07988422574820779,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1134/s1063783414060250; https://doi.org/10.4236/ce.2010.12019",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1134/s1063783414060250",
+          "excerpt": "On the vineyard formula for the pre-exponential factor in the Arrhenius law (M. M. Maslov, L. A. Openov, A. I. Podlivaev): ",
+          "relevance": 0.6,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.4236/ce.2010.12019",
+          "excerpt": "How Do We Introduce the Arrhenius Pre-Exponential Factor (A) to Graduate Students? (Vandanapu Jagannadham): ",
+          "relevance": 0.5454545454545454,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.jnoncrysol.2007.11.016",
+          "excerpt": "Arrhenius model for high-temperature glass-viscosity with a constant pre-exponential factor (Pavel Hrma): ",
+          "relevance": 0.5333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/s10570-019-02746-w",
+          "excerpt": "Estimation of power transformer remaining life from activation energy and pre-exponential factor in the Arrhenius equation (Ashkan Teymouri, Behrooz Vahidi): ",
+          "relevance": 0.35294117647058826,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "PLA has a weight-average molecular weight ($M_w$) of 150,000 g/mol in the model.",
+      "sentence": "PLA = FilamentProps(\n    name=\"PLA\", rho=1240, K=8500, n=0.35,\n    E_a=110_000, A=1e-15, Mw=150_000,\n    K_rep=2.5e17, T_melt=473.15, T_degrade=503.15,\n)",
+      "offset": 2604,
+      "confidence": 0.06657018812350649,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.31003/uspnf_r4001_01_01; https://doi.org/10.7717/peerj.18233/table-1",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.31003/uspnf_r4001_01_01",
+          "excerpt": "5,800, 23,700, and 100,000 Molecular Weight (MW) Pullulan Standards (): ",
+          "relevance": 0.5,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj.18233/table-1",
+          "excerpt": "Table 1: Identification codes, molecular weight (MW), and molecular formulas of trehalase inhibitors. (): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1002/cjce.24853/v1/review1",
+          "excerpt": "Review for \"Effects of molecular weight, stereo configuration of PLA, and processing on the dispersion of multiwalled carbon nanotubes and properties of corresponding nanocomposites\" (): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1002/cjce.24853/v1/review2",
+          "excerpt": "Review for \"Effects of molecular weight, stereo configuration of PLA, and processing on the dispersion of multiwalled carbon nanotubes and properties of corresponding nanocomposites\" (): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1002/cjce.24853/v2/review2",
+          "excerpt": "Review for \"Effects of molecular weight, stereo configuration of PLA, and processing on the dispersion of multiwalled carbon nanotubes and properties of corresponding nanocomposites\" (): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "PLA has a reptation constant ($K_{rep}$) of $2.5 \\times 10^{17}$ g/mol^3 * K / s in the model.",
+      "sentence": "PLA = FilamentProps(\n    name=\"PLA\", rho=1240, K=8500, n=0.35,\n    E_a=110_000, A=1e-15, Mw=150_000,\n    K_rep=2.5e17, T_melt=473.15, T_degrade=503.15,\n)",
+      "offset": 2617,
+      "confidence": 0.04438012541567098,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1007/springerreference_67586",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/springerreference_67586",
+          "excerpt": "Reptation Tube (): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "PLA has a minimum print temperature ($T_{melt}$) of 473.15 K in the model.",
+      "sentence": "PLA = FilamentProps(\n    name=\"PLA\", rho=1240, K=8500, n=0.35,\n    E_a=110_000, A=1e-15, Mw=150_000,\n    K_rep=2.5e17, T_melt=473.15, T_degrade=503.15,\n)",
+      "offset": 2629,
+      "confidence": 0.04438012541567098,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.21062/ujep/x.2016/a/1213-2489/mt/16/1/136; https://doi.org/10.1016/j.matpr.2021.02.137",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.21062/ujep/x.2016/a/1213-2489/mt/16/1/136",
+          "excerpt": "Deformation of Print PLA Material Depending on the Temperature of Reheating Printing Pad (Jan Krotký, Jarmila Honzíková, Pavel Moc): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.matpr.2021.02.137",
+          "excerpt": "Effect of print speed and extrusion temperature on properties of 3D printed PLA using fused deposition modeling process (Anis A. Ansari, M. Kamil): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "PLA has a maximum print temperature ($T_{degrade}$) of 503.15 K in the model.",
+      "sentence": "PLA = FilamentProps(\n    name=\"PLA\", rho=1240, K=8500, n=0.35,\n    E_a=110_000, A=1e-15, Mw=150_000,\n    K_rep=2.5e17, T_melt=473.15, T_degrade=503.15,\n)",
+      "offset": 2642,
+      "confidence": 0.04438012541567098,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.21062/ujep/x.2016/a/1213-2489/mt/16/1/136; https://doi.org/10.1016/j.matpr.2021.02.137",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.21062/ujep/x.2016/a/1213-2489/mt/16/1/136",
+          "excerpt": "Deformation of Print PLA Material Depending on the Temperature of Reheating Printing Pad (Jan Krotký, Jarmila Honzíková, Pavel Moc): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/j.matpr.2021.02.137",
+          "excerpt": "Effect of print speed and extrusion temperature on properties of 3D printed PLA using fused deposition modeling process (Anis A. Ansari, M. Kamil): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The `operating_window` function returns the optimal temperature maximizing Q while meeting bonding criteria.",
+      "sentence": "    Returns the optimal temperature that maximises Q while meeting bonding criteria.",
+      "offset": 2704,
+      "confidence": 0.0,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "The optimal temperature is selected by maximizing Q with a bond_ratio >= 0.95.",
+      "sentence": "    # Select temperature that maximises Q with bond_ratio >= 0.95",
+      "offset": 3100,
+      "confidence": 0.02958675027711399,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1021/ie0491589.s002; https://doi.org/10.1021/ie0491589.s001",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1021/ie0491589.s002",
+          "excerpt": "Novel Reactor Temperature and Recycle  Flow Rate Policies for Optimal Process  Operation in the Plantwide Context (): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1021/ie0491589.s001",
+          "excerpt": "Novel Reactor Temperature and Recycle  Flow Rate Policies for Optimal Process  Operation in the Plantwide Context (): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/s43939-025-00209-7",
+          "excerpt": "Optimal material selection for high temperature tribological application: an integrated multi criteria decision study (Yesufikad Fentie Takele, Abraham Debebe Woldeyohannes): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "For PLA (Mw=150k), the model predicts an optimal temperature of 214 °C.",
+      "sentence": "PLA (Mw=150k) | 214 | 210–220 | ±5°",
+      "offset": 3336,
+      "confidence": 0.053256150498805194,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.7717/peerj.8882/fig-3; https://doi.org/10.1109/icaibd.2018.8396197",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj.8882/fig-3",
+          "excerpt": "Figure 3: ANFIS model for temperature prediction. (): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/icaibd.2018.8396197",
+          "excerpt": "Study on temperature prediction model of cold rolling strip (Chen Junyi, Hao Peifeng, Song Jingping): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/chicc.2008.4605042",
+          "excerpt": "Case-based reasoning intelligent prediction model and its application in flue temperature of coke oven (Gongfa Li,  Kong Jianyi,  Jiang Guozhang): ",
+          "relevance": 0.25,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1021/acs.jpcb.3c06526.s001",
+          "excerpt": "Artificial Intelligence-Powered Construction of a Microbial Optimal Growth Temperature Database and Its Impact on Enzyme Optimal Temperature Prediction (): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "For PLA (Mw=150k), the empirical optimal temperature range is 210–220 °C.",
+      "sentence": "PLA (Mw=150k) | 214 | 210–220 | ±5°",
+      "offset": 3347,
+      "confidence": 0.040966269614465534,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1080/10963758.2019.1575748",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1080/10963758.2019.1575748",
+          "excerpt": "Industry Competencies and the Optimal Hospitality Management Curriculum: An Empirical Study (George Alexakis, Lan Jiang): ",
+          "relevance": 0.3076923076923077,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The model's predicted optimal temperature for PLA (Mw=150k) is within ±5° of the empirical range.",
+      "sentence": "PLA (Mw=150k) | 214 | 210–220 | ±5°",
+      "offset": 3358,
+      "confidence": 0.035504100332536793,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1103/physrevc.52.2756",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1103/physrevc.52.2756",
+          "excerpt": "Self-consistent delta-hole model at nonzero temperature (C. L. Korpa, Rudi Malfliet): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "For PETG (Mw=90k), the model predicts an optimal temperature of 238 °C.",
+      "sentence": "PETG (Mw=90k) | 238 | 230–245 | ±7°",
+      "offset": 3382,
+      "confidence": 0.053256150498805194,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1016/0921-4534(89)90136-6; https://doi.org/10.7717/peerj.8882/fig-3",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/0921-4534(89)90136-6",
+          "excerpt": "Superfluid model of high temperature superconductivity (K. Sokalski): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj.8882/fig-3",
+          "excerpt": "Figure 3: ANFIS model for temperature prediction. (): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1109/cica.2013.6611678",
+          "excerpt": "Temperature optimal control of the casting billet induction heating process based on the BP prediction model (Xu Zhe, Pan Sanqiang): ",
+          "relevance": 0.375,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1021/acs.jpcb.3c06526.s001",
+          "excerpt": "Artificial Intelligence-Powered Construction of a Microbial Optimal Growth Temperature Database and Its Impact on Enzyme Optimal Temperature Prediction (): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "For PETG (Mw=90k), the empirical optimal temperature range is 230–245 °C.",
+      "sentence": "PETG (Mw=90k) | 238 | 230–245 | ±7°",
+      "offset": 3391,
+      "confidence": 0.04438012541567098,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.7717/peerj.6068/supp-10; https://doi.org/10.61955/kazldc",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj.6068/supp-10",
+          "excerpt": "Supplemental Information 10: Raw Data: Plots of optimal temperature test. (): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.61955/kazldc",
+          "excerpt": "Enhancing Reliability of Empirical Temperature Measurement of a Solar Water Heater System with a Temperature Data Logger (Oguche, Oguche,): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1017/cbo9780511691881.008",
+          "excerpt": "Mathematical framework for optimal design (I.G. Rosen, C. Wang): ",
+          "relevance": 0.2222222222222222,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The model's predicted optimal temperature for PETG (Mw=90k) is within ±7° of the empirical range.",
+      "sentence": "PETG (Mw=90k) | 238 | 230–245 | ±7°",
+      "offset": 3400,
+      "confidence": 0.035504100332536793,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1103/physrevc.52.2756",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1103/physrevc.52.2756",
+          "excerpt": "Self-consistent delta-hole model at nonzero temperature (C. L. Korpa, Rudi Malfliet): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "For ASA-GF (filled), the model predicts an optimal temperature of 252 °C.",
+      "sentence": "ASA-GF (filled) | 252 | 245–260 | ±8°",
+      "offset": 3425,
+      "confidence": 0.053256150498805194,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.7717/peerj.8882/fig-3; https://doi.org/10.7717/peerjcs.2255/fig-12",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj.8882/fig-3",
+          "excerpt": "Figure 3: ANFIS model for temperature prediction. (): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerjcs.2255/fig-12",
+          "excerpt": "Figure 12: GF model. (): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1021/acs.jpcb.3c06526.s001",
+          "excerpt": "Artificial Intelligence-Powered Construction of a Microbial Optimal Growth Temperature Database and Its Impact on Enzyme Optimal Temperature Prediction (): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "For ASA-GF (filled), the empirical optimal temperature range is 245–260 °C.",
+      "sentence": "ASA-GF (filled) | 252 | 245–260 | ±8°",
+      "offset": 3434,
+      "confidence": 0.03804010749914656,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.3109/9781420016840-19",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.3109/9781420016840-19",
+          "excerpt": "Temperature Monitoring (): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "The model's predicted optimal temperature for ASA-GF (filled) is within ±8° of the empirical range.",
+      "sentence": "ASA-GF (filled) | 252 | 245–260 | ±8°",
+      "offset": 3443,
+      "confidence": 0.035504100332536793,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1103/physrevc.52.2756",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1103/physrevc.52.2756",
+          "excerpt": "Self-consistent delta-hole model at nonzero temperature (C. L. Korpa, Rudi Malfliet): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "For ABS (Mw=200k), the model predicts an optimal temperature of 241 °C.",
+      "sentence": "ABS (Mw=200k) | 241 | 235–250 | ±9°",
+      "offset": 3469,
+      "confidence": 0.09840810418257481,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1016/b978-0-08-010889-6.50015-x; https://www.semanticscholar.org/paper/7c83664902bda8fa6ed03d0b7cd20c35264455f9",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/b978-0-08-010889-6.50015-x",
+          "excerpt": "OPTIMAL TEMPERATURE PROFILES (H.H. ROSENBROCK, C. STOREY): ",
+          "relevance": 0.5,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/7c83664902bda8fa6ed03d0b7cd20c35264455f9",
+          "excerpt": "Machine learning for optimal growth temperature prediction of prokaryotes using amino acid descriptors (2025): ",
+          "relevance": 0.25,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1021/acs.jpcb.3c06526.s001",
+          "excerpt": "Artificial Intelligence-Powered Construction of a Microbial Optimal Growth Temperature Database and Its Impact on Enzyme Optimal Temperature Prediction (): ",
+          "relevance": 0.23529411764705882,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "For ABS (Mw=200k), the empirical optimal temperature range is 235–250 °C.",
+      "sentence": "ABS (Mw=200k) | 241 | 235–250 | ±9°",
+      "offset": 3478,
+      "confidence": 0.0,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "The model's predicted optimal temperature for ABS (Mw=200k) is within ±9° of the empirical range.",
+      "sentence": "ABS (Mw=200k) | 241 | 235–250 | ±9°",
+      "offset": 3487,
+      "confidence": 0.035504100332536793,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1103/physrevc.52.2756",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1103/physrevc.52.2756",
+          "excerpt": "Self-consistent delta-hole model at nonzero temperature (C. L. Korpa, Rudi Malfliet): ",
+          "relevance": 0.26666666666666666,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "G. Hagen published \"Ueber die Bewegung des Wassers in engen cylindrischen Röhren\" in 1839.",
+      "sentence": "Hagen, G. (1839). Ueber die Bewegung des Wassers in engen cylindrischen Röhren. *Poggendorff's Annalen*, 46, 423–442.",
+      "offset": 3539,
+      "confidence": 0.0,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "S. Arrhenius published \"Über die Reaktionsgeschwindigkeit bei der Inversion von Rohrzucker\" in 1889.",
+      "sentence": "Arrhenius, S. (1889). Über die Reaktionsgeschwindigkeit bei der Inversion von Rohrzucker. *Z. Phys. Chem.*, 4, 226–248.",
+      "offset": 3659,
+      "confidence": 0.0,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "",
+      "evidence": []
+    },
+    {
+      "claim": "Wool & O'Connor published \"A theory of crack healing in polymers\" in 1981.",
+      "sentence": "Wool, R.P. & O'Connor, K.M. (1981). A theory of crack healing in polymers. *J. Appl. Phys.*, 52(10), 5953–5963.",
+      "offset": 3777,
+      "confidence": 0.15752313289831046,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://www.semanticscholar.org/paper/302927cc094ed8318d36a4f2c74114977df4ab4c; https://doi.org/10.21236/ada134488",
+      "evidence": [
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/302927cc094ed8318d36a4f2c74114977df4ab4c",
+          "excerpt": "A theory crack healing in polymers (1981): ",
+          "relevance": 0.6666666666666666,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.21236/ada134488",
+          "excerpt": "Crack Healing in Polymers. (R. P. Wool): ",
+          "relevance": 0.5454545454545454,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1007/978-1-4613-3093-6_22",
+          "excerpt": "Crack Healing in Semicrystalline Polymers, Block Copolymers and Filled Elastomers (Richard P. Wool): ",
+          "relevance": 0.375,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/749add38a26160e9b0c3cde64a4c6054f3585b3e",
+          "excerpt": "Time dependence of crack healing (1982): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "Semantic Scholar",
+          "url": "https://www.semanticscholar.org/paper/75ece3b5807cdcd9fd3ee4b0e135e302578f8475",
+          "excerpt": "New Attitude In Polymers – Self-healing (2010): ",
+          "relevance": 0.3333333333333333,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1063/1.328526",
+          "excerpt": "A theory crack healing in polymers (R. P. Wool, K. M. O’Connor): <jats:p>A theory of crack healing in polymers is presented in terms of the stages of crack healing, namely, (a) surface rearrangement, ",
+          "relevance": 0.25,
+          "supports": true
+        }
+      ]
+    },
+    {
+      "claim": "P.G. de Gennes published \"Reptation of a Polymer Chain in the Presence of Fixed Obstacles\" in 1971.",
+      "sentence": "de Gennes, P.G. (1971). Reptation of a Polymer Chain in the Presence of Fixed Obstacles. *J. Chem. Phys.*, 55(2), 572–579.",
+      "offset": 3904,
+      "confidence": 0.048414682271641085,
+      "corrected": "[Claim requires primary source verification]",
+      "source": "https://doi.org/10.1142/9789811232817_0002; https://doi.org/10.1063/1.1675789",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1142/9789811232817_0002",
+          "excerpt": "De Gennes’ Reptation (): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1063/1.1675789",
+          "excerpt": "Reptation of a Polymer Chain in the Presence of Fixed Obstacles (P. G. de Gennes): <jats:p>We discuss possible motions for one polymer molecule P (of mass M) performing wormlike displacements inside a",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "source": "c:\\Users\\User\\source\\repos\\QIDIStudio\\docs\\PhD-Level 3D Texturing with Libraries.md",
+  "claims": 1,
+  "corrections": 1,
+  "hallucinations": 1,
+  "elapsed_seconds": 2.5956478000152856,
+  "verdicts": [
+    {
+      "claim": "reduces texture memory and sample count by 3",
+      "sentence": "### 5.3 ImageBufAlgo for Texture Processing\n\nOIIO's `ImageBufAlgo` namespace contains production-grade image processing kernels, all properly multithreaded via Intel TBB:\n\n```cpp\n// Generate normal map from height map\nImageBuf heightmap(\"displacement.exr\");\nImageBuf normalmap;\n\n// Sobel operator computes height gradients → normal directions\nImageBuf dx, dy;\nImageBufAlgo::sobel(dx, heightmap);  // ∂h/∂x\n// Manual normal reconstruction:\n// N = normalize((-dx, -dy, 1/bumpScale))\n\n// Dilate UV islands to prevent seam bleeding\nImageBuf dilated;\nImageBufAlgo::dilate(dilated, albedo, 4);  // 4-pixel dilation kernel\n\n// Channel packing (roughness + metallic + AO into RGB)\nImageBuf packed;\nImageBufAlgo::channel_append(packed, roughness, metallic);\nImageBufAlgo::channel_append(packed, packed, ao);\n```\n\n**Channel packing** is a critical production optimization — combining roughness (R), metallic (G), and AO (B) into a single texture reduces texture memory and sample count by 3×.",
+      "offset": 19527,
+      "confidence": 0.053256150498805194,
+      "corrected": "**Channel packing** is a standard production optimization — combining roughness (R), metallic (G), and AO (B) channels into a single RGB texture reduces texture sampler slots and GPU memory bandwidth relative to three separate single-channel textures (Epic Games, *Unreal Engine Materials: Texture Packing*; Khronos glTF 2.0 specification §5.22.1).",
+      "source": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerjcs.1647/table-5",
+          "excerpt": "Table 5: Metrics count for sample code. (): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj.14006/supp-1",
+          "excerpt": "Figure S1: Count of sequences (raw data) per sample (): ",
+          "relevance": 0.4,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.5220/0007335001690173",
+          "excerpt": "High-Calorie Diet Reduces Neuroglia Count (Nilam Anggraeni, Kristanti Wanito Wigati, I Lukitra Wardani): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj.16654/supp-9",
+          "excerpt": "Supplemental Information 9: Alignment and read count per sample. (): ",
+          "relevance": 0.36363636363636365,
+          "supports": true
+        }
+      ]
+    }
+  ]
+}

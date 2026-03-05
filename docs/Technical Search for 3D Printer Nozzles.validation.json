@@ -1,0 +1,40 @@
+{
+  "source": "c:\\Users\\User\\source\\repos\\QIDIStudio\\docs\\Technical Search for 3D Printer Nozzles.md",
+  "claims": 1,
+  "corrections": 1,
+  "hallucinations": 1,
+  "elapsed_seconds": 8.529712199931964,
+  "verdicts": [
+    {
+      "claim": "improves these by 2",
+      "sentence": "### 2.2 Flow Capacity vs Orifice Diameter\n\n| Orifice dia (mm) | $Q_{max}$ PLA at 210 °C (mm³/s) | $Q_{max}$ ABS at 240 °C | Layer heights (typical) |\n|-----------------|-------------------------------|------------------------|------------------------|\n| 0.25 | 2.5 | 2.0 | 0.05–0.15 |\n| 0.40 | 8.0 | 6.5 | 0.10–0.30 |\n| 0.60 | 18.0 | 14.0 | 0.20–0.45 |\n| 0.80 | 32.0 | 25.0 | 0.30–0.60 |\n| 1.00 | 50.0 | 38.0 | 0.40–0.80 |\n\n(CHT-type 3-hole insert improves these by 2–3×)\n\n---\n\n## III.",
+      "offset": 2272,
+      "confidence": 0.03804010749914656,
+      "corrected": "(CHT-type 3-hole insert typically improves volumetric throughput by approximately 2–3× compared to standard single-orifice designs at equivalent temperatures, based on community benchmarking; exact values depend on filament viscosity and heater block geometry)",
+      "source": "https://e3d-online.com/blogs/news/volcano-vs-revo-high-flow",
+      "evidence": [
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.7717/peerj.1912/fig-4",
+          "excerpt": "Figure 4: Threshold diversity improves performance. (): ",
+          "relevance": 0.2857142857142857,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1016/s0262-1762(06)70959-2",
+          "excerpt": "Intelligent pump system improves performance and improves MTBR (): ",
+          "relevance": 0.25,
+          "supports": true
+        },
+        {
+          "source": "CrossRef",
+          "url": "https://doi.org/10.1787/418254537542",
+          "excerpt": "1.6. Trade specialisation is not very dynamic but quality improves (): ",
+          "relevance": 0.25,
+          "supports": true
+        }
+      ]
+    }
+  ]
+}

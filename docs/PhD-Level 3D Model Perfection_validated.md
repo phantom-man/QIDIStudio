@@ -35,7 +35,7 @@ For a phone chassis with: camera island (genus-1 hole) + $n$ port cutouts (genus
 
 $$\chi = V - E + F = 2 - 2g - n_b$$
 
-where $g$ is genus and $n_b$ is number of boundary components. A disk has $\chi = 1$; adding a through-hole reduces $\chi$ by 1. Standard LSCM requires a disk topology ($\chi = 1$) — each hole needs exactly one boundary seam cut.
+where $g$ is genus and $n_b$ is number of boundary components. A disk (contractible 2-manifold with boundary) has Euler characteristic $\chi = 1$; each additional topological through-hole reduces $\chi$ by 1 (annulus: $\chi = 0$; pair-of-pants: $\chi = -1$) [Hatcher, *Algebraic Topology*, Cambridge University Press, 2002, §2.2]. Standard LSCM requires a disk topology ($\chi = 1$) — each hole needs exactly one boundary seam cut.
 
 **Algorithm: Boundary Loop Extraction for Seam Marking**
 

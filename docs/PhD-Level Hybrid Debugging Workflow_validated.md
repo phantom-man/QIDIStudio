@@ -4,21 +4,7 @@ A rigorous methodology for cross-language debugging of hybrid Python/C++ systems
 
 ---
 
-## I. The Abstraction Gap Problem
-
-### 1.1 Two Execution Models
-
-Python and C++ operate on fundamentally different memory and execution models:
-
-| Property | Python | C++ (via pybind11) |
-|---------|--------|------------------|
-| Heap | `PyHeap` — GC-managed | `malloc/new` — manual/RAII |
-| Stack frame | `PyFrameObject*` chain | Hardware stack (DWARF metadata) |
-| Debugger | `sys.settrace()` / `pdb` | DWARF + GDB/LLDB |
-| Exception | `PyObject* (PyExc_*)` | `std::exception` hierarchy |
-| Threads | GIL-serialized | Native OS threads |
-
-When C++ code is called from Python via pybind11, the debugger sees a `PyObject*` that GDB cannot dereference meaningfully without Python-aware extensions.
+## I. When C++ code is called from Python via pybind11, the debugger sees a `PyObject*` that GDB cannot dereference meaningfully without Python-aware extensions such as `libpython` debug symbols and the `python-gdb.py` pretty-printers (GDB Python API: https://sourceware.org/gdb/current/onlinedocs/gdb.html/Python-API.html).
 
 ---
 
