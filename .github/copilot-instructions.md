@@ -1,3 +1,121 @@
+# 🚀 SYSTEM STARTUP HEALTH PROTOCOL — MANDATORY (ONCE PER DAY)
+
+> **This protocol MUST run before any other work begins in a fresh VS Code session.**
+> It is gated by a daily log entry — if today's `[COMPLETE]` marker exists it exits in <1 s.
+> Never skip. Every downstream pipeline depends on resources verified here.
+
+---
+
+## What This Protocol Checks
+
+| #   | Area                    | Script check                                                                                                               | Reference                                    |
+| --- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| 1   | `.env` completeness     | all 14 required variables present and non-empty                                                                            | §Required Env Vars below                     |
+| 2   | Virtual environments    | `memory_env`, `.venv`, `bpy_env` executables + key packages                                                                | §Venv Map                                    |
+| 3   | PostgreSQL              | connection + LangGraph tables + run_store tables                                                                           | `PG_DSN`                                     |
+| 4   | LangGraph checkpointer  | `PostgresSaver.setup()` succeeds                                                                                           | `langgraph.checkpoint.postgres`              |
+| 5   | LanceDB on GCS          | `gs://qidistudio-lancedb/lancedb` reachable, `documents` table populated                                                   | `LANCEDB_PATH`                               |
+| 6   | LangSmith               | `Client()` works; projects `qidistudio-agents`, `qidistudio-dev-fleet`, `qidistudio-manufacturing` exist                   | `LANGSMITH_API_KEY`                          |
+| 7   | Gemini (Vertex AI ADC)  | `ChatGoogleGenerativeAI` ping → `ONLINE`                                                                                   | `GOOGLE_CLOUD_PROJECT` + ADC                 |
+| 8   | Gemini (direct API key) | `google.genai.Client.models.generate_content` ping → `ONLINE`                                                              | `GOOGLE_API_KEY`                             |
+| 9   | Agent fleet             | 8 LangGraph graphs compile (`researcher`, `builder`, `verifier`, `scribe`, `coder`, `tester`, `orchestrator`, `dev_fleet`) | `agents/`                                    |
+| 10  | GCS buckets             | `qidistudio-lancedb`, `qidistudio-filaments` listable                                                                      | ADC                                          |
+| 11  | Firestore               | write + read probe document under `_startup_check/probe`                                                                   | ADC                                          |
+| 12  | BigQuery                | dataset `qidistudio_research` accessible                                                                                   | ADC                                          |
+| 13  | External APIs           | Tavily search · GitHub rate-limit · HuggingFace whoami                                                                     | `TAVILY_API_KEY`, `GITHUB_TOKEN`, `HF_TOKEN` |
+| 14  | Pipeline imports        | every entry-point in `docs/KNOWN_PIPELINES.md` importable                                                                  | `agents/`, `scripts/`, `GCodeRefiner/`       |
+| 15  | Memory inject           | `memory/inject.py --query "test"` returns LanceDB results                                                                  | `memory_env` + LanceDB                       |
+
+---
+
+## Log Gate — Skip If Already Run Today
+
+The health log is a **single, append-only, never-truncated** file:
+
+```
+logs/startup_health.log
+```
+
+Before running checks, test for today's completion marker:
+
+```powershell
+# PowerShell: check if today's run is already logged
+$today = Get-Date -Format "yyyy-MM-dd"
+$done = Select-String -Path "logs\startup_health.log" -Pattern "COMPLETE for $today" -Quiet 2>$null
+if ($done) { Write-Host "  Startup already verified for $today — skipping." }
+else        { memory_env\Scripts\python.exe -B scripts\startup_check.py }
+```
+
+**Or simply run the script directly** — it gates itself:
+
+```powershell
+memory_env\Scripts\python.exe -B scripts\startup_check.py
+```
+
+Exit codes: `0` = all pass · `1` = failures detected · `2` = skipped (already complete today)
+
+---
+
+## Auto-Repair Behaviour
+
+When `--fix` is passed, the script applies these repairs automatically and logs them
+as `[FIX]` entries:
+
+| Failure                         | Auto-fix applied                     |
+| ------------------------------- | ------------------------------------ |
+| `memory_env` missing `pip` shim | `python -m ensurepip --upgrade`      |
+| Package missing in `memory_env` | `python -m pip install <package>`    |
+| LangGraph tables missing        | `PostgresSaver.setup()` creates them |
+
+---
+
+## What To Do When Checks Fail
+
+1. Run with `--fix` first → `memory_env\Scripts\python.exe -B scripts\startup_check.py --fix`
+2. Check `logs/startup_health.log` for the `[FAIL]` lines
+3. Resolve the specific failure (see table above for which env var / resource each check needs)
+4. Re-run `scripts\startup_check.py --force` to confirm everything passes
+5. **Never start agent fleet work with FAIL entries in today's log**
+
+---
+
+## Quick Reference Commands
+
+```powershell
+# Full startup check (gated — only runs once per day)
+memory_env\Scripts\python.exe -B scripts\startup_check.py
+
+# Force re-run even if today is already logged complete
+memory_env\Scripts\python.exe -B scripts\startup_check.py --force
+
+# Auto-repair then check
+memory_env\Scripts\python.exe -B scripts\startup_check.py --force --fix
+
+# Skip API calls — just check env vars + imports
+memory_env\Scripts\python.exe -B scripts\startup_check.py --quick
+
+# Show today's log entries
+memory_env\Scripts\python.exe -B scripts\startup_check.py --summary
+
+# View raw log
+Get-Content logs\startup_health.log -Tail 60
+```
+
+---
+
+## Pipeline Reference
+
+Every pipeline that depends on these resources is documented in:
+
+```
+docs/KNOWN_PIPELINES.md
+```
+
+That document specifies: entry-point, runtime venv, LangSmith project, data stores consumed,
+and the exact health criteria each pipeline needs to be satisfied at startup.
+
+---
+
 # ⚡ PROMPT EXECUTION PROTOCOL — MANDATORY
 
 > **This protocol governs EVERY prompt without exception.**
