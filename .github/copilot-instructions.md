@@ -1,3 +1,223 @@
+# ⚡ PROMPT EXECUTION PROTOCOL — MANDATORY
+
+> **This protocol governs EVERY prompt without exception.**
+> **Execute Phase 0 in full before touching any task, tool, or file.**
+
+---
+
+## Phase 0: Pre-Work Ritual
+
+### Step 0.1 — Scan for Unfinished Logs
+
+**Before starting any work**, scan `logs/` for log files that contain unfinished tasks.
+An unfinished log is any file where:
+
+1. At least one line matches `- [ ]`, **AND**
+2. The final `## Status:` line reads `OPEN`
+
+Detection command (run in `scripts` terminal, redirect so output is readable):
+
+```powershell
+$unfinished = Get-ChildItem logs\*.md -ErrorAction SilentlyContinue |
+  Where-Object { (Get-Content $_.FullName -Raw) -match '\- \[ \]' -and
+                 (Get-Content $_.FullName -Raw) -match '## Status: OPEN' } |
+  Select-Object -ExpandProperty Name
+if ($unfinished) {
+    $unfinished | ForEach-Object { Write-Host "  UNFINISHED: $_" }
+} else {
+    Write-Host "  No unfinished logs found."
+}
+```
+
+If unfinished logs are found, **stop** and present the user with:
+
+```
+The following task logs have unfinished items:
+  • <filename>  (<N> tasks remaining)
+  ...
+
+Would you like me to complete them before working on the current prompt?
+  Reply YES (all), YES <filename> (specific), or NO to skip.
+```
+
+Wait for the user's reply before proceeding.
+
+- **YES (all)**: Import all unchecked `- [ ]` items from every unfinished log into the current log under `## Inherited Tasks`.
+- **YES \<filename\>**: Import only the specified files.
+- **NO**: Skip; note in the current log that prior tasks were explicitly deferred.
+
+---
+
+### Step 0.2 — Create the Session Log File
+
+**Immediately** generate a log file for the current prompt.
+
+**Filename format:**
+
+```
+logs/YYYY-MM-DD_HHMMSS_<meaningful-slug>.md
+```
+
+- `YYYY-MM-DD_HHMMSS` — wall-clock timestamp at prompt receipt (PowerShell: `Get-Date -Format "yyyy-MM-dd_HHmmss"`)
+- `<meaningful-slug>` — 3–6 word kebab-case summary that reflects the **intent** of the prompt
+
+**Good slug examples:**
+
+| Prompt intent                 | Slug                               |
+| ----------------------------- | ---------------------------------- |
+| Add SYCL kernel for GPU saxpy | `add-sycl-saxpy-kernel`            |
+| Fix UV projection for cones   | `fix-uv-cone-projection`           |
+| Rewrite PhD docs batch B      | `rewrite-phd-docs-batch-b`         |
+| Create logs dir and protocol  | `create-logs-dir-and-phd-protocol` |
+
+**Log file template:**
+
+```markdown
+# Log: <Human-readable title>
+
+**Date:** YYYY-MM-DD
+**Time:** HH:MM:SS
+**Model:** Claude Sonnet 4.6
+**Prompt Summary:** <one precise sentence describing what was asked>
+
+---
+
+## Task Checklist
+
+- [ ] 1. <first atomic action>
+- [ ] 2. <second atomic action>
+- [ ] 3. ...
+
+---
+
+## Inherited Tasks
+
+<!-- Populated only when prior unfinished logs are inherited. Otherwise leave this comment. -->
+
+---
+
+## Execution Notes
+
+<!-- Timestamped working notes appended during execution -->
+
+---
+
+## Status: OPEN
+```
+
+**Rules for the Task Checklist:**
+
+- Break the prompt into the **smallest independently verifiable actions**.
+- Every file creation, edit, tool call, command run, and verification is its own line.
+- Minimum 3 tasks; no upper limit.
+- Ordered: dependencies come before dependents.
+
+---
+
+### Step 0.3 — Execute and Check Off
+
+Work through tasks in order. After completing each one:
+
+1. Update the log: change `- [ ] N. <task>` → `- [x] N. <task>  ✓ HH:MM:SS`
+2. Append a one-line note to `## Execution Notes` with timestamp and outcome.
+
+Use `replace_string_in_file` (or `multi_replace_string_in_file` for batches) to update the log in-place. Never rewrite the whole file to check off a single task.
+
+---
+
+### Step 0.4 — Close the Log
+
+When **all** tasks (including any inherited tasks) are complete:
+
+1. Verify no `- [ ]` lines remain.
+2. Change the last line from `## Status: OPEN` to `## Status: COMPLETE`.
+
+---
+
+## Log File Specification (PhD Standard)
+
+### Canonical Structure
+
+```markdown
+# Log: <Title>
+
+**Date:** YYYY-MM-DD
+**Time:** HH:MM:SS
+**Model:** Claude Sonnet 4.6
+**Prompt Summary:** <single sentence>
+
+---
+
+## Task Checklist
+
+- [ ] 1. <action> ← unchecked
+- [x] 2. <action> ✓ HH:MM:SS ← checked with completion time
+- [ ] 3. <action>
+
+---
+
+## Inherited Tasks
+
+<!-- list inherited items here if any, same format as Task Checklist -->
+
+---
+
+## Execution Notes
+
+- HH:MM:SS <note about what happened>
+- HH:MM:SS <note about what happened>
+
+---
+
+## Status: OPEN ← OPEN until every task is [x]; then COMPLETE
+```
+
+### Filename Grammar
+
+```
+logs/<date>_<time>_<slug>.md
+
+<date>  ::= YYYY-MM-DD
+<time>  ::= HHMMSS  (no colons — filesystem safe)
+<slug>  ::= [a-z0-9-]{3,50}  (kebab-case, max 6 words, reflects prompt intent)
+```
+
+### Unfinished Log Detection Rules
+
+A log is **UNFINISHED** iff:
+
+- Pattern `- \[ \]` matches anywhere in the file, **AND**
+- Pattern `## Status: OPEN` matches the final status line
+
+A log is **COMPLETE** iff:
+
+- No `- \[ \]` lines remain, **AND**
+- Final status line reads `## Status: COMPLETE`
+
+### Completion Marker Syntax
+
+```
+- [x] N. <original task text>  ✓ HH:MM:SS
+```
+
+The `✓ HH:MM:SS` suffix is required — it provides a per-task audit trail.
+
+---
+
+## Implementation Rules
+
+| Rule                 | Detail                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Timestamp source     | PowerShell: `Get-Date -Format "yyyy-MM-dd_HHmmss"` for filenames; `Get-Date -Format "HH:mm:ss"` for task checkoffs |
+| Slug derivation      | Lowercase the prompt intent; replace spaces with `-`; strip punctuation; max 6 tokens; be specific, not generic    |
+| Log update method    | `replace_string_in_file` for single task checkoffs; `multi_replace_string_in_file` for batch completions           |
+| Phase 0 skippable?   | **Never.** Even "trivial" single-sentence prompts get a log file.                                                  |
+| Log storage          | Always in `logs/` at the workspace root — never inside `docs/`, `.github/`, or `agents/`                           |
+| Status line position | Must always be the **last non-empty line** of the file                                                             |
+| Prior task deferral  | If user says NO to inherited tasks, note `<!-- User deferred prior tasks at HH:MM:SS -->` in Inherited Tasks       |
+
+---
+
 # QIDIStudio Copilot — Session Bootstrap
 
 You are **GitHub Copilot**, engineering AI for the **QIDIStudio** fork.
