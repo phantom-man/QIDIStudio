@@ -230,21 +230,21 @@ The `✓ HH:MM:SS` suffix is required — it provides a per-task audit trail.
 
 Create a knowledge document **immediately** whenever any of the following triggers occur:
 
-| Trigger Category                  | Examples                                                                                  |
-| --------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Architectural decision**        | Choosing LanceDB over Chroma; adopting SYCL for GPU portability; switching to USM buffers |
-| **New pipeline or workflow**      | AI debug pipeline; knowledge-validation pipeline; PhD doc rewrite workflow                |
-| **Protocol established**          | Prompt execution protocol; knowledge doc protocol; build protocol                        |
-| **Structural / directory change** | New `logs/` dir; `scripts/` reorganisation; `agents/` fleet launch                       |
-| **Algorithm or technique adopted**| ICP alignment; AMEO bead-width PID; NURBS vectorisation; CSM symmetry scoring            |
-| **Tool or library integrated**    | LangGraph state machines; paperscraper; arXiv.py; Tavily search; pdfplumber              |
-| **Agent directive or rule**       | Fleet dispatch protocol; parallelism rules; coder→tester signal protocol                 |
-| **Debugging insight**             | Root cause of a non-obvious failure; fix strategy that should never be forgotten          |
-| **Research finding**              | Benchmark results; literature survey outcome; hardware characterisation                   |
-| **External API behaviour**        | Gemini quota limits; CrossRef polite pool; arXiv rate limiting; NIST endpoint changes    |
-| **Security / compliance decision**| API key scoping; .gitignore patterns; credential rotation strategy                        |
+| Trigger Category                   | Examples                                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Architectural decision**         | Choosing LanceDB over Chroma; adopting SYCL for GPU portability; switching to USM buffers |
+| **New pipeline or workflow**       | AI debug pipeline; knowledge-validation pipeline; PhD doc rewrite workflow                |
+| **Protocol established**           | Prompt execution protocol; knowledge doc protocol; build protocol                         |
+| **Structural / directory change**  | New `logs/` dir; `scripts/` reorganisation; `agents/` fleet launch                        |
+| **Algorithm or technique adopted** | ICP alignment; AMEO bead-width PID; NURBS vectorisation; CSM symmetry scoring             |
+| **Tool or library integrated**     | LangGraph state machines; paperscraper; arXiv.py; Tavily search; pdfplumber               |
+| **Agent directive or rule**        | Fleet dispatch protocol; parallelism rules; coder→tester signal protocol                  |
+| **Debugging insight**              | Root cause of a non-obvious failure; fix strategy that should never be forgotten          |
+| **Research finding**               | Benchmark results; literature survey outcome; hardware characterisation                   |
+| **External API behaviour**         | Gemini quota limits; CrossRef polite pool; arXiv rate limiting; NIST endpoint changes     |
+| **Security / compliance decision** | API key scoping; .gitignore patterns; credential rotation strategy                        |
 
-**When in doubt, create the doc.**  The cost of an unneeded doc is low.
+**When in doubt, create the doc.** The cost of an unneeded doc is low.
 The cost of a lost architectural decision is a re-investigation.
 
 ---
@@ -254,7 +254,7 @@ The cost of a lost architectural decision is a re-investigation.
 Every doc in `docs/` MUST follow this canonical structure:
 
 ```markdown
-# <Title>  (H1 — exactly one, reflects the precise topic)
+# <Title> (H1 — exactly one, reflects the precise topic)
 
 > **One-sentence abstract** — state what this document establishes and why it matters.
 
@@ -266,11 +266,12 @@ Include the context that would help a future agent understand the "why".
 ## 2. Core Concepts / Background
 
 PhD-level technical exposition. Use LaTeX for all equations:
-  - Inline:  $E = mc^2$
-  - Display: $$\nabla^2 \phi = \rho / \varepsilon_0$$
+
+- Inline: $E = mc^2$
+- Display: $$\nabla^2 \phi = \rho / \varepsilon_0$$
 
 Reference primary literature with full citations:
-  [Author et al., YYYY, Title, Journal/Conference, DOI]
+[Author et al., YYYY, Title, Journal/Conference, DOI]
 
 ## 3. Implementation / Decision
 
@@ -279,7 +280,7 @@ All code blocks MUST be typed Python (3.11+), modern C++20, or valid shell.
 
 ## 4. Validation Rationale
 
-How was this knowledge verified?  State which sources corroborate it.
+How was this knowledge verified? State which sources corroborate it.
 (Filled automatically when doc passes through `knowledge_validator.py`.)
 
 ## 5. Consequences & Trade-offs
@@ -293,6 +294,7 @@ What does adopting this change? What is deferred or deprecated?
 ```
 
 **Layout rules:**
+
 - Title: H1 only; no subtitle H1s. All other headings are H2–H4.
 - Math: KaTeX-compatible LaTeX. No Unicode math substitutes (`ℝ` → `$\mathbb{R}$`).
 - Code: fenced blocks with language identifier; type-annotated; runnable.
@@ -316,18 +318,19 @@ memory_env\Scripts\python.exe scripts\knowledge_validator.py docs\<YourDoc>.md
 ```
 
 The validator will:
+
 1. Parse the document (`.md`, `.txt`, `.pdf`, `.docx`, `.html`, `.csv`, `.json`, `.tex`, `.py`, `.cpp`)
 2. Extract every testable factual claim (numerical, definitional, attributive, methodological)
 3. Query all nine authoritative repositories in parallel:
-   - **CrossRef** (authority 0.92) — 145M+ DOI publications  
-   - **arXiv** (authority 0.90) — 2.4M+ preprints  
-   - **PubMed/NCBI** (authority 0.91) — 37M+ biomedical citations  
-   - **MathWorld/Wolfram** (authority 0.93) — mathematical definitions  
-   - **NIST** (authority 0.95) — metrology and standards  
-   - **Semantic Scholar** (authority 0.88) — 220M+ papers  
-   - **Wikipedia** (authority 0.72) — encyclopaedic baseline  
-   - **Tavily** (authority 0.70) — real-time web search  
-   - **GitHub Search** (authority 0.65) — algorithmic implementation check  
+   - **CrossRef** (authority 0.92) — 145M+ DOI publications
+   - **arXiv** (authority 0.90) — 2.4M+ preprints
+   - **PubMed/NCBI** (authority 0.91) — 37M+ biomedical citations
+   - **MathWorld/Wolfram** (authority 0.93) — mathematical definitions
+   - **NIST** (authority 0.95) — metrology and standards
+   - **Semantic Scholar** (authority 0.88) — 220M+ papers
+   - **Wikipedia** (authority 0.72) — encyclopaedic baseline
+   - **Tavily** (authority 0.70) — real-time web search
+   - **GitHub Search** (authority 0.65) — algorithmic implementation check
 4. Score each claim: `confidence = Σ(authority × relevance) / Σ(authority)`
 5. Flag claims below the threshold (default 0.60)
 6. Use Gemini 2.5 Flash to rewrite flagged sentences with sourced corrections
@@ -355,13 +358,13 @@ for v in report["verdicts"]:
 
 ### Confidence Thresholds
 
-| Confidence Range | Verdict          | Action                                         |
-| ---------------- | ---------------- | ---------------------------------------------- |
-| 0.80 – 1.00      | ✅ VERIFIED       | No change required                             |
-| 0.60 – 0.79      | 🟢 SUPPORTED      | No change; add citation in § References        |
-| 0.40 – 0.59      | 🟡 UNCERTAIN      | Rewrite for precision; add hedge language      |
-| 0.20 – 0.39      | 🟠 DISPUTED       | Replace with validator-corrected sentence      |
-| 0.00 – 0.19      | 🔴 HALLUCINATION  | Remove or fully replace; citation required     |
+| Confidence Range | Verdict          | Action                                     |
+| ---------------- | ---------------- | ------------------------------------------ |
+| 0.80 – 1.00      | ✅ VERIFIED      | No change required                         |
+| 0.60 – 0.79      | 🟢 SUPPORTED     | No change; add citation in § References    |
+| 0.40 – 0.59      | 🟡 UNCERTAIN     | Rewrite for precision; add hedge language  |
+| 0.20 – 0.39      | 🟠 DISPUTED      | Replace with validator-corrected sentence  |
+| 0.00 – 0.19      | 🔴 HALLUCINATION | Remove or fully replace; citation required |
 
 ---
 
@@ -389,14 +392,14 @@ when a knowledge doc is being created.
 
 ## Storage Rules
 
-| Rule                        | Requirement                                                         |
-| --------------------------- | ------------------------------------------------------------------- |
-| Location                    | Always `docs/` at workspace root — never `logs/`, `.github/`, `agents/` |
-| Naming                      | `Title Case With Spaces.md` — matching the H1 exactly              |
-| Validated copy              | `<stem>_validated.md` (auto-generated; DO NOT commit directly)      |
-| JSON report                 | `<stem>.validation.json` — commit alongside the doc                 |
-| Binary attachments          | `docs/assets/<DocStem>/` — figures, diagrams, data files            |
-| Index                       | `docs/QIDISTUDIO_KNOWLEDGE.md` — master manifest; update after each new doc |
+| Rule               | Requirement                                                                 |
+| ------------------ | --------------------------------------------------------------------------- |
+| Location           | Always `docs/` at workspace root — never `logs/`, `.github/`, `agents/`     |
+| Naming             | `Title Case With Spaces.md` — matching the H1 exactly                       |
+| Validated copy     | `<stem>_validated.md` (auto-generated; DO NOT commit directly)              |
+| JSON report        | `<stem>.validation.json` — commit alongside the doc                         |
+| Binary attachments | `docs/assets/<DocStem>/` — figures, diagrams, data files                    |
+| Index              | `docs/QIDISTUDIO_KNOWLEDGE.md` — master manifest; update after each new doc |
 
 ---
 
