@@ -15,7 +15,7 @@
 - [x] 4. Apply corrected text to every non-validated, non-json file that still contains the old sentences ✓ 16:02:00
 - [x] 5. Update HALLUCINATION_REPORT.md to reflect all fixes (inherited from 2026-03-05_133326) ✓ 16:05:00
 - [x] 6. Update hallucinations.json with corrected entries ✓ 16:06:00
-- [ ] 7. Commit all changes
+- [x] 7. Commit all changes ✓ 16:07:00 — b1f68a64 (10 files, 263 insertions)
 
 ---
 
