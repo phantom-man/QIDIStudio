@@ -1,9 +1,9 @@
-# Stop hook — fires when Claude finishes responding (end of turn).
+# Stop hook -- fires when Claude finishes responding (end of turn).
 #
 # What this does (silently, no agent intervention required):
 #   1. Reads the session_id + transcript_path from stdin JSON.
 #   2. Extracts the last user + assistant messages from the transcript JSONL.
-#   3. Saves prompt+response pair to Postgres (self-contained — no UserPromptSubmit needed).
+#   3. Saves prompt+response pair to Postgres (self-contained -- no UserPromptSubmit needed).
 #   4. Writes today's session stats to memory/_session_stats.txt.
 #   5. Runs extract.py to sync LanceDB with any new archive/compaction content.
 #   6. Runs sync_prompts_to_lancedb.py to push new Postgres pairs to LanceDB.
@@ -22,7 +22,7 @@ $tmpDir = Join-Path $repo 'memory'
 
 Add-Content -Path $log -Value "$ts [Stop] fired"
 
-# ── Read stdin JSON (session_id + transcript_path) ───────────────────────────
+# -- Read stdin JSON (session_id + transcript_path) ----------------------------------
 $sessionId = "unknown"
 $transcriptPath = $null
 try {
@@ -37,7 +37,7 @@ catch {
     Add-Content -Path $log -Value "$ts [Stop] stdin parse failed: $_"
 }
 
-# ── Extract last user + assistant messages from transcript ────────────────────
+# -- Extract last user + assistant messages from transcript --------------------------
 $responseText = ""
 $promptText = ""
 if ($transcriptPath -and (Test-Path $transcriptPath)) {
@@ -81,7 +81,7 @@ if ($transcriptPath -and (Test-Path $transcriptPath)) {
     }
 }
 
-# ── Save prompt + response to DB (self-contained, no UserPromptSubmit needed) ─
+# -- Save prompt + response to DB (self-contained, no UserPromptSubmit needed) ----
 if ($responseText -ne "" -and (Test-Path $py)) {
     $promptId = [System.Guid]::NewGuid().ToString()
     try {
@@ -131,10 +131,10 @@ if ($responseText -ne "" -and (Test-Path $py)) {
     }
 }
 else {
-    Add-Content -Path $log -Value "$ts [Stop] no response text — DB write skipped (session=$sessionId)"
+    Add-Content -Path $log -Value "$ts [Stop] no response text -- DB write skipped (session=$sessionId)"
 }
 
-# ── Write daily stats to file (for visibility in log) ────────────────────────
+# -- Write daily stats to file (for visibility in log) -------------------------------
 if (Test-Path $py) {
     try {
         $statsOut = & $py -B $store --daily-stats 2>$null
@@ -147,7 +147,7 @@ if (Test-Path $py) {
     }
 }
 
-# ── Sync LanceDB (extract.py — static docs) ─────────────────────────────────
+# -- Sync LanceDB (extract.py -- static docs) ----------------------------------------
 $extract = Join-Path $repo 'memory\extract.py'
 if ((Test-Path $extract) -and (Test-Path $py)) {
     try {
@@ -159,7 +159,7 @@ if ((Test-Path $extract) -and (Test-Path $py)) {
     }
 }
 
-# ── Sync prompts/responses Postgres → LanceDB (replaces 30-min scheduler) ───
+# -- Sync prompts/responses Postgres -> LanceDB (replaces 30-min scheduler) ---------
 $syncScript = Join-Path $repo 'memory\sync_prompts_to_lancedb.py'
 if ((Test-Path $syncScript) -and (Test-Path $py)) {
     try {
@@ -171,7 +171,7 @@ if ((Test-Path $syncScript) -and (Test-Path $py)) {
     }
 }
 
-# ── Auto-commit changed memory files ─────────────────────────────────────────
+# -- Auto-commit changed memory files ------------------------------------------------
 Push-Location $repo
 try {
     $tracked = @(
@@ -196,4 +196,4 @@ finally {
     Pop-Location
 }
 
-# Output nothing — allow Claude to stop normally (no JSON needed for Stop hook)
+# Output nothing -- allow Claude to stop normally (no JSON needed for Stop hook)
