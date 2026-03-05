@@ -1,5 +1,7 @@
 ## QIDIStudio Python dependencies
-## Covers: scripts/ (AI texturing, skin displacement), GCodeRefiner/ (stdlib only)
+## Covers: scripts/ (AI texturing, skin displacement), GCodeRefiner/ (stdlib only),
+##          agents/ (filament + nozzle pipelines, evaluator),
+##          services/ (Cloud SQL, BigQuery, auth, slicer bridge)
 ## Install with: pip install -r requirements.txt
 ## Tested with: Python 3.13, Windows 11
 
@@ -32,3 +34,30 @@ python-dotenv>=1.0.0
 
 # ── GCodeRefiner ─────────────────────────────────────────────────────────────
 # No pip dependencies — pure Python stdlib (argparse, re, pathlib, dataclasses)
+
+# ── Database — Cloud SQL (PostgreSQL) ─────────────────────────────────────────
+sqlalchemy[asyncio]>=2.0.0
+asyncpg>=0.29.0
+cloud-sql-python-connector[asyncpg]>=1.9.0
+
+# ── Database — BigQuery ───────────────────────────────────────────────────────
+google-cloud-bigquery>=3.20.0
+db-dtypes>=1.3.0
+
+# ── Auth — JWT + crypto ───────────────────────────────────────────────────────
+PyJWT[cryptography]>=2.8.0
+cryptography>=41.0.0
+
+# ── HTTP client (subscription refresh, sidecar calls) ────────────────────────
+httpx>=0.27.0
+
+# ── AI research agents ────────────────────────────────────────────────────────
+langchain>=0.2.0
+langchain-google-genai>=1.0.0
+langchain-community>=0.2.0
+langsmith>=0.1.70
+tavily-python>=0.3.0
+
+# ── LangSmith tracing ─────────────────────────────────────────────────────────
+# Loaded via python-dotenv at startup; LANGCHAIN_PROJECT set per-agent (not .env)
+python-dotenv>=1.0.0

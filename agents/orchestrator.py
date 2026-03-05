@@ -442,6 +442,14 @@ def run(request: str, thread_id: str | None = None) -> str:
 
 if __name__ == "__main__":
     import sys
+    import pathlib as _pl
+
+    # When run as `python agents/orchestrator.py`, Python adds the agents/ dir to
+    # sys.path[0] instead of the repo root, breaking `from agents.xxx` imports.
+    # Insert the repo root (parent of the agents/ directory) if not already present.
+    _repo_root = str(_pl.Path(__file__).parents[1])
+    if _repo_root not in sys.path:
+        sys.path.insert(0, _repo_root)
 
     args = sys.argv[1:]
     # Optional --thread <id> flag

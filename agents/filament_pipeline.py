@@ -4,9 +4,11 @@ agents/filament_pipeline.py — Background Filament Database Research Pipeline.
 Discovers all major filament brands + every material they make, then extracts
 full print-settings information for each. Persists everything to:
 
-  Firestore : brands/{brand_id}/materials/{material_id}  (structured, queryable)
-  GCS       : gs://qidistudio-filaments/raw/{brand}/{material}.json  (full scraped dump)
-  LanceDB   : qidistudio_filaments table  (semantic search over descriptions)
+  Firestore  : brands/{brand_id}/materials/{material_id}  (structured, queryable)
+  GCS        : gs://qidistudio-filaments/raw/{brand}/{material}.json  (full scraped dump)
+  BigQuery   : qidistudio_research.raw_filament_scrapes  (append-only audit trail)
+  Cloud SQL  : filament_manufacturers + filaments  (structured, validated)
+  LanceDB    : qidistudio_filaments table  (semantic search over descriptions)
 
 Progress checkpoint: gs://qidistudio-filaments/_progress/filament_pipeline.json
   → Allows safe resume if the run is interrupted.
@@ -316,6 +318,30 @@ Return ONLY a JSON array of objects, each with:
 Return ONLY the JSON array.
 """
 
+AMAZON_BRAND_DISCOVERY_PROMPT = """You are an expert in 3D printing filament brands that sell on Amazon.
+
+Below are search results from queries about best-rated filament brands on Amazon USA.
+
+Search results:
+{search_results}
+
+Identify all filament manufacturers / brands mentioned in the results that:
+1. Sell 3D printing filament on Amazon USA
+2. Have an average customer rating of at least 3.5 stars (when mentioned)
+3. Are legitimate filament manufacturers (not re-sellers of unknown origin)
+
+For each brand, if rating is mentioned extract it; otherwise assume it qualifies.
+Return ONLY a JSON array of objects:
+[
+  {{"brand": "Brand Name", "amazon_rating": 4.6, "amazon_asin_or_url": "...", "product_example": "..."}},
+  ...
+]
+
+If no rating is specifically mentioned for a brand, include it with amazon_rating: null.
+Return AT LEAST 20 entries. Be comprehensive — include every brand you can find.
+Return ONLY the JSON array.
+"""
+
 
 def extract_json(text: str) -> Any:
     """Extract JSON from LLM response (handles markdown code blocks)."""
@@ -381,6 +407,63 @@ def discover_brands(tavily, llm, seed_brands: list[str]) -> list[str]:
         log.info(f"Total brands to research: {len(all_brands)}")
         return all_brands
     return seed_brands
+
+
+def amazon_discover_brands(tavily, llm, min_rating: float = 3.5) -> list[str]:
+    """
+    Supplement SEED_BRANDS with filament brands found on Amazon that have
+    >= min_rating average customer rating.
+
+    Uses Tavily to fetch Amazon search results / review roundups, then uses the
+    LLM to extract brand names.  Returns a deduplicated list of brand name strings.
+    """
+    log.info("Amazon brand discovery — searching for highly-rated filament brands...")
+
+    queries = [
+        "best rated 3D printer filament brands Amazon USA site:amazon.com OR site:rtings.com OR site:all3dp.com 4 stars",
+        "top 3D printing filament Amazon best sellers customer rating 2024 2025",
+        "amazon 3D printing filament brand comparison reviews highest rated",
+        "buy 3D printing filament Amazon top brands PLA PETG ABS reviews",
+        "best 3D printing filament value quality Amazon customer reviews 2025",
+    ]
+
+    all_results: list[str] = []
+    for q in queries:
+        try:
+            results = tavily.search(q, max_results=10, search_depth="advanced")
+            for r in results.get("results", []):
+                snippet = (
+                    f"URL: {r.get('url', '')}\n"
+                    f"Title: {r.get('title', '')}\n"
+                    f"Content: {r.get('content', '')[:800]}"
+                )
+                all_results.append(snippet)
+            time.sleep(0.5)
+        except Exception as e:
+            log.warning(f"Amazon search failed for '{q[:50]}': {e}")
+
+    if not all_results:
+        log.warning("Amazon discovery: no search results — skipping")
+        return []
+
+    combined = "\n\n---\n\n".join(all_results[:25])
+    response = llm.invoke(AMAZON_BRAND_DISCOVERY_PROMPT.format(search_results=combined))
+    discovered = extract_json(response.content)
+
+    brand_names: list[str] = []
+    if isinstance(discovered, list):
+        for entry in discovered:
+            if isinstance(entry, dict):
+                brand = entry.get("brand")
+                rating = entry.get("amazon_rating")
+                # Include if rating unknown or meets threshold
+                if brand and (rating is None or rating >= min_rating):
+                    brand_names.append(brand)
+            elif isinstance(entry, str):
+                brand_names.append(entry)
+
+    log.info(f"Amazon discovery: found {len(brand_names)} brands meeting >= {min_rating}★")
+    return brand_names
 
 
 def discover_materials(tavily, llm, brand: str) -> list[dict]:
@@ -512,6 +595,135 @@ def write_to_gcs(
         log.warning(f"    [GCS] write failed: {e}")
 
 
+# ── BigQuery writer ───────────────────────────────────────────────────────────
+
+
+def write_to_bigquery(brand: str, brand_slug: str, material: dict, settings: dict, run_id: str):
+    """Append raw filament scrape record to BigQuery (fire-and-forget, non-fatal)."""
+    import asyncio
+
+    async def _write():
+        try:
+            from services.db.bigquery_client import BigQueryClient
+            bq = BigQueryClient()
+            scrape = {
+                "manufacturer_name": brand,
+                "manufacturer_slug": brand_slug,
+                "product_name": material.get("name", ""),
+                "product_slug": slugify(material.get("name", "unknown")),
+                "category": material.get("material_type"),
+                "source_url": material.get("url"),
+                "source_type": "web",
+                "raw_data": {**material, **settings},
+                "normalized_data": settings,
+                "confidence": 0.7,
+            }
+            await bq.write_filament_scrape(scrape, run_id=run_id)
+        except Exception as e:
+            log.warning(f"    [BigQuery] write failed (non-fatal): {e}")
+
+    try:
+        asyncio.run(_write())
+    except Exception as e:
+        log.warning(f"    [BigQuery] async error (non-fatal): {e}")
+
+
+# ── Cloud SQL writer ──────────────────────────────────────────────────────────
+
+
+def write_to_cloud_sql(brand: str, brand_slug: str, material: dict, settings: dict):
+    """Upsert filament manufacturer + filament into Cloud SQL (non-fatal)."""
+    import asyncio
+
+    async def _upsert():
+        try:
+            from services.db.cloud_sql import get_session, upsert_filament, upsert_manufacturer
+            from services.db.models import FilamentCategory
+
+            # Normalise category to enum value
+            raw_cat = (material.get("material_type") or "PLA").upper().replace(" ", "_")
+            # Best-effort mapping
+            cat_map = {
+                "PA_NYLON": "PA", "NYLON": "PA", "CF": "PLA_CF",
+                "GF": "PLA_CF", "FLEXIBLE": "FLEX", "SILK_PLA": "SILK",
+                "MATTE_PLA": "MATTE",
+            }
+            cat = cat_map.get(raw_cat, raw_cat)
+            try:
+                FilamentCategory(cat)
+            except ValueError:
+                cat = "OTHER"
+
+            async with get_session() as session:
+                mfr_data = {
+                    "slug": brand_slug,
+                    "name": brand,
+                    "data_tier": "free",
+                    "research_status": "draft",
+                }
+                mfr = await upsert_manufacturer(session, mfr_data)
+
+                filament_data = {
+                    "manufacturer_id": mfr.id,
+                    "slug": slugify(material.get("name", "unknown")),
+                    "product_name": material.get("name", ""),
+                    "category": cat,
+                    "diameter_mm": (material.get("diameter_options") or [1.75])[0],
+                    "source_url": material.get("url"),
+                    "nozzle_temp_min_c": settings.get("nozzle_temp_min"),
+                    "nozzle_temp_max_c": settings.get("nozzle_temp_max"),
+                    "nozzle_temp_rec_c": settings.get("nozzle_temp_recommended"),
+                    "bed_temp_min_c": settings.get("bed_temp_min"),
+                    "bed_temp_max_c": settings.get("bed_temp_max"),
+                    "bed_temp_rec_c": settings.get("bed_temp_recommended"),
+                    "bed_temp_pei_c": settings.get("bed_temp_pei"),
+                    "bed_temp_glass_c": settings.get("bed_temp_glass"),
+                    "bed_temp_garolite_c": settings.get("bed_temp_garolite"),
+                    "chamber_temp_min_c": settings.get("chamber_temp_min"),
+                    "chamber_temp_max_c": settings.get("chamber_temp_max"),
+                    "chamber_temp_rec_c": settings.get("chamber_temp_recommended"),
+                    "print_speed_min_mms": settings.get("print_speed_min"),
+                    "print_speed_max_mms": settings.get("print_speed_max"),
+                    "print_speed_rec_mms": settings.get("print_speed_recommended"),
+                    "cooling_fan_min_pct": settings.get("cooling_fan_min"),
+                    "cooling_fan_max_pct": settings.get("cooling_fan_max"),
+                    "cooling_fan_rec_pct": settings.get("cooling_fan_recommended"),
+                    "retraction_bowden_mm": settings.get("retraction_distance_bowden"),
+                    "retraction_direct_mm": settings.get("retraction_distance_direct"),
+                    "retraction_speed_mms": settings.get("retraction_speed"),
+                    "flow_rate_pct": (settings.get("flow_rate") or 1.0) * 100,
+                    "requires_enclosure": settings.get("requires_enclosure"),
+                    "requires_dry_box": settings.get("requires_dry_storage"),
+                    "drying_temp_c": settings.get("drying_temp"),
+                    "drying_time_hours": settings.get("drying_time_hours"),
+                    "food_safe": settings.get("food_safe"),
+                    "flexible": settings.get("flexible"),
+                    "uv_resistant": settings.get("uv_resistance") in ("good", "excellent"),
+                    "density_g_cm3": settings.get("density_g_cm3"),
+                    "tensile_strength_mpa": settings.get("tensile_strength_mpa"),
+                    "glass_transition_temp_c": settings.get("glass_transition_temp_c"),
+                    "heat_deflection_temp_c": settings.get("heat_deflection_temp_c"),
+                    "moisture_absorption_pct": settings.get("moisture_absorption_percent"),
+                    "shrinkage_pct": settings.get("shrinkage_percent"),
+                    "bed_adhesion_notes": settings.get("bed_adhesion_notes"),
+                    "common_challenges": settings.get("common_challenges"),
+                    "post_processing_notes": settings.get("post_processing_notes"),
+                    "typical_use_cases": ", ".join(settings.get("typical_use_cases") or []) or None,
+                    "incompatible_with": settings.get("incompatible_with") or [],
+                    "data_tier": "free",
+                    "research_status": "draft",
+                }
+                await upsert_filament(session, filament_data)
+            log.info(f"    [Cloud SQL] {brand_slug}/{slugify(material.get('name',''))} upserted")
+        except Exception as e:
+            log.warning(f"    [Cloud SQL] upsert failed (non-fatal): {e}")
+
+    try:
+        asyncio.run(_upsert())
+    except Exception as e:
+        log.warning(f"    [Cloud SQL] async error (non-fatal): {e}")
+
+
 # ── Main pipeline ─────────────────────────────────────────────────────────────
 
 
@@ -525,13 +737,19 @@ def run():
     db = _import_firestore()
     _, bucket = _import_gcs()
 
+    import uuid as _uuid
+    pipeline_run_id = str(_uuid.uuid4())
+    log.info(f"Pipeline run ID: {pipeline_run_id}")
+
     # Load checkpoint
     state = load_checkpoint(bucket)
     completed_brands = set(state.get("completed_brands", []))
 
     # Phase 1: Brand discovery
     if not state.get("discovered_brands"):
-        brands = discover_brands(tavily, llm, SEED_BRANDS)
+        brands_web = discover_brands(tavily, llm, SEED_BRANDS)
+        brands_amazon = amazon_discover_brands(tavily, llm, min_rating=3.5)
+        brands = list(set(brands_web + brands_amazon))
         state["discovered_brands"] = brands
         save_checkpoint(bucket, state)
     else:
@@ -563,6 +781,8 @@ def run():
                     write_to_gcs(
                         bucket, brand_slug, material, settings, {"search_done": True}
                     )
+                    write_to_bigquery(brand, brand_slug, material, settings, pipeline_run_id)
+                    write_to_cloud_sql(brand, brand_slug, material, settings)
                 except Exception as e:
                     log.error(f"    Error on {mat_name}: {e}")
                     traceback.print_exc()

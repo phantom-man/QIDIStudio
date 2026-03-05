@@ -57,6 +57,11 @@ memory/lancedb/       # GCS-backed — local dir is always a stale artifact
 # Even if this repo goes public these files stay off git history entirely
 docs/private/
 
+# RS256 auth keys — NEVER commit private key
+keys/private.pem
+keys/*.p8
+keys/*.pfx
+
 # VS Code extension — lives in its OWN separate private repo
 # Tracked locally here during planning; must never enter this AGPL repo
 vscode-extension/

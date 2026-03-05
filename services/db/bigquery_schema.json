@@ -1,0 +1,372 @@
+{
+    "_comment": "QIDIStudio BigQuery dataset schema — crafty-hook-483415-b3.qidistudio_research",
+    "_purpose": "Raw research data warehouse for audit trail and rebuild-from-scratch capability.",
+    "dataset": {
+        "project": "crafty-hook-483415-b3",
+        "dataset_id": "qidistudio_research",
+        "location": "US",
+        "description": "Research data for QIDIStudio — filaments, nozzles, all raw crawled data"
+    },
+    "tables": [
+        {
+            "table_id": "raw_research_runs",
+            "description": "Every agent research run — raw output before validation. Append-only.",
+            "schema": [
+                {
+                    "name": "run_id",
+                    "type": "STRING",
+                    "mode": "REQUIRED",
+                    "description": "UUID from research_sessions.id"
+                },
+                {
+                    "name": "ingested_at",
+                    "type": "TIMESTAMP",
+                    "mode": "REQUIRED",
+                    "description": "BigQuery ingest time"
+                },
+                {
+                    "name": "domain",
+                    "type": "STRING",
+                    "mode": "REQUIRED",
+                    "description": "filaments | nozzles | custom"
+                },
+                {
+                    "name": "query",
+                    "type": "STRING",
+                    "mode": "REQUIRED",
+                    "description": "Original research question"
+                },
+                {
+                    "name": "agent_id",
+                    "type": "STRING",
+                    "mode": "NULLABLE",
+                    "description": "Agent that ran this (researcher, builder, etc.)"
+                },
+                {
+                    "name": "method",
+                    "type": "STRING",
+                    "mode": "NULLABLE",
+                    "description": "web_search | scrape | rag | hybrid"
+                },
+                {
+                    "name": "raw_output",
+                    "type": "JSON",
+                    "mode": "NULLABLE",
+                    "description": "Full raw output from agent — not validated"
+                },
+                {
+                    "name": "findings",
+                    "type": "JSON",
+                    "mode": "NULLABLE",
+                    "description": "Structured findings array"
+                },
+                {
+                    "name": "sources",
+                    "type": "JSON",
+                    "mode": "NULLABLE",
+                    "description": "All source URLs and citations"
+                },
+                {
+                    "name": "quality_score",
+                    "type": "FLOAT64",
+                    "mode": "NULLABLE",
+                    "description": "0.0-1.0 from research_evaluator"
+                },
+                {
+                    "name": "eval_report",
+                    "type": "JSON",
+                    "mode": "NULLABLE",
+                    "description": "Full eval report from research_evaluator"
+                },
+                {
+                    "name": "status",
+                    "type": "STRING",
+                    "mode": "REQUIRED",
+                    "description": "draft | validated | published | deprecated"
+                },
+                {
+                    "name": "duration_secs",
+                    "type": "INT64",
+                    "mode": "NULLABLE",
+                    "description": "Wall-clock time for this research run"
+                }
+            ],
+            "time_partitioning": {
+                "type": "DAY",
+                "field": "ingested_at"
+            },
+            "clustering_fields": [
+                "domain",
+                "status",
+                "agent_id"
+            ]
+        },
+        {
+            "table_id": "raw_filament_scrapes",
+            "description": "Every raw filament data point scraped from any source. Append-only audit trail.",
+            "schema": [
+                {
+                    "name": "scrape_id",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "scraped_at",
+                    "type": "TIMESTAMP",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "run_id",
+                    "type": "STRING",
+                    "mode": "NULLABLE",
+                    "description": "FK to raw_research_runs.run_id"
+                },
+                {
+                    "name": "manufacturer_name",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "manufacturer_slug",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "product_name",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "product_slug",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "category",
+                    "type": "STRING",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "source_url",
+                    "type": "STRING",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "source_type",
+                    "type": "STRING",
+                    "mode": "NULLABLE",
+                    "description": "amazon | manufacturer_site | datasheet | community"
+                },
+                {
+                    "name": "raw_data",
+                    "type": "JSON",
+                    "mode": "NULLABLE",
+                    "description": "Full settings dict as scraped"
+                },
+                {
+                    "name": "normalized_data",
+                    "type": "JSON",
+                    "mode": "NULLABLE",
+                    "description": "After normalization to SETTINGS_SCHEMA"
+                },
+                {
+                    "name": "confidence",
+                    "type": "FLOAT64",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "amazon_rating",
+                    "type": "FLOAT64",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "amazon_review_count",
+                    "type": "INT64",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "asin",
+                    "type": "STRING",
+                    "mode": "NULLABLE"
+                }
+            ],
+            "time_partitioning": {
+                "type": "DAY",
+                "field": "scraped_at"
+            },
+            "clustering_fields": [
+                "manufacturer_slug",
+                "category"
+            ]
+        },
+        {
+            "table_id": "raw_nozzle_research",
+            "description": "All nozzle type research data — raw scraped and AI-synthesized. Append-only.",
+            "schema": [
+                {
+                    "name": "research_id",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "researched_at",
+                    "type": "TIMESTAMP",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "run_id",
+                    "type": "STRING",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "nozzle_slug",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "nozzle_name",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "material",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "diameter_mm",
+                    "type": "FLOAT64",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "source_url",
+                    "type": "STRING",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "raw_data",
+                    "type": "JSON",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "settings_delta",
+                    "type": "JSON",
+                    "mode": "NULLABLE",
+                    "description": "vs. brass baseline"
+                },
+                {
+                    "name": "pro_settings_matrix",
+                    "type": "JSON",
+                    "mode": "NULLABLE",
+                    "description": "Per filament category overrides"
+                },
+                {
+                    "name": "confidence",
+                    "type": "FLOAT64",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "quality_score",
+                    "type": "FLOAT64",
+                    "mode": "NULLABLE"
+                }
+            ],
+            "time_partitioning": {
+                "type": "DAY",
+                "field": "researched_at"
+            },
+            "clustering_fields": [
+                "nozzle_slug",
+                "material"
+            ]
+        },
+        {
+            "table_id": "research_quality_evals",
+            "description": "All research evaluator outputs — one row per eval run.",
+            "schema": [
+                {
+                    "name": "eval_id",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "evaluated_at",
+                    "type": "TIMESTAMP",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "run_id",
+                    "type": "STRING",
+                    "mode": "REQUIRED",
+                    "description": "FK to raw_research_runs.run_id"
+                },
+                {
+                    "name": "domain",
+                    "type": "STRING",
+                    "mode": "REQUIRED"
+                },
+                {
+                    "name": "overall_score",
+                    "type": "FLOAT64",
+                    "mode": "REQUIRED",
+                    "description": "0.0–1.0"
+                },
+                {
+                    "name": "source_quality",
+                    "type": "FLOAT64",
+                    "mode": "NULLABLE",
+                    "description": "0.0–1.0"
+                },
+                {
+                    "name": "completeness",
+                    "type": "FLOAT64",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "accuracy",
+                    "type": "FLOAT64",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "consistency",
+                    "type": "FLOAT64",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "actionability",
+                    "type": "FLOAT64",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "gaps_found",
+                    "type": "JSON",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "improvements",
+                    "type": "JSON",
+                    "mode": "NULLABLE"
+                },
+                {
+                    "name": "verdict",
+                    "type": "STRING",
+                    "mode": "REQUIRED",
+                    "description": "PASS | FAIL | NEEDS_IMPROVEMENT"
+                },
+                {
+                    "name": "full_report",
+                    "type": "JSON",
+                    "mode": "NULLABLE"
+                }
+            ],
+            "time_partitioning": {
+                "type": "DAY",
+                "field": "evaluated_at"
+            },
+            "clustering_fields": [
+                "domain",
+                "verdict"
+            ]
+        }
+    ]
+}
