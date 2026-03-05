@@ -66,7 +66,7 @@ from typing_extensions import NotRequired
 REPO_ROOT = Path(__file__).parents[1]
 load_dotenv(REPO_ROOT / ".env", override=True)
 
-os.environ.setdefault("LANGCHAIN_TRACING_V2", "true")
+# Project name for this pipeline -- LANGSMITH_TRACING=true is set in .env.
 os.environ.setdefault("LANGCHAIN_PROJECT", "qidistudio-dev-fleet")
 
 _GCP_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "crafty-hook-483415-b3")

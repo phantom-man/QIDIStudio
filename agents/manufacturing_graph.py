@@ -52,7 +52,7 @@ from typing_extensions import NotRequired, TypedDict
 REPO_ROOT = Path(__file__).parents[1]
 load_dotenv(REPO_ROOT / ".env", override=True)
 
-os.environ.setdefault("LANGCHAIN_TRACING_V2", "true")
+# Project name for this pipeline -- LANGSMITH_TRACING=true is set in .env.
 os.environ.setdefault("LANGCHAIN_PROJECT", "qidistudio-manufacturing")
 
 # ── LanceDB memory ────────────────────────────────────────────────────────────
