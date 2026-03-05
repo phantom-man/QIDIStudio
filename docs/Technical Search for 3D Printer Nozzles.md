@@ -6,14 +6,14 @@ A technical reference covering nozzle material properties, orifice geometry, the
 
 ## I. Nozzle Materials: Properties Matrix
 
-| Material | Hardness (HV) | Thermal cond. (W/m·K) | Max continuous temp (°C) | Abrasion resist. | Cost |
-|----------|-------------|----------------------|--------------------------|-----------------|------|
-| Brass (CuZn37) | 90–120 | 120 | 280 | Low | $ |
-| Stainless steel (303) | 160–200 | 16 | 350 | Moderate | $$ |
-| Hardened steel (H13) | 450–540 | 24 | 400 | High | $$ |
-| Tool steel + TiN PVD | 500–600 | 20 | 400 | Very high | $$$ |
-| Tungsten carbide (WC-Co) | 1400–1600 | 80 | 500 | Extreme | $$$$ |
-| Ruby-tipped brass | ~2000 (ruby) | 120 (body) | 290 | Extreme | $$$ |
+| Material                 | Hardness (HV) | Thermal cond. (W/m·K) | Max continuous temp (°C) | Abrasion resist. | Cost |
+| ------------------------ | ------------- | --------------------- | ------------------------ | ---------------- | ---- |
+| Brass (CuZn37)           | 90–120        | 120                   | 280                      | Low              | $    |
+| Stainless steel (303)    | 160–200       | 16                    | 350                      | Moderate         | $$   |
+| Hardened steel (H13)     | 450–540       | 24                    | 400                      | High             | $$   |
+| Tool steel + TiN PVD     | 500–600       | 20                    | 400                      | Very high        | $$$  |
+| Tungsten carbide (WC-Co) | 1400–1600     | 80                    | 500                      | Extreme          | $$$$ |
+| Ruby-tipped brass        | ~2000 (ruby)  | 120 (body)            | 290                      | Extreme          | $$$  |
 
 ### 1.1 Thermal Impact of Material Choice
 
@@ -45,14 +45,14 @@ where $n$ is flow index, $m$ is consistency index, $r$ is orifice radius, $L$ is
 ### 2.2 Flow Capacity vs Orifice Diameter
 
 | Orifice dia (mm) | $Q_{max}$ PLA at 210 °C (mm³/s) | $Q_{max}$ ABS at 240 °C | Layer heights (typical) |
-|-----------------|-------------------------------|------------------------|------------------------|
-| 0.25 | 2.5 | 2.0 | 0.05–0.15 |
-| 0.40 | 8.0 | 6.5 | 0.10–0.30 |
-| 0.60 | 18.0 | 14.0 | 0.20–0.45 |
-| 0.80 | 32.0 | 25.0 | 0.30–0.60 |
-| 1.00 | 50.0 | 38.0 | 0.40–0.80 |
+| ---------------- | ------------------------------- | ----------------------- | ----------------------- |
+| 0.25             | 2.5                             | 2.0                     | 0.05–0.15               |
+| 0.40             | 8.0                             | 6.5                     | 0.10–0.30               |
+| 0.60             | 18.0                            | 14.0                    | 0.20–0.45               |
+| 0.80             | 32.0                            | 25.0                    | 0.30–0.60               |
+| 1.00             | 50.0                            | 38.0                    | 0.40–0.80               |
 
-(CHT-type 3-hole insert improves these by 2–3×)
+(CHT-type 3-hole insert typically improves volumetric throughput by approximately 2–3× compared to standard single-orifice designs at equivalent temperatures, based on community benchmarking; exact values depend on filament viscosity and heater block geometry)
 
 ---
 
@@ -99,20 +99,20 @@ class NozzleWearModel:
 
 ## IV. Nozzle Selection Matrix
 
-| Filament type | Recommended nozzle | Avoid |
-|--------------|-------------------|-------|
-| PLA / PETG | Brass (best heat transfer) | — |
-| ASA / ABS / PC | Hardened steel | Brass (wear) |
-| CF / GF-filled | Tungsten carbide or ruby | Brass, SS |
-| Metal-filled PLA | Ruby or WC | Any brass |
-| TPU / flexibles | Brass (low friction) | — |
-| Wood / glow | Brass (disposable) | Carbide overkill |
+| Filament type    | Recommended nozzle         | Avoid            |
+| ---------------- | -------------------------- | ---------------- |
+| PLA / PETG       | Brass (best heat transfer) | —                |
+| ASA / ABS / PC   | Hardened steel             | Brass (wear)     |
+| CF / GF-filled   | Tungsten carbide or ruby   | Brass, SS        |
+| Metal-filled PLA | Ruby or WC                 | Any brass        |
+| TPU / flexibles  | Brass (low friction)       | —                |
+| Wood / glow      | Brass (disposable)         | Carbide overkill |
 
 ---
 
 ## References
 
-- Osswald, T.A. (2017). *Understanding Polymer Processing*. Hanser.
-- Zisopol, D.G. et al. (2022). Wear of FDM nozzles. *Materials*, 15(3), 1104.
+- Osswald, T.A. (2017). _Understanding Polymer Processing_. Hanser.
+- Zisopol, D.G. et al. (2022). Wear of FDM nozzles. _Materials_, 15(3), 1104.
 - E3D (2023). Revo nozzle material datasheets. e3d-online.com.
-- Tlegenov, Y. et al. (2019). Nozzle condition monitoring in 3D printing. *Robotics & CIM*, 54, 45-55.
+- Tlegenov, Y. et al. (2019). Nozzle condition monitoring in 3D printing. _Robotics & CIM_, 54, 45-55.

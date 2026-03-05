@@ -10,15 +10,15 @@ A rigorous methodology for cross-language debugging of hybrid Python/C++ systems
 
 Python and C++ operate on fundamentally different memory and execution models:
 
-| Property | Python | C++ (via pybind11) |
-|---------|--------|------------------|
-| Heap | `PyHeap` — GC-managed | `malloc/new` — manual/RAII |
-| Stack frame | `PyFrameObject*` chain | Hardware stack (DWARF metadata) |
-| Debugger | `sys.settrace()` / `pdb` | DWARF + GDB/LLDB |
-| Exception | `PyObject* (PyExc_*)` | `std::exception` hierarchy |
-| Threads | GIL-serialized | Native OS threads |
+| Property    | Python                   | C++ (via pybind11)              |
+| ----------- | ------------------------ | ------------------------------- |
+| Heap        | `PyHeap` — GC-managed    | `malloc/new` — manual/RAII      |
+| Stack frame | `PyFrameObject*` chain   | Hardware stack (DWARF metadata) |
+| Debugger    | `sys.settrace()` / `pdb` | DWARF + GDB/LLDB                |
+| Exception   | `PyObject* (PyExc_*)`    | `std::exception` hierarchy      |
+| Threads     | GIL-serialized           | Native OS threads               |
 
-When C++ code is called from Python via pybind11, the debugger sees a `PyObject*` that GDB cannot dereference meaningfully without Python-aware extensions.
+When C++ code is called from Python via pybind11, the debugger sees a `PyObject*` that GDB cannot dereference meaningfully without Python-aware extensions such as `libpython` debug symbols and the `python-gdb.py` pretty-printers (GDB Python API: https://sourceware.org/gdb/current/onlinedocs/gdb.html/Python-API.html).
 
 ---
 
@@ -141,14 +141,14 @@ def install_hybrid_hook():
       "type": "pythoncpp",
       "request": "launch",
       "pythonLaunchName": "Python: Run Script",
-      "cppAttachName": "GDB: Attach to Python"
+      "cppAttachName": "GDB: Attach to Python",
     },
     {
       "name": "Python: Run Script",
       "type": "python",
       "request": "launch",
       "program": "${workspaceFolder}/scripts/apply_texture_bpy.py",
-      "env": {"ENABLE_CPP_BREAKPOINT": "1"}
+      "env": { "ENABLE_CPP_BREAKPOINT": "1" },
     },
     {
       "name": "GDB: Attach to Python",
@@ -158,10 +158,13 @@ def install_hybrid_hook():
       "processId": "${command:pickProcess}",
       "MIMode": "gdb",
       "setupCommands": [
-        {"text": "source /usr/share/gdb/python3/libpython.py", "ignoreFailures": true}
-      ]
-    }
-  ]
+        {
+          "text": "source /usr/share/gdb/python3/libpython.py",
+          "ignoreFailures": true,
+        },
+      ],
+    },
+  ],
 }
 ```
 
@@ -169,19 +172,19 @@ def install_hybrid_hook():
 
 ## VI. Common Failure Modes
 
-| Symptom | Root Cause | Fix |
-|---------|-----------|-----|
-| `Segmentation fault (core dumped)` | C++ writing past array bounds | Enable AddressSanitizer: `CFLAGS="-fsanitize=address"` |
-| `Couldn't find type PyObject` | libpython debug symbols missing | `sudo apt install python3.X-dbg` |
-| `GIL: thread state mismatch` | C++ holding GIL across thread boundary | Use `py::gil_scoped_release` |
-| Python exception swallowed | pybind11 converts C++ exception silently | Use `py::set_error()` or rethrow |
-| `AttributeError` after C++ mutation | Cached Python object not invalidated | Call `mesh.invalidate()` or return new object |
+| Symptom                             | Root Cause                               | Fix                                                    |
+| ----------------------------------- | ---------------------------------------- | ------------------------------------------------------ |
+| `Segmentation fault (core dumped)`  | C++ writing past array bounds            | Enable AddressSanitizer: `CFLAGS="-fsanitize=address"` |
+| `Couldn't find type PyObject`       | libpython debug symbols missing          | `sudo apt install python3.X-dbg`                       |
+| `GIL: thread state mismatch`        | C++ holding GIL across thread boundary   | Use `py::gil_scoped_release`                           |
+| Python exception swallowed          | pybind11 converts C++ exception silently | Use `py::set_error()` or rethrow                       |
+| `AttributeError` after C++ mutation | Cached Python object not invalidated     | Call `mesh.invalidate()` or return new object          |
 
 ---
 
 ## References
 
-- Galowicz, J. (2017). *C++17 STL Cookbook*. Packt (RAII and exception safety).
+- Galowicz, J. (2017). _C++17 STL Cookbook_. Packt (RAII and exception safety).
 - GDB Manual, §12: Debugging Programs with Multiple Threads. gnu.org/software/gdb.
 - pybind11 Documentation: Exception Handling. pybind11.readthedocs.io.
 - Python C API Reference: Memory Management. docs.python.org/3/c-api/memory.html.

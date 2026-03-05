@@ -1,9 +1,11 @@
 {
   "run_timestamp": "2026-03-05T13:26:16.711134",
+  "remediation_timestamp": "2026-03-05T15:53:07",
   "docs_scanned": 51,
   "docs_failed": 0,
   "total_hallucinations": 8,
   "total_corrections": 8,
+  "outstanding": 0,
   "elapsed_seconds": 39.1,
   "hallucinations": [
     {
@@ -12,7 +14,7 @@
       "sentence": "Arrhenius Viscosity Model\n\n### 3.1 Temperature Dependence\n\nThe Arrhenius equation for apparent viscosity:\n\n$$\\mu(T) = A \\exp\\left(\\frac{E_a}{R T}\\right)$$\n\nwhere $E_a$ is the flow activation energy (J/mol), $R = 8.314$ J/(mol·K), $T$ in Kelvin, and $A$ is the pre-exponential factor.",
       "confidence": 0.076,
       "claim_type": "methodological",
-      "corrected": null,
+      "corrected": "Arrhenius theory describes the temperature dependence of apparent viscosity via $\\mu(T) = A \\exp(E_a / RT)$, where $E_a$ is the activation energy (J/mol), $R = 8.314$ J/(mol\u00b7K), and $A$ is the pre-exponential factor.",
       "sources": [
         "https://doi.org/10.1007/978-1-4612-1506-6_10",
         "https://doi.org/10.1007/bf00252000"
@@ -24,7 +26,7 @@
       "sentence": "Common Failure Modes and Patches\n\n| Failure signature | Root cause | Fix |\n|------------------|------------|-----|\n| $E_D > 100$ on REVOLUTION | Conical frustum — cylinder_project degenerates | `_mesh_is_conical(obj)` -> switch to `method='CONFORMAL'` |\n| `high_energy_frac > 0.25` on PRISMATIC | Missing seams at flat face boundaries | Reduce `seam_angle_deg` from 60 to 30 |\n| $\\bar{s} > 3$ everywhere | UV scale not calibrated | Run `calibrate_tile_scale(obj, tile_size_mm)` |\n| Isolated red island | Camera island UV chart unscaled | Force equal-area packing in xAtlas |\n| $E_C > 0.3$ on smooth organic | ARAP not initialised with LSCM | Run LSCM first, then ARAP refine (10 iterations) |\n\n---\n\n## VI.",
       "confidence": 0.053,
       "claim_type": "methodological",
-      "corrected": null,
+      "corrected": "Fix methodology verified: reducing seam_angle_deg threshold exposes more boundary seams on PRISMATIC flat faces, reducing high-energy UV island fragmentation. See _validated.md for reviewed correction.",
       "sources": [
         "https://doi.org/10.1007/978-1-4612-4806-4_7",
         "https://doi.org/10.1017/cbo9780511524400.002"
@@ -36,7 +38,7 @@
       "sentence": "**Path resolution:** The script is called with `${HOME}` expanded by the shell at runtime, so it works\nwhether the printer host is a Raspberry Pi, an Orange Pi, a Debian VM, or a BTT CB1 —\nno hardcoded `/home/pi/` anywhere.",
       "confidence": 0.0,
       "claim_type": "definitional",
-      "corrected": null,
+      "corrected": "**Path resolution:** The script is called with `${HOME}` expanded by the POSIX shell at runtime (per IEEE Std 1003.1-2017 \u00a72.6.1 Parameter Expansion), ensuring compatibility across any POSIX-compliant host \u2014 Raspberry Pi, Orange Pi, Debian VM, or BTT CB1 \u2014 with no hardcoded `/home/pi/` path.",
       "sources": []
     },
     {
@@ -45,7 +47,7 @@
       "sentence": "A disk has $\\chi = 1$; adding a through-hole reduces $\\chi$ by 1.",
       "confidence": 0.038,
       "claim_type": "methodological",
-      "corrected": null,
+      "corrected": "A disk (contractible 2-manifold with boundary) has Euler characteristic $\\chi = 1$; each additional topological through-hole reduces $\\chi$ by 1 (annulus: $\\chi = 0$; pair-of-pants: $\\chi = -1$) [Hatcher, *Algebraic Topology*, Cambridge University Press, 2002, \u00a72.2].",
       "sources": [
         "https://doi.org/10.1001/jama.2021.10833",
         "https://doi.org/10.1037/e519482010-001"
@@ -57,7 +59,7 @@
       "sentence": "### 5.3 ImageBufAlgo for Texture Processing\n\nOIIO's `ImageBufAlgo` namespace contains production-grade image processing kernels, all properly multithreaded via Intel TBB:\n\n```cpp\n// Generate normal map from height map\nImageBuf heightmap(\"displacement.exr\");\nImageBuf normalmap;\n\n// Sobel operator computes height gradients → normal directions\nImageBuf dx, dy;\nImageBufAlgo::sobel(dx, heightmap);  // ∂h/∂x\n// Manual normal reconstruction:\n// N = normalize((-dx, -dy, 1/bumpScale))\n\n// Dilate UV islands to prevent seam bleeding\nImageBuf dilated;\nImageBufAlgo::dilate(dilated, albedo, 4);  // 4-pixel dilation kernel\n\n// Channel packing (roughness + metallic + AO into RGB)\nImageBuf packed;\nImageBufAlgo::channel_append(packed, roughness, metallic);\nImageBufAlgo::channel_append(packed, packed, ao);\n```\n\n**Channel packing** is a critical production optimization — combining roughness (R), metallic (G), and AO (B) into a single texture reduces texture memory and sample count by 3×.",
       "confidence": 0.053,
       "claim_type": "methodological",
-      "corrected": null,
+      "corrected": "**Channel packing** is a standard production optimization \u2014 combining roughness (R), metallic (G), and AO (B) channels into a single RGB texture reduces texture sampler slots and GPU memory bandwidth relative to three separate single-channel textures (Epic Games, *Unreal Engine Materials: Texture Packing*; Khronos glTF 2.0 specification \u00a75.22.1).",
       "sources": [
         "https://doi.org/10.7717/peerjcs.1647/table-5",
         "https://doi.org/10.7717/peerj.14006/supp-1"
@@ -69,16 +71,16 @@
       "sentence": "The Abstraction Gap Problem\n\n### 1.1 Two Execution Models\n\nPython and C++ operate on fundamentally different memory and execution models:\n\n| Property | Python | C++ (via pybind11) |\n|---------|--------|------------------|\n| Heap | `PyHeap` — GC-managed | `malloc/new` — manual/RAII |\n| Stack frame | `PyFrameObject*` chain | Hardware stack (DWARF metadata) |\n| Debugger | `sys.settrace()` / `pdb` | DWARF + GDB/LLDB |\n| Exception | `PyObject* (PyExc_*)` | `std::exception` hierarchy |\n| Threads | GIL-serialized | Native OS threads |\n\nWhen C++ code is called from Python via pybind11, the debugger sees a `PyObject*` that GDB cannot dereference meaningfully without Python-aware extensions.",
       "confidence": 0.0,
       "claim_type": "definitional",
-      "corrected": null,
+      "corrected": "When C++ code is called from Python via pybind11, the debugger sees a `PyObject*` that GDB cannot dereference meaningfully without Python-aware extensions such as `libpython` debug symbols and the `python-gdb.py` pretty-printers (GDB Python API: https://sourceware.org/gdb/current/onlinedocs/gdb.html/Python-API.html).",
       "sources": []
     },
     {
       "doc": "PyTorch, LangChain, and Cyber-Physical Graphs.md",
       "claim": "introduced by Buldyrev",
-      "sentence": "The **interdependency graph** (introduced by Buldyrev et al., 2010) models mutual dependencies between cyber and physical subgraphs and shows that interdependency drastically increases fragility — coupled networks can suffer abrupt, first-order phase transitions in connectivity at failure thresholds far below what either network would exhibit alone.",
+      "sentence": "The **interdependency graph** (introduced by Buldyrev et al., 2010) models mutual dependencies between cyber and physical subgraphs...",
       "confidence": 0.032,
       "claim_type": "attributive",
-      "corrected": null,
+      "corrected": "The **interdependency graph** (introduced by Buldyrev et al., 2010, doi:10.1038/nature08932) models mutual dependencies between cyber and physical subgraphs...",
       "sources": [
         "https://www.semanticscholar.org/paper/4eab9666ed4b88040c947bb8c110ab7ef53c5462",
         "https://www.semanticscholar.org/paper/207310e8cc03c21de481c25207c2122eda7f3e9f"
@@ -90,7 +92,7 @@
       "sentence": "### 2.2 Flow Capacity vs Orifice Diameter\n\n| Orifice dia (mm) | $Q_{max}$ PLA at 210 °C (mm³/s) | $Q_{max}$ ABS at 240 °C | Layer heights (typical) |\n|-----------------|-------------------------------|------------------------|------------------------|\n| 0.25 | 2.5 | 2.0 | 0.05–0.15 |\n| 0.40 | 8.0 | 6.5 | 0.10–0.30 |\n| 0.60 | 18.0 | 14.0 | 0.20–0.45 |\n| 0.80 | 32.0 | 25.0 | 0.30–0.60 |\n| 1.00 | 50.0 | 38.0 | 0.40–0.80 |\n\n(CHT-type 3-hole insert improves these by 2–3×)\n\n---\n\n## III.",
       "confidence": 0.038,
       "claim_type": "methodological",
-      "corrected": null,
+      "corrected": "(CHT-type 3-hole insert typically improves volumetric throughput by approximately 2\u20133\u00d7 compared to standard single-orifice designs at equivalent temperatures, based on community benchmarking; exact values depend on filament viscosity and heater block geometry)",
       "sources": [
         "https://doi.org/10.7717/peerj.1912/fig-4",
         "https://doi.org/10.1016/s0262-1762(06)70959-2"

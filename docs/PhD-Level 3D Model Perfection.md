@@ -16,12 +16,12 @@ $$H(\mathbf{p}) = \tfrac{1}{2}(\kappa_1 + \kappa_2) \quad \text{(Mean — extrin
 
 For a typical phone chassis:
 
-| Region | $K$ | $H$ | Parameterization challenge |
-|--------|-----|-----|---------------------------|
-| Flat back face | $0$ | $0$ | Developable — planar map is exact |
-| Quarter-round fillet (radius $r$) | $1/r^2$ | $1/r$ | LSCM angle error $\propto K$ |
-| Camera island rim | $>0$ | $>0$ | Genus-1 boundary loop — needs seam cut |
-| Cutout boundary | $\infty$ (crease) | $\infty$ | Non-manifold edge — must be marked as seam |
+| Region                            | $K$               | $H$      | Parameterization challenge                 |
+| --------------------------------- | ----------------- | -------- | ------------------------------------------ |
+| Flat back face                    | $0$               | $0$      | Developable — planar map is exact          |
+| Quarter-round fillet (radius $r$) | $1/r^2$           | $1/r$    | LSCM angle error $\propto K$               |
+| Camera island rim                 | $>0$              | $>0$     | Genus-1 boundary loop — needs seam cut     |
+| Cutout boundary                   | $\infty$ (crease) | $\infty$ | Non-manifold edge — must be marked as seam |
 
 The **Gauss-Bonnet theorem** constrains any UV parameterization:
 
@@ -35,7 +35,7 @@ For a phone chassis with: camera island (genus-1 hole) + $n$ port cutouts (genus
 
 $$\chi = V - E + F = 2 - 2g - n_b$$
 
-where $g$ is genus and $n_b$ is number of boundary components. A disk has $\chi = 1$; adding a through-hole reduces $\chi$ by 1. Standard LSCM requires a disk topology ($\chi = 1$) — each hole needs exactly one boundary seam cut.
+where $g$ is genus and $n_b$ is number of boundary components. A disk (contractible 2-manifold with boundary) has Euler characteristic $\chi = 1$; each additional topological through-hole reduces $\chi$ by 1 (annulus: $\chi = 0$; pair-of-pants: $\chi = -1$) [Hatcher, *Algebraic Topology*, Cambridge University Press, 2002, §2.2]. Standard LSCM requires a disk topology ($\chi = 1$) — each hole needs exactly one boundary seam cut.
 
 **Algorithm: Boundary Loop Extraction for Seam Marking**
 
@@ -122,6 +122,7 @@ ARAP (Sorkine & Alexa, 2007) iteratively minimises the isometric energy:
 $$E_\text{ARAP}(\mathbf{u}) = \sum_{t \in F} A_t \sum_{i=1}^{3} \left\| J_t \mathbf{e}_{t,i} - R_t \mathbf{e}_{t,i} \right\|^2$$
 
 where $J_t$ is the UV Jacobian of face $t$, $R_t \in SO(2)$ is the nearest rotation, and $\mathbf{e}_{t,i}$ are the 3D edge vectors. The iteration alternates:
+
 1. **Local step**: $R_t \leftarrow \text{nearest rotation to } J_t$ (closed-form SVD)
 2. **Global step**: solve $L\mathbf{u} = \mathbf{b}(R_1, \ldots, R_F)$ (sparse linear solve)
 
@@ -142,12 +143,12 @@ def arap_refine(V, F, uv_init):
 
 ### II.3 Projection Strategy Selection
 
-| Mesh class | Condition | Projection | Rationale |
-|------------|-----------|------------|-----------|
-| PRISMATIC | $K \approx 0$, sharp edges $> 30\%$ | OBJECT (XY box) | Flat faces: developable, no UV fragmentation |
-| REVOLUTION | $z_\text{ratio} \geq 1$, smooth, **not conical** | Cylinder | Single seam, isometric on true cylinder |
-| REVOLUTION | Conical taper $> 20\%$ | LSCM 30° | Cylinder_project degenerates on frustum sections |
-| ORGANIC | Smooth, low sharp-edge fraction | LSCM 60° | Lévy 2002: angle-preserving on curved manifolds |
+| Mesh class | Condition                                        | Projection      | Rationale                                        |
+| ---------- | ------------------------------------------------ | --------------- | ------------------------------------------------ |
+| PRISMATIC  | $K \approx 0$, sharp edges $> 30\%$              | OBJECT (XY box) | Flat faces: developable, no UV fragmentation     |
+| REVOLUTION | $z_\text{ratio} \geq 1$, smooth, **not conical** | Cylinder        | Single seam, isometric on true cylinder          |
+| REVOLUTION | Conical taper $> 20\%$                           | LSCM 30°        | Cylinder_project degenerates on frustum sections |
+| ORGANIC    | Smooth, low sharp-edge fraction                  | LSCM 60°        | Lévy 2002: angle-preserving on curved manifolds  |
 
 ---
 
@@ -168,11 +169,11 @@ $$E_C = \sum_{i} \left\| J_i J_i^T - I \right\|_F^2 \cdot a_{3,i}$$
 
 Threshold values for prismatic CAD:
 
-| Metric | Excellent | Acceptable | Fail |
-|--------|-----------|-----------|------|
-| $E_D$ (normalised) | $< 10$ | $< 50$ | $\geq 50$ |
-| High-energy fraction ($s_i > 3$) | $< 5\%$ | $< 15\%$ | $\geq 15\%$ |
-| Mean stretch $\bar{s}$ | $[0.9, 1.1]$ | $[0.8, 1.5]$ | outside |
+| Metric                           | Excellent    | Acceptable   | Fail        |
+| -------------------------------- | ------------ | ------------ | ----------- |
+| $E_D$ (normalised)               | $< 10$       | $< 50$       | $\geq 50$   |
+| High-energy fraction ($s_i > 3$) | $< 5\%$      | $< 15\%$     | $\geq 15\%$ |
+| Mean stretch $\bar{s}$           | $[0.9, 1.1]$ | $[0.8, 1.5]$ | outside     |
 
 ---
 
@@ -283,9 +284,9 @@ The `mid_level=0.0` setting is critical: with the standard default of 0.5, black
 
 ## VII. References
 
-1. Lévy, B., Petitjean, S., Ray, N., & Maillot, J. (2002). Least squares conformal maps for automatic texture atlas generation. *ACM SIGGRAPH*, 362–371.
-2. Sorkine, O., & Alexa, M. (2007). As-rigid-as-possible surface modeling. *Eurographics Symposium on Geometry Processing*, 109–116.
-3. Reuter, M., Wolter, F.-E., & Peinecke, N. (2006). Laplace-Beltrami spectra as 'Shape-DNA' of surfaces and solids. *CAD 38*(4), 342–366.
-4. Floater, M.S., & Hormann, K. (2005). Surface parameterization: a tutorial and survey. *Advances in Multiresolution for Geometric Modelling*, 157–186.
+1. Lévy, B., Petitjean, S., Ray, N., & Maillot, J. (2002). Least squares conformal maps for automatic texture atlas generation. _ACM SIGGRAPH_, 362–371.
+2. Sorkine, O., & Alexa, M. (2007). As-rigid-as-possible surface modeling. _Eurographics Symposium on Geometry Processing_, 109–116.
+3. Reuter, M., Wolter, F.-E., & Peinecke, N. (2006). Laplace-Beltrami spectra as 'Shape-DNA' of surfaces and solids. _CAD 38_(4), 342–366.
+4. Floater, M.S., & Hormann, K. (2005). Surface parameterization: a tutorial and survey. _Advances in Multiresolution for Geometric Modelling_, 157–186.
 5. Crane, K. (2023). Discrete Differential Geometry (course notes). Carnegie Mellon University.
 6. QIDIStudio: `resources/scripts/apply_texture_bpy.py` — `_do_uv_unwrap`, `_mesh_is_conical`, `_calculate_uv_stretch_metrics`

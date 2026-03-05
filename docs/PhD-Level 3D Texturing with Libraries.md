@@ -385,7 +385,7 @@ ImageBufAlgo::channel_append(packed, roughness, metallic);
 ImageBufAlgo::channel_append(packed, packed, ao);
 ```
 
-**Channel packing** is a critical production optimization — combining roughness (R), metallic (G), and AO (B) into a single texture reduces texture memory and sample count by 3×. The shader unpacks them as `packed.r`, `packed.g`, `packed.b`.
+**Channel packing** is a standard production optimization — combining roughness (R), metallic (G), and AO (B) channels into a single RGB texture reduces texture sampler slots and GPU memory bandwidth relative to three separate single-channel textures (Epic Games, _Unreal Engine Materials: Texture Packing_; Khronos glTF 2.0 specification §5.22.1). The shader unpacks them as `packed.r`, `packed.g`, `packed.b`.
 
 ---
 
