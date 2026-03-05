@@ -1,23 +1,24 @@
-# UserPromptSubmit hook — semantic memory injection + prompt persistence.
+# UserPromptSubmit hook — prompt persistence + session tracking.
 #
 # Every time the user sends a prompt this hook:
 #   1. Generates a unique PROMPT_RESPONSE_ID (UUID) + saves the prompt to Postgres.
 #   2. Persists the prompt text to the `prompts` table for durable knowledge archiving.
-#   3. Injects the N most semantically-relevant memories from LanceDB into context.
-#   4. Injects today's session stats (written by the previous Stop hook) into context.
-#   5. Tells the agent to include the PROMPT_RESPONSE_ID in its reply.
+#   3. Writes a session file (_session_<id>.txt) so Stop hook can link responses back.
+#   4. Optionally shows a popup with today's session stats.
+#
+# NOTE: UserPromptSubmit uses the COMMON output format only (per VS Code docs).
+#   hookSpecificOutput.additionalContext is NOT supported here and is silently dropped.
+#   Static knowledge base injection → SessionStart hook (session_start_hook.ps1)
+#   Semantic/per-prompt LanceDB injection → future PreToolUse hook
 #
 # Why the ID?
 #   The Stop hook reads the transcript to pair this response back to this prompt.
 #   The ID is the join key between the `prompts` and `responses` tables.
-#   Including it in the response is belt-and-suspenders — the session file is the
-#   authoritative FK source; the ID in the reply is a human-readable audit trail.
 
 $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 $logFile = Join-Path $PSScriptRoot "precompact.log"
-$repo = 'C:\Users\User\source\repos\QIDIStudio'
+$repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent  # hooks → .github → repo root
 $python = Join-Path $repo 'memory_env\Scripts\python.exe'
-$inject = Join-Path $repo 'memory\inject.py'
 $store = Join-Path $repo 'memory\prompt_store.py'
 $statsFile = Join-Path $repo 'memory\_session_stats.txt'
 $tmpDir = Join-Path $repo 'memory'
@@ -32,7 +33,7 @@ try {
     if ($stdinRaw -and $stdinRaw.Trim() -ne '') {
         $stdinData = $stdinRaw | ConvertFrom-Json -ErrorAction Stop
         $promptText = if ($stdinData.prompt) { [string]$stdinData.prompt }     else { "" }
-        $sessionId = if ($stdinData.session_id) { [string]$stdinData.session_id } else { "unknown" }
+        $sessionId = if ($stdinData.sessionId) { [string]$stdinData.sessionId } else { "unknown" }
     }
 }
 catch {
@@ -46,7 +47,7 @@ $safeSession = $sessionId -replace '[^a-zA-Z0-9]', '_'
 $sessionFile = Join-Path $tmpDir "_session_$safeSession.txt"
 
 try {
-    [System.IO.File]::WriteAllText($promptFile, $promptText, [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText($promptFile, $promptText, (New-Object System.Text.UTF8Encoding($false)))
 
     if (Test-Path $python) {
         & $python -B $store --save-prompt `
@@ -66,49 +67,54 @@ catch {
     Remove-Item $promptFile -ErrorAction SilentlyContinue
 }
 
-# ── Inject semantically relevant memories ────────────────────────────────────
-$memoryContext = ""
-$memoryOk = $false
-
-if ((Test-Path $inject) -and (Test-Path $python)) {
-    try {
-        if ($promptText -ne "") {
-            $memoryContext = & $python $inject --prompt $promptText 2>$null
-        }
-        else {
-            $memoryContext = & $python $inject 2>$null
-        }
-        if ($LASTEXITCODE -eq 0 -and $memoryContext -and $memoryContext.Trim() -ne '') {
-            $memoryOk = $true
-            Add-Content -Path $logFile -Value "$ts [UserPromptSubmit] memory inject OK"
-        }
-    }
-    catch {
-        Add-Content -Path $logFile -Value "$ts [UserPromptSubmit] inject FAILED: $_"
-    }
-}
-
-# ── Assemble additionalContext ────────────────────────────────────────────────
-$additionalContext = if ($memoryOk) {
-    $memoryContext
-}
-else {
-    "use Context7. NOTE: persistent memory offline — run: pip install -r memory/requirements.txt"
-}
+# ── Session stats (written by previous Stop hook) ──────────────────────────
+$additionalContext = ""
 
 # Append yesterday's / today's session stats if available and fresh (< 24 h)
+$statsText = $null
 if (Test-Path $statsFile) {
     try {
         $statsAge = (Get-Date) - (Get-Item $statsFile).LastWriteTime
         if ($statsAge.TotalHours -lt 24) {
-            $statsText = Get-Content $statsFile -Raw -ErrorAction Stop
+            $statsText = Get-Content $statsFile -Raw -Encoding UTF8 -ErrorAction Stop
             $additionalContext = $additionalContext + "`n`n" + $statsText.Trim()
+            Add-Content -Path $logFile -Value "$ts [UserPromptSubmit] session stats injected (age=$([math]::Round($statsAge.TotalMinutes,1))min)"
+        }
+        else {
+            Add-Content -Path $logFile -Value "$ts [UserPromptSubmit] session stats skipped (age=$([math]::Round($statsAge.TotalHours,1))h - too old)"
         }
     }
-    catch { }
+    catch {
+        Add-Content -Path $logFile -Value "$ts [UserPromptSubmit] session stats read failed: $_"
+    }
+}
+else {
+    Add-Content -Path $logFile -Value "$ts [UserPromptSubmit] session stats not found (no stop hook run yet)"
 }
 
-# Append prompt-ID instruction (belt-and-suspenders — session file is authoritative FK)
+# ── Scrollable popup notification ────────────────────────────────────────────
+try {
+    $popupBody = if ($statsText) { $statsText.Trim() } else { "No stats yet for today." }
+    $promptCount = if ($statsText -match '\((\d+) prompts today\)') { $Matches[1] } else { "?" }
+    $popupScript = Join-Path $repo 'memory\show_stats_popup.ps1'
+
+    if (Test-Path $popupScript) {
+        # Launch in a background job so the hook returns immediately
+        Start-Process powershell.exe -ArgumentList @(
+            '-ExecutionPolicy', 'Bypass',
+            '-NonInteractive',
+            '-File', $popupScript,
+            '-Title', "QIDIStudio - $promptCount prompts today",
+            '-Body', $popupBody
+        ) -WindowStyle Hidden
+        Add-Content -Path $logFile -Value "$ts [UserPromptSubmit] popup launched"
+    }
+}
+catch {
+    Add-Content -Path $logFile -Value "$ts [UserPromptSubmit] popup failed: $_"
+}
+
+# Append prompt-ID instruction (belt-and-suspenders - session file is authoritative FK)
 $additionalContext += @"
 
 `n━━━ PROMPT TRACKING ━━━
@@ -119,10 +125,7 @@ This ID links your response to the persistent knowledge database.
 ━━━ END TRACKING ━━━
 "@
 
-# ── Emit hook response ────────────────────────────────────────────────────────
-@{
-    hookSpecificOutput = @{
-        hookEventName     = 'UserPromptSubmit'
-        additionalContext = $additionalContext
-    }
-} | ConvertTo-Json -Compress
+# ── Emit hook response (common format only — hookSpecificOutput not supported for UserPromptSubmit) ──
+# VS Code docs: UserPromptSubmit uses the common output format only.
+# additionalContext is populated for logging/tracking only; not emitted.
+@{} | ConvertTo-Json -Compress

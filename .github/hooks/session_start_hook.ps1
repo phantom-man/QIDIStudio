@@ -1,49 +1,40 @@
-# SessionStart hook — semantic memory injection.
+# SessionStart hook — static knowledge base injection.
 #
 # Fires once at the beginning of every agent session.
-# Injects the N most relevant memories from LanceDB as additionalContext,
-# which VS Code Copilot places directly into the model's context window.
+# Injects the static knowledge base markdown file (memory/langsmith_prompt.md)
+# as additionalContext — no Python, no LanceDB, no network required.
+#
+# Semantic / per-prompt LanceDB injection happens separately via the
+# UserPromptSubmit hook which writes _last_prompt.txt for downstream use.
 #
 # NOTE: UserPromptSubmit does NOT support hookSpecificOutput.additionalContext
 # (it uses the common output format only, per VS Code docs).
-# SessionStart IS one of the supported hook events for additionalContext injection.
+# SessionStart IS one of the supported events for additionalContext injection.
 
 $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 $logFile = Join-Path $PSScriptRoot "precompact.log"
-$repo = 'C:\Users\User\source\repos\QIDIStudio'
-$python = Join-Path $repo 'memory_env\Scripts\python.exe'
-$inject = Join-Path $repo 'memory\inject.py'
+$repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent  # hooks → .github → repo root
+$kbFile = Join-Path $repo 'memory\langsmith_prompt.md'
 
 Add-Content -Path $logFile -Value "$ts [SessionStart] fired"
 
-# ── Inject semantically relevant memories (no prompt available at session start) ──
-$memoryContext = ""
-$memoryOk = $false
+# ── Read static knowledge base ────────────────────────────────────────────────
+$additionalContext = ""
 
-if ((Test-Path $inject) -and (Test-Path $python)) {
+if (Test-Path $kbFile) {
     try {
-        $memoryContext = & $python $inject 2>$null
-        if ($LASTEXITCODE -eq 0 -and $memoryContext -and $memoryContext.Trim() -ne '') {
-            $memoryOk = $true
-            Add-Content -Path $logFile -Value "$ts [SessionStart] memory inject OK ($($memoryContext.Length) chars)"
-        }
-        else {
-            Add-Content -Path $logFile -Value "$ts [SessionStart] memory inject returned empty (exit=$LASTEXITCODE)"
-        }
+        $kbContent = Get-Content $kbFile -Raw -Encoding UTF8 -ErrorAction Stop
+        $additionalContext = "━━━ QIDISTUDIO KNOWLEDGE BASE ━━━`n$($kbContent.Trim())`n━━━ END KNOWLEDGE BASE ━━━"
+        Add-Content -Path $logFile -Value "$ts [SessionStart] knowledge base injected ($($kbContent.Length) chars)"
     }
     catch {
-        Add-Content -Path $logFile -Value "$ts [SessionStart] inject FAILED: $_"
+        $additionalContext = "NOTE: QIDIStudio knowledge base read failed: $_"
+        Add-Content -Path $logFile -Value "$ts [SessionStart] knowledge base read FAILED: $_"
     }
 }
 else {
-    Add-Content -Path $logFile -Value "$ts [SessionStart] python or inject.py not found"
-}
-
-$additionalContext = if ($memoryOk) {
-    $memoryContext
-}
-else {
-    "NOTE: QIDIStudio persistent memory offline. Run: memory_env\Scripts\python.exe memory\inject.py"
+    $additionalContext = "NOTE: QIDIStudio knowledge base not found at $kbFile"
+    Add-Content -Path $logFile -Value "$ts [SessionStart] knowledge base not found: $kbFile"
 }
 
 # ── Emit hook response ────────────────────────────────────────────────────────
@@ -52,4 +43,4 @@ else {
         hookEventName     = 'SessionStart'
         additionalContext = $additionalContext
     }
-} | ConvertTo-Json -Compress
+} | ConvertTo-Json -Depth 4 -Compress
