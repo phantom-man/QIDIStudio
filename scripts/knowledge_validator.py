@@ -57,6 +57,7 @@ from urllib.parse import quote_plus
 # ---------------------------------------------------------------------------
 try:
     import arxiv as _arxiv
+
     _ARXIV_AVAILABLE = True
 except ImportError:
     _ARXIV_AVAILABLE = False
@@ -64,24 +65,30 @@ except ImportError:
 
 try:
     import requests
+
     _REQUESTS_AVAILABLE = True
 except ImportError:
     _REQUESTS_AVAILABLE = False
-    logging.warning("requests not installed — HTTP sources disabled. pip install requests")
+    logging.warning(
+        "requests not installed — HTTP sources disabled. pip install requests"
+    )
 
 try:
     import docx
+
     _DOCX_AVAILABLE = True
 except ImportError:
     _DOCX_AVAILABLE = False
 
 try:
     import pdfplumber
+
     _PDF_AVAILABLE = True
 except ImportError:
     _PDF_AVAILABLE = False
     try:
         import PyPDF2 as _pypdf2  # type: ignore
+
         _PDF_AVAILABLE = True
         _PDFPLUMBER_ONLY = False
     except ImportError:
@@ -89,21 +96,29 @@ except ImportError:
 
 try:
     from bs4 import BeautifulSoup
+
     _BS4_AVAILABLE = True
 except ImportError:
     _BS4_AVAILABLE = False
 
 try:
     from tavily import TavilyClient
+
     _TAVILY_AVAILABLE = True
 except ImportError:
     _TAVILY_AVAILABLE = False
 
 try:
-    import google.generativeai as genai
+    from google import genai as genai_new
+
     _GEMINI_AVAILABLE = True
 except ImportError:
-    _GEMINI_AVAILABLE = False
+    try:
+        import google.generativeai as _genai_legacy  # type: ignore[import]
+
+        _GEMINI_AVAILABLE = True
+    except ImportError:
+        _GEMINI_AVAILABLE = False
 
 import os
 
@@ -119,43 +134,48 @@ logging.basicConfig(
 # DATA MODELS
 # ===========================================================================
 
+
 class Confidence(float, Enum):
     """Epistemic confidence tier, mapped to [0, 1]."""
-    VERIFIED     = 1.00   # ≥2 authoritative sources agree
-    SUPPORTED    = 0.80   # 1 authoritative source confirms
-    PLAUSIBLE    = 0.60   # indirect or low-authority support
-    UNCERTAIN    = 0.40   # no corroboration found
-    DISPUTED     = 0.20   # contradicted by at least one source
-    HALLUCINATION= 0.00   # directly false per authoritative source
+
+    VERIFIED = 1.00  # ≥2 authoritative sources agree
+    SUPPORTED = 0.80  # 1 authoritative source confirms
+    PLAUSIBLE = 0.60  # indirect or low-authority support
+    UNCERTAIN = 0.40  # no corroboration found
+    DISPUTED = 0.20  # contradicted by at least one source
+    HALLUCINATION = 0.00  # directly false per authoritative source
 
 
 @dataclass
 class Claim:
     """A single extracted factual assertion."""
+
     text: str
-    sentence: str             # original sentence the claim was drawn from
-    doc_offset: int           # character offset in source document
-    claim_type: str           # "numerical", "definitional", "attributive", "methodological"
+    sentence: str  # original sentence the claim was drawn from
+    doc_offset: int  # character offset in source document
+    claim_type: str  # "numerical", "definitional", "attributive", "methodological"
     keywords: list[str] = field(default_factory=list)
 
 
 @dataclass
 class Evidence:
     """A piece of corroborating or refuting evidence from a source."""
+
     source_name: str
     source_url: str
     excerpt: str
-    relevance: float          # cosine-like similarity [0, 1]
-    supports: bool            # True = supports claim, False = refutes
+    relevance: float  # cosine-like similarity [0, 1]
+    supports: bool  # True = supports claim, False = refutes
 
 
 @dataclass
 class ClaimVerdict:
     """Outcome of validating one Claim across all sources."""
+
     claim: Claim
-    confidence: float         # aggregated confidence [0, 1]
+    confidence: float  # aggregated confidence [0, 1]
     evidence: list[Evidence] = field(default_factory=list)
-    corrected_text: str | None = None   # replacement if confidence < threshold
+    corrected_text: str | None = None  # replacement if confidence < threshold
     correction_source: str | None = None
 
     @property
@@ -170,6 +190,7 @@ class ClaimVerdict:
 @dataclass
 class ValidationReport:
     """Full validation report for one document."""
+
     source_path: Path
     original_text: str
     corrected_text: str
@@ -195,7 +216,11 @@ class ValidationReport:
             "Per-claim verdicts:",
         ]
         for v in self.verdicts:
-            flag = "🔴 HALLUCINATION" if v.is_hallucination else ("🟡 UNCERTAIN" if v.needs_correction else "🟢 OK")
+            flag = (
+                "🔴 HALLUCINATION"
+                if v.is_hallucination
+                else ("🟡 UNCERTAIN" if v.needs_correction else "🟢 OK")
+            )
             lines.append(f"  [{flag}] ({v.confidence:.2f}) {v.claim.text[:80]}")
             if v.corrected_text:
                 lines.append(f"           → {v.corrected_text[:80]}")
@@ -205,7 +230,9 @@ class ValidationReport:
         """Write the corrected document to disk."""
         if output_path is None:
             stem = self.source_path.stem
-            output_path = self.source_path.with_name(f"{stem}_validated{self.source_path.suffix}")
+            output_path = self.source_path.with_name(
+                f"{stem}_validated{self.source_path.suffix}"
+            )
         output_path = Path(output_path)
         output_path.write_text(self.corrected_text, encoding="utf-8")
         log.info("Corrected document written to: %s", output_path)
@@ -230,22 +257,29 @@ class ValidationReport:
                     "corrected": v.corrected_text,
                     "source": v.correction_source,
                     "evidence": [
-                        {"source": e.source_name, "url": e.source_url,
-                         "excerpt": e.excerpt[:200], "relevance": e.relevance,
-                         "supports": e.supports}
+                        {
+                            "source": e.source_name,
+                            "url": e.source_url,
+                            "excerpt": e.excerpt[:200],
+                            "relevance": e.relevance,
+                            "supports": e.supports,
+                        }
                         for e in v.evidence
                     ],
                 }
                 for v in self.verdicts
             ],
         }
-        Path(output_path).write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        Path(output_path).write_text(
+            json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
         return Path(output_path)
 
 
 # ===========================================================================
 # DOCUMENT PARSER
 # ===========================================================================
+
 
 class DocumentParser:
     """
@@ -256,8 +290,20 @@ class DocumentParser:
     """
 
     PLAIN_TEXT_EXTENSIONS = {
-        ".md", ".txt", ".rst", ".tex", ".py", ".cpp", ".c",
-        ".h", ".hpp", ".yaml", ".yml", ".toml", ".ini", ".cfg",
+        ".md",
+        ".txt",
+        ".rst",
+        ".tex",
+        ".py",
+        ".cpp",
+        ".c",
+        ".h",
+        ".hpp",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".ini",
+        ".cfg",
     }
 
     def parse(self, path: str | Path) -> str:
@@ -301,18 +347,16 @@ class DocumentParser:
         if _PDF_AVAILABLE:
             try:
                 import pdfplumber as _pl
+
                 with _pl.open(path) as pdf:
-                    return "\n".join(
-                        page.extract_text() or "" for page in pdf.pages
-                    )
+                    return "\n".join(page.extract_text() or "" for page in pdf.pages)
             except Exception:
                 pass
             try:
                 import PyPDF2 as _p2
+
                 reader = _p2.PdfReader(str(path))
-                return "\n".join(
-                    page.extract_text() or "" for page in reader.pages
-                )
+                return "\n".join(page.extract_text() or "" for page in reader.pages)
             except Exception as exc:
                 raise RuntimeError(f"PDF parse failed: {exc}") from exc
         raise ImportError("Install pdfplumber or PyPDF2 to parse PDF files.")
@@ -329,6 +373,7 @@ class DocumentParser:
 
     def _parse_csv(self, path: Path) -> str:
         import csv as _csv
+
         rows = []
         with open(path, encoding="utf-8", errors="replace", newline="") as f:
             reader = _csv.reader(f)
@@ -344,23 +389,35 @@ class DocumentParser:
 # Sentence-level patterns for extractable factual claims
 _CLAIM_PATTERNS: list[tuple[str, str]] = [
     # Numerical facts
-    (r"(?:is|are|was|were|measures?|equals?|reaches?)\s+[\d,.]+\s*(?:%|nm|µm|mm|cm|m|km|Hz|MHz|GHz|W|V|A|K|°C|FLOP|TFLOP|GB|TB|ns|µs|ms|s)\b",
-     "numerical"),
+    (
+        r"(?:is|are|was|were|measures?|equals?|reaches?)\s+[\d,.]+\s*(?:%|nm|µm|mm|cm|m|km|Hz|MHz|GHz|W|V|A|K|°C|FLOP|TFLOP|GB|TB|ns|µs|ms|s)\b",
+        "numerical",
+    ),
     # Definitions
-    (r"(?:defined? as|is called|known as|refers? to|denotes?)\s+[A-Z][^.]{5,}",
-     "definitional"),
+    (
+        r"(?:defined? as|is called|known as|refers? to|denotes?)\s+[A-Z][^.]{5,}",
+        "definitional",
+    ),
     # Attribution / authorship
-    (r"(?:introduced|proposed|published|invented|discovered|developed) by\s+[A-Z][a-z]+",
-     "attributive"),
+    (
+        r"(?:introduced|proposed|published|invented|discovered|developed) by\s+[A-Z][a-z]+",
+        "attributive",
+    ),
     # Methodological claims
-    (r"(?:achieves?|outperforms?|reduces?|improves?|increases?)\s+[^.]{5,80}(?:by|to|from)\s+[\d,.]+",
-     "methodological"),
+    (
+        r"(?:achieves?|outperforms?|reduces?|improves?|increases?)\s+[^.]{5,80}(?:by|to|from)\s+[\d,.]+",
+        "methodological",
+    ),
     # Year / date attribution
-    (r"in\s+(?:19|20)\d{2},?\s+[A-Z][a-z]+\s+(?:et al\.?|and\s+[A-Z][a-z]+)?\s+(?:showed?|proved?|found?|demonstrated?)",
-     "attributive"),
+    (
+        r"in\s+(?:19|20)\d{2},?\s+[A-Z][a-z]+\s+(?:et al\.?|and\s+[A-Z][a-z]+)?\s+(?:showed?|proved?|found?|demonstrated?)",
+        "attributive",
+    ),
     # Algorithm/formula claims
-    (r"(?:algorithm|formula|theorem|lemma|corollary|proof|equation)\s+(?:\d+\.?\d*|for\b)[^.]{5,80}",
-     "methodological"),
+    (
+        r"(?:algorithm|formula|theorem|lemma|corollary|proof|equation)\s+(?:\d+\.?\d*|for\b)[^.]{5,80}",
+        "methodological",
+    ),
 ]
 
 _COMPILED_PATTERNS = [(re.compile(p, re.IGNORECASE), t) for p, t in _CLAIM_PATTERNS]
@@ -375,7 +432,10 @@ def _keyword_extract(text: str, n: int = 6) -> list[str]:
     seen: set[str] = set()
     result: list[str] = []
     for t in tokens:
-        if t.lower() not in {"the", "a", "an", "and", "or", "but", "for", "with"} and t not in seen:
+        if (
+            t.lower() not in {"the", "a", "an", "and", "or", "but", "for", "with"}
+            and t not in seen
+        ):
             seen.add(t)
             result.append(t)
         if len(result) >= n:
@@ -401,23 +461,26 @@ class ClaimExtractor:
             try:
                 return self._extract_llm(text)
             except Exception as exc:
-                log.warning("LLM claim extraction failed (%s); falling back to regex.", exc)
+                log.warning(
+                    "LLM claim extraction failed (%s); falling back to regex.", exc
+                )
         return self._extract_regex(text)
 
     # ------------------------------------------------------------------
     def _extract_llm(self, text: str) -> list[Claim]:
         """Use Gemini 2.5 Flash to extract a JSON array of factual claims."""
         if not _GEMINI_AVAILABLE:
-            raise RuntimeError("google-generativeai not installed")
+            raise RuntimeError("google-genai not installed")
 
         api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise RuntimeError("GOOGLE_API_KEY environment variable not set")
 
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        client = genai_new.Client(api_key=api_key)
+        model_name = "gemini-2.5-flash"
 
-        prompt = textwrap.dedent(f"""
+        prompt = textwrap.dedent(
+            f"""
             You are a PhD-level fact-checker. Extract every testable factual claim from
             the document below. A claim is any specific assertion about:
               - numerical values, measurements, or statistics
@@ -438,24 +501,26 @@ class ClaimExtractor:
             --- DOCUMENT BEGIN ---
             {text[:12000]}
             --- DOCUMENT END ---
-        """)
+        """
+        )
 
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model=model_name, contents=prompt)
         raw = response.text.strip()
-        # Strip markdown code fences if present
         raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\s*```$", "", raw, flags=re.MULTILINE)
 
         items: list[dict[str, Any]] = json.loads(raw)
         claims = []
         for item in items:
-            claims.append(Claim(
-                text=item.get("text", ""),
-                sentence=item.get("sentence", ""),
-                doc_offset=int(item.get("offset", 0)),
-                claim_type=item.get("claim_type", "methodological"),
-                keywords=item.get("keywords", []),
-            ))
+            claims.append(
+                Claim(
+                    text=item.get("text", ""),
+                    sentence=item.get("sentence", ""),
+                    doc_offset=int(item.get("offset", 0)),
+                    claim_type=item.get("claim_type", "methodological"),
+                    keywords=item.get("keywords", []),
+                )
+            )
         log.info("LLM extracted %d claims", len(claims))
         return claims
 
@@ -474,13 +539,15 @@ class ClaimExtractor:
                     if claim_text in seen_texts or len(claim_text) < 10:
                         continue
                     seen_texts.add(claim_text)
-                    claims.append(Claim(
-                        text=claim_text,
-                        sentence=sentence.strip(),
-                        doc_offset=offset + match.start(),
-                        claim_type=ctype,
-                        keywords=_keyword_extract(claim_text),
-                    ))
+                    claims.append(
+                        Claim(
+                            text=claim_text,
+                            sentence=sentence.strip(),
+                            doc_offset=offset + match.start(),
+                            claim_type=ctype,
+                            keywords=_keyword_extract(claim_text),
+                        )
+                    )
             offset += len(sentence) + 1
 
         log.info("Regex extracted %d claims", len(claims))
@@ -491,11 +558,12 @@ class ClaimExtractor:
 # VALIDATION SOURCES
 # ===========================================================================
 
+
 class ValidationSource(ABC):
     """Abstract base for knowledge repositories."""
 
     name: str = "Unknown"
-    authority: float = 0.5   # [0,1] epistemic authority weight
+    authority: float = 0.5  # [0,1] epistemic authority weight
 
     @abstractmethod
     def search(self, claim: Claim) -> list[Evidence]:
@@ -504,19 +572,25 @@ class ValidationSource(ABC):
         Returns a (possibly empty) list of Evidence objects.
         """
 
-    def _safe_get(self, url: str, params: dict | None = None,
-                  headers: dict | None = None, timeout: int = 10) -> dict | None:
+    def _safe_get(
+        self,
+        url: str,
+        params: dict | None = None,
+        headers: dict | None = None,
+        timeout: int = 10,
+    ) -> dict | None:
         """HTTP GET with retry + graceful failure."""
         if not _REQUESTS_AVAILABLE:
             return None
         for attempt in range(3):
             try:
-                resp = requests.get(url, params=params, headers=headers,
-                                    timeout=timeout)
+                resp = requests.get(
+                    url, params=params, headers=headers, timeout=timeout
+                )
                 if resp.status_code == 200:
                     return resp.json()
                 if resp.status_code == 429:
-                    time.sleep(2 ** attempt)
+                    time.sleep(2**attempt)
             except Exception as exc:
                 log.debug("%s GET failed (attempt %d): %s", self.name, attempt, exc)
                 time.sleep(1)
@@ -529,6 +603,7 @@ class ArXivSource(ValidationSource):
     arXiv.org — 2.4M+ open-access preprints.
     Authority: 0.90 (peer-reviewed or near-peer-reviewed, primary literature).
     """
+
     name = "arXiv"
     authority = 0.90
 
@@ -546,15 +621,19 @@ class ArXivSource(ValidationSource):
             evidence = []
             for result in client.results(search):
                 abstract = (result.summary or "")[:300]
-                relevance = self._score_relevance(claim.text, result.title + " " + abstract)
+                relevance = self._score_relevance(
+                    claim.text, result.title + " " + abstract
+                )
                 if relevance > 0.25:
-                    evidence.append(Evidence(
-                        source_name=self.name,
-                        source_url=result.entry_id,
-                        excerpt=f"{result.title}: {abstract}",
-                        relevance=relevance,
-                        supports=True,   # conservative: presence = plausible support
-                    ))
+                    evidence.append(
+                        Evidence(
+                            source_name=self.name,
+                            source_url=result.entry_id,
+                            excerpt=f"{result.title}: {abstract}",
+                            relevance=relevance,
+                            supports=True,  # conservative: presence = plausible support
+                        )
+                    )
             return evidence
         except Exception as exc:
             log.debug("ArXiv search error: %s", exc)
@@ -582,6 +661,7 @@ class SemanticScholarSource(ValidationSource):
     Authority: 0.88 (vast coverage, AI-powered citation graph).
     Endpoint: https://api.semanticscholar.org/graph/v1
     """
+
     name = "Semantic Scholar"
     authority = 0.88
     _BASE = "https://api.semanticscholar.org/graph/v1/paper/search"
@@ -605,14 +685,19 @@ class SemanticScholarSource(ValidationSource):
             title = paper.get("title", "")
             relevance = ArXivSource._score_relevance(claim.text, title + " " + abstract)
             if relevance > 0.20:
-                url = paper.get("url") or f"https://www.semanticscholar.org/paper/{paper.get('paperId','')}"
-                evidence.append(Evidence(
-                    source_name=self.name,
-                    source_url=url,
-                    excerpt=f"{title} ({paper.get('year','')}): {abstract}",
-                    relevance=relevance,
-                    supports=True,
-                ))
+                url = (
+                    paper.get("url")
+                    or f"https://www.semanticscholar.org/paper/{paper.get('paperId','')}"
+                )
+                evidence.append(
+                    Evidence(
+                        source_name=self.name,
+                        source_url=url,
+                        excerpt=f"{title} ({paper.get('year','')}): {abstract}",
+                        relevance=relevance,
+                        supports=True,
+                    )
+                )
         return evidence
 
 
@@ -623,6 +708,7 @@ class CrossRefSource(ValidationSource):
     Authority: 0.92 (definitive citation authority; gold-standard for attribution claims).
     Endpoint: https://api.crossref.org/works
     """
+
     name = "CrossRef"
     authority = 0.92
     _BASE = "https://api.crossref.org/works"
@@ -653,13 +739,15 @@ class CrossRefSource(ValidationSource):
             ]
             relevance = ArXivSource._score_relevance(claim.text, title + " " + abstract)
             if relevance > 0.20:
-                evidence.append(Evidence(
-                    source_name=self.name,
-                    source_url=f"https://doi.org/{doi}" if doi else "",
-                    excerpt=f"{title} ({', '.join(authors)}): {abstract}",
-                    relevance=relevance,
-                    supports=True,
-                ))
+                evidence.append(
+                    Evidence(
+                        source_name=self.name,
+                        source_url=f"https://doi.org/{doi}" if doi else "",
+                        excerpt=f"{title} ({', '.join(authors)}): {abstract}",
+                        relevance=relevance,
+                        supports=True,
+                    )
+                )
         return evidence
 
 
@@ -670,6 +758,7 @@ class WikipediaSource(ValidationSource):
     Authority: 0.72 (high breadth; moderate depth; primary verification baseline).
     Endpoint: https://en.wikipedia.org/api/rest_v1/page/summary/
     """
+
     name = "Wikipedia"
     authority = 0.72
     _SEARCH = "https://en.wikipedia.org/w/api.php"
@@ -696,13 +785,15 @@ class WikipediaSource(ValidationSource):
             relevance = ArXivSource._score_relevance(claim.text, title + " " + snippet)
             if relevance > 0.20:
                 url = f"https://en.wikipedia.org/wiki/{quote_plus(title.replace(' ', '_'))}"
-                evidence.append(Evidence(
-                    source_name=self.name,
-                    source_url=url,
-                    excerpt=f"{title}: {snippet}",
-                    relevance=relevance,
-                    supports=True,
-                ))
+                evidence.append(
+                    Evidence(
+                        source_name=self.name,
+                        source_url=url,
+                        excerpt=f"{title}: {snippet}",
+                        relevance=relevance,
+                        supports=True,
+                    )
+                )
         return evidence
 
 
@@ -713,6 +804,7 @@ class NISTSource(ValidationSource):
     Authority: 0.95 (US federal standards authority; definitive for metrology and constants).
     Uses Tavily or direct Wikipedia fallback for NIST content.
     """
+
     name = "NIST"
     authority = 0.95
 
@@ -737,15 +829,19 @@ class NISTSource(ValidationSource):
             for result in data.get("query", {}).get("search", []):
                 title = result.get("title", "")
                 snippet = re.sub(r"<[^>]+>", "", result.get("snippet", ""))
-                relevance = ArXivSource._score_relevance(claim.text, title + " " + snippet)
+                relevance = ArXivSource._score_relevance(
+                    claim.text, title + " " + snippet
+                )
                 if relevance > 0.15:
-                    evidence.append(Evidence(
-                        source_name=self.name,
-                        source_url=f"https://nist.gov/search?hasword={quote_plus(query)}",
-                        excerpt=snippet,
-                        relevance=relevance,
-                        supports=True,
-                    ))
+                    evidence.append(
+                        Evidence(
+                            source_name=self.name,
+                            source_url=f"https://nist.gov/search?hasword={quote_plus(query)}",
+                            excerpt=snippet,
+                            relevance=relevance,
+                            supports=True,
+                        )
+                    )
             return evidence
         return []
 
@@ -757,6 +853,7 @@ class MathWorldSource(ValidationSource):
     Authority: 0.93 (curated by Eric Weisstein; peer-reviewed; Wolfram-backed).
     Uses MathWorld search endpoint.
     """
+
     name = "MathWorld"
     authority = 0.93
     _SEARCH = "https://mathworld.wolfram.com/search/"
@@ -787,13 +884,15 @@ class MathWorldSource(ValidationSource):
             relevance = ArXivSource._score_relevance(claim.text, title + " " + snippet)
             if relevance > 0.15:
                 mw_url = f"https://mathworld.wolfram.com/{title.replace(' ', '')}.html"
-                evidence.append(Evidence(
-                    source_name=self.name,
-                    source_url=mw_url,
-                    excerpt=f"{title}: {snippet}",
-                    relevance=relevance,
-                    supports=True,
-                ))
+                evidence.append(
+                    Evidence(
+                        source_name=self.name,
+                        source_url=mw_url,
+                        excerpt=f"{title}: {snippet}",
+                        relevance=relevance,
+                        supports=True,
+                    )
+                )
         return evidence
 
 
@@ -804,6 +903,7 @@ class PubMedSource(ValidationSource):
     Authority: 0.91 (US National Library of Medicine; gold-standard for biomedical claims).
     Endpoint: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/
     """
+
     name = "PubMed"
     authority = 0.91
     _ESEARCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
@@ -814,8 +914,13 @@ class PubMedSource(ValidationSource):
         # esearch
         search_data = self._safe_get(
             self._ESEARCH,
-            params={"db": "pubmed", "term": query, "retmax": "3",
-                    "retmode": "json", "sort": "relevance"},
+            params={
+                "db": "pubmed",
+                "term": query,
+                "retmax": "3",
+                "retmode": "json",
+                "sort": "relevance",
+            },
         )
         if not search_data:
             return []
@@ -837,13 +942,15 @@ class PubMedSource(ValidationSource):
             source = paper.get("source", "")
             relevance = ArXivSource._score_relevance(claim.text, title)
             if relevance > 0.20:
-                evidence.append(Evidence(
-                    source_name=self.name,
-                    source_url=f"https://pubmed.ncbi.nlm.nih.gov/{uid}/",
-                    excerpt=f"{title} ({source})",
-                    relevance=relevance,
-                    supports=True,
-                ))
+                evidence.append(
+                    Evidence(
+                        source_name=self.name,
+                        source_url=f"https://pubmed.ncbi.nlm.nih.gov/{uid}/",
+                        excerpt=f"{title} ({source})",
+                        relevance=relevance,
+                        supports=True,
+                    )
+                )
         return evidence
 
 
@@ -854,6 +961,7 @@ class TavilySearchSource(ValidationSource):
     Authority: 0.70 (broad coverage; recency advantage; authority varies by page).
     Used primarily for recency validation and cross-checking novel claims.
     """
+
     name = "Tavily"
     authority = 0.70
 
@@ -879,13 +987,15 @@ class TavilySearchSource(ValidationSource):
                     claim.text, r.get("title", "") + " " + r.get("content", "")
                 )
                 if relevance > 0.15:
-                    evidence.append(Evidence(
-                        source_name=self.name,
-                        source_url=r.get("url", ""),
-                        excerpt=(r.get("content") or "")[:300],
-                        relevance=relevance,
-                        supports=True,
-                    ))
+                    evidence.append(
+                        Evidence(
+                            source_name=self.name,
+                            source_url=r.get("url", ""),
+                            excerpt=(r.get("content") or "")[:300],
+                            relevance=relevance,
+                            supports=True,
+                        )
+                    )
             return evidence
         except Exception as exc:
             log.debug("Tavily search error: %s", exc)
@@ -895,6 +1005,7 @@ class TavilySearchSource(ValidationSource):
 # ===========================================================================
 # KNOWLEDGE VALIDATOR — ORCHESTRATOR
 # ===========================================================================
+
 
 class KnowledgeValidator:
     """
@@ -911,7 +1022,7 @@ class KnowledgeValidator:
     """
 
     HALLUCINATION_THRESHOLD: float = 0.40
-    UNCERTAINTY_THRESHOLD : float = 0.60
+    UNCERTAINTY_THRESHOLD: float = 0.60
 
     def __init__(
         self,
@@ -980,10 +1091,12 @@ class KnowledgeValidator:
         corrected_text = self._apply_corrections(text, verdicts)
 
         elapsed = time.monotonic() - t0
-        log.info("Validation complete: %d claims, %d corrections, %.1fs",
-                 len(verdicts),
-                 sum(1 for v in verdicts if v.needs_correction),
-                 elapsed)
+        log.info(
+            "Validation complete: %d claims, %d corrections, %.1fs",
+            len(verdicts),
+            sum(1 for v in verdicts if v.needs_correction),
+            elapsed,
+        )
 
         return ValidationReport(
             source_path=path,
@@ -1002,8 +1115,7 @@ class KnowledgeValidator:
         with ThreadPoolExecutor(max_workers=min(8, len(self.sources))) as pool:
             for claim in claims:
                 futures = {
-                    pool.submit(source.search, claim): source
-                    for source in self.sources
+                    pool.submit(source.search, claim): source for source in self.sources
                 }
                 all_evidence: list[Evidence] = []
                 source_contributions: dict[str, float] = {}
@@ -1019,18 +1131,26 @@ class KnowledgeValidator:
                                 source.authority * best_relevance
                             )
                     except Exception as exc:
-                        log.debug("Source %s raised during search: %s", source.name, exc)
+                        log.debug(
+                            "Source %s raised during search: %s", source.name, exc
+                        )
 
                 # Aggregate confidence (normalised weighted sum)
                 total_authority = sum(s.authority for s in self.sources)
-                confidence = sum(source_contributions.values()) / (total_authority + 1e-9)
+                confidence = sum(source_contributions.values()) / (
+                    total_authority + 1e-9
+                )
                 confidence = min(1.0, confidence)
 
-                verdicts.append(ClaimVerdict(
-                    claim=claim,
-                    confidence=confidence,
-                    evidence=sorted(all_evidence, key=lambda e: e.relevance, reverse=True),
-                ))
+                verdicts.append(
+                    ClaimVerdict(
+                        claim=claim,
+                        confidence=confidence,
+                        evidence=sorted(
+                            all_evidence, key=lambda e: e.relevance, reverse=True
+                        ),
+                    )
+                )
 
         # LLM correction pass for low-confidence claims
         self._generate_corrections(verdicts)
@@ -1047,7 +1167,9 @@ class KnowledgeValidator:
         if not _GEMINI_AVAILABLE:
             log.warning("Gemini not available — corrections will be empty strings.")
             for v in flagged:
-                v.corrected_text = f"[UNVERIFIED — confidence {v.confidence:.2f}] {v.claim.sentence}"
+                v.corrected_text = (
+                    f"[UNVERIFIED — confidence {v.confidence:.2f}] {v.claim.sentence}"
+                )
                 v.correction_source = "no-llm-fallback"
             return
 
@@ -1061,10 +1183,10 @@ class KnowledgeValidator:
 
         for v in flagged:
             evidence_text = "\n".join(
-                f"  [{e.source_name}] {e.excerpt[:200]}"
-                for e in v.evidence[:4]
+                f"  [{e.source_name}] {e.excerpt[:200]}" for e in v.evidence[:4]
             )
-            prompt = textwrap.dedent(f"""
+            prompt = textwrap.dedent(
+                f"""
                 You are a PhD-level technical fact-checker.
                 The following claim from a knowledge document could not be verified:
 
@@ -1080,16 +1202,23 @@ class KnowledgeValidator:
                 the original source, write: "[Claim requires primary source verification]"
 
                 Return ONLY the corrected sentence, no preamble.
-            """)
+            """
+            )
             try:
-                response = model.generate_content(prompt)
+                response = genai_client.models.generate_content(
+                    model=correction_model, contents=prompt
+                )
                 v.corrected_text = response.text.strip()
                 v.correction_source = "; ".join(
                     e.source_url for e in v.evidence[:2] if e.source_url
                 )
             except Exception as exc:
-                log.warning("LLM correction failed for claim '%s': %s", v.claim.text[:40], exc)
-                v.corrected_text = f"[UNVERIFIED — confidence {v.confidence:.2f}] {v.claim.sentence}"
+                log.warning(
+                    "LLM correction failed for claim '%s': %s", v.claim.text[:40], exc
+                )
+                v.corrected_text = (
+                    f"[UNVERIFIED — confidence {v.confidence:.2f}] {v.claim.sentence}"
+                )
 
     def _apply_corrections(self, text: str, verdicts: list[ClaimVerdict]) -> str:
         """
@@ -1112,6 +1241,7 @@ class KnowledgeValidator:
 # ===========================================================================
 # CONVENIENCE API
 # ===========================================================================
+
 
 def validate_document(
     path: str | Path,
@@ -1161,20 +1291,30 @@ def validate_document_with_validator(
 # CLI
 # ===========================================================================
 
+
 def _cli() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
         prog="knowledge_validator",
         description="PhD-Level Knowledge Validation Engine — "
-                    "validates factual claims in any document against authoritative sources.",
+        "validates factual claims in any document against authoritative sources.",
     )
     parser.add_argument("path", help="Path to document (.md, .txt, .pdf, .docx, …)")
     parser.add_argument("--output", "-o", help="Output path for corrected document")
-    parser.add_argument("--no-json", action="store_true", help="Skip writing .validation.json")
-    parser.add_argument("--no-llm", action="store_true", help="Disable Gemini LLM (regex only)")
-    parser.add_argument("--threshold", "-t", type=float, default=0.60,
-                        help="Confidence threshold below which a claim is flagged (default: 0.60)")
+    parser.add_argument(
+        "--no-json", action="store_true", help="Skip writing .validation.json"
+    )
+    parser.add_argument(
+        "--no-llm", action="store_true", help="Disable Gemini LLM (regex only)"
+    )
+    parser.add_argument(
+        "--threshold",
+        "-t",
+        type=float,
+        default=0.60,
+        help="Confidence threshold below which a claim is flagged (default: 0.60)",
+    )
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
@@ -1198,6 +1338,7 @@ def _cli() -> None:
         print(f"Unexpected error: {exc}", file=sys.stderr)
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         sys.exit(3)
 

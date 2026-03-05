@@ -34,6 +34,14 @@ if hasattr(sys.stderr, "reconfigure"):
 from datetime import datetime
 from pathlib import Path
 
+# Load .env so GOOGLE_API_KEY is available for LLM claim extraction
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).parent.parent / ".env", override=False)
+except ImportError:
+    pass  # python-dotenv not installed; rely on env vars already being set
+
 # Allow importing from scripts/ when running from repo root
 sys.path.insert(0, str(Path(__file__).parent))
 
