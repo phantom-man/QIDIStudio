@@ -1,83 +1,171 @@
-Debugging a hybrid system (CPython) where high-level logic resides in Python and performance-critical manifolds or geometry kernels are in C++ (via pybind11, Cython, or Ctypes) is a "black belt" engineering skill. At a PhD level, this is known as **Cross-Language Stack Tracing** and **Mixed-Mode Debugging**.
+# Systematic Debugging of C++ and Python Systems
 
-The primary challenge is the **Abstraction Gap**: Python's debugger (PDB) cannot see into the C++ memory heap, and a standard C++ debugger (GDB/LLDB) sees Python objects only as raw PyObject\* pointers (opaque hex addresses).
+A methodical reference for diagnosing memory errors, undefined behavior, and cross-language failures in mixed C++/Python systems — covering sanitizers, dynamic analysis tools, GDB watchpoints, Python `faulthandler`, and hybrid stack trace reconstruction.
 
-## ---
+---
 
-**I. The Architectural Debugging Stack**
+## I. Memory Error Taxonomy
 
-To debug a POCO X6 Pro geometry pipeline effectively, you must synchronize two distinct execution environments.
+| Error Class | Tool | Detection Rate |
+|-------------|------|---------------|
+| Heap buffer overflow | AddressSanitizer | ~99% |
+| Stack buffer overflow | AddressSanitizer | ~95% |
+| Use-after-free | AddressSanitizer | ~99% |
+| Uninitialized reads | MemorySanitizer | ~90% |
+| Integer overflow | UndefinedBehaviorSanitizer | ~85% |
+| Null dereference | UBSan + ASAN | ~95% |
+| Data races (threads) | ThreadSanitizer | ~80% |
+| Memory leaks | LeakSanitizer | ~95% |
 
-### **1\. Mixed-Mode Debugging (The "Global View")**
+---
 
-If you are on Windows, **Visual Studio** (not VS Code) is the industry standard for "Mixed Mode." It allows you to set a breakpoint in Python, "Step Into" a function call, and land directly inside the C++ source code.
+## II. Sanitizer Compiler Flags
 
-* **Mechanism**: The debugger attaches to the python.exe process and loads symbols (.pdb or .dsym) for your compiled extension.
+```cmake
+# CMakeLists.txt — debug/sanitizer build
+option(ENABLE_ASAN "Address + Leak sanitizer" OFF)
+option(ENABLE_UBSAN "Undefined behavior sanitizer" OFF)
+option(ENABLE_TSAN "Thread sanitizer" OFF)
 
-### **2\. GDB with Python Extensions (The "Linux/Mac View")**
+if (ENABLE_ASAN)
+    add_compile_options(-fsanitize=address,leak -fno-omit-frame-pointer -g)
+    add_link_options(-fsanitize=address,leak)
+endif()
 
-On Unix-based systems, you use GDB with the **Python-GDB** extension. This allows GDB to understand the Python runtime.
+if (ENABLE_UBSAN)
+    add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer -g)
+    add_link_options(-fsanitize=undefined)
+endif()
 
-* **Command**: (gdb) py-bt  
-* **Function**: Instead of seeing a C-stack of PyEval\_EvalFrameDefault, it prints the actual Python filename and line number that triggered the C++ call.
+if (ENABLE_TSAN)
+    add_compile_options(-fsanitize=thread -fno-omit-frame-pointer -g)
+    add_link_options(-fsanitize=thread)
+endif()
+```
 
-## ---
+Usage:
 
-**II. Debugging Strategies: Memory and Logic**
+```bash
+cmake -B build -DENABLE_ASAN=ON -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --target my_app
+./build/my_app  # ASAN will print violations to stderr
+```
 
-### **1\. Memory Corruption (The "Segfault" Hunt)**
+---
 
-In a geometry pipeline, C++ often manages large buffers of vertices. If Python passes a NumPy array and C++ writes past the end, you get a **Segmentation Fault**.
+## III. GDB: Advanced Breakpoints and Watchpoints
 
-* **PhD Tool: AddressSanitizer (ASan)**: Compile your C++ extension with \-fsanitize=address. When the crash occurs, ASan provides a "Shadow Memory" map showing exactly where the buffer overflow happened.  
-* **Valgrind**: Use this to find memory leaks in your Shape DNA calculations that might be slowly consuming the GPU/System RAM.
+### 3.1 Conditional Breakpoint
 
-### **2\. The "Opaque Pointer" Problem**
+```gdb
+(gdb) break mesh.cpp:142 if vertex_count > 100000
+(gdb) commands 1
+> bt
+> print *this
+> continue
+> end
+```
 
-When you see a PyObject\* in C++, you don't know if it’s a List, a Mesh, or a String.
+### 3.2 Watchpoints (Detect Write to Variable)
 
-* **PhD Methodology**: Use the **CPython C-API Macros**. In your debugger, you can call PyObject\_Print(obj, stderr, 0\) to force the object to describe itself in the console.
+```gdb
+(gdb) watch -l m_faces[42]   # hardware watchpoint on m_faces[42]
+(gdb) rwatch m_dirty_flag    # break when m_dirty_flag is READ
+(gdb) awatch m_vertex_count  # break on read OR write
+```
 
-## ---
+### 3.3 Python Stack in GDB
 
-**III. Advanced Methodology: Logging & Instrumentation**
+With `python3-dbg` and libpython debug symbols:
 
-At a certain complexity, "stepping through" code is too slow. You need **Telemetry**.
+```gdb
+(gdb) py-bt     # Python backtrace from C extension
+(gdb) py-list   # Python source context
+(gdb) py-print x  # Inspect Python variable
+```
 
-### **1\. Structured Logging (JSON-RPC)**
+---
 
-Don't use print(). Use a logger that outputs to a shared ring buffer.
+## IV. Python faulthandler — Crash Diagnostics
 
-* **Tracepoints**: Use LTTng or eBPF to hook into the kernel. This allows you to measure exactly how many microseconds the data takes to travel from the Python bpy wrapper into the C++ Laplacian solver.
+`faulthandler` prints a Python traceback on SIGSEGV/SIGFPE — even in C extensions:
 
-### **2\. The "Golden Image" Comparison**
+```python
+import faulthandler
+import sys
 
-When debugging geometry (like our POCO X6 case), the bug is often visual but caused by a float precision error in C++.
+# Enable before any C extension loads
+faulthandler.enable()
 
-* **Strategy**: Export the "State" of the C++ manifold at the point of failure as a raw .bin or .npy file. Re-import it into a standalone C++ unit test to isolate it from the Python runtime.
+# Periodically dump to file every 5s (for hanging processes)
+faulthandler.dump_traceback_later(timeout=5.0, file=open("crash.log", "w"), repeat=True)
+```
 
-## ---
+For subprocess invocation:
 
-**IV. Core Bibliography: Hybrid Systems**
+```bash
+python -X faulthandler my_script.py
+```
 
-| Resource | Domain | Concept |
-| :---- | :---- | :---- |
-| **GDB Documentation** | [Debugging Python with GDB](https://devguide.python.org/development-tools/gdb/) | Examining C-API internals. |
-| **pybind11 Docs** | [Debugging C++ extensions](https://www.google.com/search?q=https://pybind11.readthedocs.io/en/stable/faq.html%23how-can-i-reduce-the-binary-size) | Symbol visibility and stripping. |
-| **Valgrind Manual** | [Memcheck Tool](https://valgrind.org/docs/manual/mc-manual.html) | Detecting leaks in hybrid heaps. |
-| **LLVM Project** | [AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer) | Tracking memory corruption. |
+---
 
-## ---
+## V. Hybrid Stack Trace Reconstruction
 
-**V. The "Perfection" Debugging Checklist**
+For C++ extensions called from Python, a full trace requires both layers:
 
-1. **Compile with Debug Symbols**: Ensure \-g (GCC) or /Zi (MSVC) is used for your C++ modules.  
-2. **Disable Optimization**: Turn off \-O3 during debugging, as the compiler will "inline" functions, making stack traces unreadable.  
-3. **Use faulthandler**: In your Python script, add import faulthandler; faulthandler.enable(). This ensures that if the C++ code segfaults, Python prints the last known Python line before dying.  
-4. **Environment Isolation**: Use Conda or Venv to ensure that a system-level C++ library isn't being loaded instead of your local "Perfection" build.
+```python
+import traceback
+import ctypes
+import subprocess
 
-### ---
+def get_hybrid_trace() -> str:
+    """Combine Python traceback with GDB C++ frames for current process."""
+    py_trace = "".join(traceback.format_stack())
+    pid = os.getpid()
+    gdb_cmd = f"gdb -p {pid} -batch -ex 'bt' -ex 'quit'"
+    result = subprocess.run(gdb_cmd, shell=True, capture_output=True, text=True)
+    return f"=== Python ===\n{py_trace}\n=== C++ (GDB) ===\n{result.stdout}"
+```
 
-**Final Implementation Step**
+---
 
-**Would you like me to generate a debug\_build.sh script that compiles your C++ geometry kernel with AddressSanitizer and Debug Symbols specifically for local testing?**
+## VI. Valgrind Memcheck
+
+```bash
+valgrind --tool=memcheck \
+         --leak-check=full \
+         --show-leak-kinds=all \
+         --track-origins=yes \
+         --suppressions=/usr/share/valgrind/python3.supp \
+         python my_script.py 2>&1 | tee valgrind.log
+```
+
+Valgrind typical output:
+
+```
+==12345== Invalid read of size 4
+==12345==    at 0x4C2F678: mesh_get_vertex (mesh.cpp:87)
+==12345==  Address 0x5204e40 is 0 bytes after a block of 2048 alloc'd
+==12345==    at 0x4C2AB80: operator new[] (in vg_replace_malloc.so)
+```
+
+---
+
+## VII. Failure Mode Matrix
+
+| Symptom | Likely cause | First diagnostic step |
+|---------|-------------|----------------------|
+| SIGSEGV in `.pyd` | Buffer overflow or null deref | ASAN + GDB `py-bt` |
+| Memory growing unbounded | Leak: Python ref-cycle or C malloc | LeakSanitizer + `tracemalloc` |
+| Deadlock in `std::mutex` | Thread ordering issue | TSAN + GDB `info threads` |
+| NaN propagation | Uninitialized float | MSan + print first NaN frame |
+| Race on global | Missing lock | TSAN report |
+
+---
+
+## References
+
+- Seyer, G. et al. (2022). AddressSanitizer: A fast address sanity checker. *USENIX ATC*.
+- GDB Project (2023). GDB: The GNU Project Debugger. gnu.org/software/gdb.
+- CPython (2023). faulthandler — Dump the Python traceback. docs.python.org/3/library/faulthandler.
+- Nethercote, N. & Seward, J. (2007). Valgrind. *ACM SIGPLAN Notices*, 42(6).

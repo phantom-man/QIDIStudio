@@ -1,129 +1,193 @@
-This is the **Master Project Architecture**. This structure is designed to be a "single source of truth" for a PhD-level research project. It separates your high-level mathematical logic from your low-level hardware/API implementations, ensuring that your research remains **reproducible, testable, and modular**.
+# PhD Research Project Architecture Guide
 
-You can copy this structure into a terminal to generate the entire research environment instantly.
+A structural blueprint for organizing long-horizon AI-augmented research projects — covering knowledge graph architecture, agent coordination patterns, experiment tracking, and reproducibility infrastructure.
 
-## ---
+---
 
-**I. The "Perfection" Project Directory**
+## I. Research Project Architecture
 
-A proper PhD-level repository follows the **SRC Layout** to prevent accidental imports of broken code and to facilitate automated testing.
+### 1.1 Directory Structure
 
-Bash
+A well-structured research project separates concerns across six layers:
 
-Perfection\_Project/  
-├── .github/workflows/       \# CI/CD: Automated testing on every 'git push'  
-├── docs/                    \# Sphinx/MkDocs: Auto-generated technical manual  
-├── data/  
-│   ├── raw/                 \# Original CAD/STL (Never modified)  
-│   └── processed/           \# G-Code and Shape DNA exports  
-├── src/                     \# The Source: Pure, tested research logic  
-│   ├── \_\_init\_\_.py  
-│   ├── core/                \# Discrete Differential Geometry & Math  
-│   │   ├── laplacian.py     \# Spectral DNA & Heat Diffusion  
-│   │   └── parameterize.py  \# LSCM & ARAP Algorithms  
-│   ├── classification/      \# Part Differentiation (Funnel vs. Case)  
-│   │   └── heuristics.py    \# Topology & Curvature Checkers  
-│   └── io/                  \# Hardware/Software Bridges  
-│       ├── blender\_api.py   \# bpy Wrappers  
-│       └── gcode\_parser.py  \# Slicer Metrology  
-├── tests/                   \# Property-based & Unit tests  
-├── requirements.txt         \# Dependency Manifest (numpy, scipy, libigl)  
-└── main.py                  \# The Entry Point: Orchestrates the pipeline
+```
+project/
+├── docs/           # Knowledge base (markdown, spec)
+├── src/            # Core library code
+│   ├── models/     # ML/physics models
+│   ├── data/       # Dataset loaders, preprocessing
+│   └── eval/       # Evaluation metrics
+├── scripts/        # Experiment drivers, one-off analyses
+├── tests/          # Unit + integration tests
+├── notebooks/      # EDA, result visualization (READ-ONLY results)
+├── agents/         # AI agent orchestration
+│   ├── orchestrator.py
+│   ├── dev_fleet.py
+│   └── memory/     # LanceDB + PostgreSQL persistence
+├── configs/        # YAML experiment configs (Hydra)
+└── results/        # Versioned output (DVC-tracked)
+```
 
-## ---
+### 1.2 Reproducibility Stack
 
-**II. The "Strategy Pattern" Implementation**
+| Layer | Tool | Role |
+|-------|------|------|
+| Code versioning | Git | Source control |
+| Data versioning | DVC | Dataset + model artifact tracking |
+| Experiment tracking | MLflow / W&B | Metrics, hyperparameters, runs |
+| Environment | Docker + conda-lock | Exact dep pinning |
+| Config management | Hydra | Hierarchical config + sweeps |
+| Knowledge base | LanceDB | Vectorized doc store |
+| Agent memory | PostgreSQL | Prompt/response history |
 
-To handle the differentiation between a **Phone Case** and a **Funnel** without messy if statements, we use an **Abstract Base Class (ABC)**. This is the "Proper PhD Method" for polymorphic dispatch.
+---
 
-Python
+## II. Experiment Configuration (Hydra)
 
-from abc import ABC, abstractmethod
+```yaml
+# configs/experiment/base.yaml
+defaults:
+  - model: neural_sdf
+  - dataset: shapenet_chairs
+  - optimizer: adam
 
-class TransformationStrategy(ABC):  
-    @abstractmethod  
-    def execute(self, mesh\_data):  
-        pass
+training:
+  lr: 5.0e-4
+  batch_size: 32
+  max_epochs: 500
+  grad_clip: 1.0
 
-class CaseStrategy(TransformationStrategy):  
-    def execute(self, mesh\_data):  
-        \# Apply Conformal LSCM logic  
-        return "Applying LSCM for Prismatic Manifold"
+model:
+  hidden_dim: 256
+  n_layers: 8
+  skip_connection_at: [4]
 
-class FunnelStrategy(TransformationStrategy):  
-    def execute(self, mesh\_data):  
-        \# Apply Polar/Cylindrical logic  
-        return "Applying Polar Wrap for Revolutionary Manifold"
+dataset:
+  root: ${oc.env:DATA_ROOT}/shapenet
+  n_views: 24
+  resolution: 128
+  augment: true
+```
 
-class MetrologyPipeline:  
-    def \_\_init\_\_(self, strategy: TransformationStrategy):  
-        self.\_strategy \= strategy
+```python
+import hydra
+from omegaconf import DictConfig
 
-    def run(self, mesh):  
-        return self.\_strategy.execute(mesh)
+@hydra.main(config_path="../configs", config_name="experiment/base", version_base="1.3")
+def train(cfg: DictConfig) -> float:
+    """Main training entry point with full reproducibility."""
+    import mlflow
 
-## ---
+    with mlflow.start_run():
+        mlflow.log_params(dict(cfg.training))
+        model = hydra.utils.instantiate(cfg.model)
+        # ... training loop ...
+        val_loss = run_training(model, cfg)
+        mlflow.log_metric("val_loss", val_loss)
+    return val_loss
+```
 
-**III. Defensive Coding: Property-Based Testing**
+---
 
-In research, you don't just test if code works; you test if the **Math holds true**. We use the hypothesis library to ensure our **Shape DNA** calculation is invariant to rotation.
+## III. Knowledge Graph Architecture
 
-Python
+### 3.1 LanceDB Schema
 
-from hypothesis import given, strategies as st  
-import numpy as np
+```python
+import lancedb
+import pyarrow as pa
 
-@given(st.lists(st.floats(min\_value=-100, max\_value=100), min\_size=3))  
-def test\_spectral\_invariance(vertices):  
-    """  
-    PhD Requirement: Shape DNA must remain identical   
-    regardless of object rotation in 3D space.  
-    """  
-    v \= np.array(vertices)  
-    dna\_original \= calculate\_shape\_dna(v)  
-      
-    \# Rotate vertices 90 degrees  
-    v\_rotated \= v\[:, \[1, 0, 2\]\]   
-    dna\_rotated \= calculate\_shape\_dna(v\_rotated)  
-      
-    assert np.allclose(dna\_original, dna\_rotated, atol=1e-5)
+def create_knowledge_table(db_uri: str) -> lancedb.table.Table:
+    """Create typed knowledge base table."""
+    db = lancedb.connect(db_uri)
+    schema = pa.schema([
+        pa.field("id", pa.string()),
+        pa.field("topic", pa.string()),
+        pa.field("content", pa.string()),
+        pa.field("source", pa.string()),
+        pa.field("confidence", pa.float32()),
+        pa.field("created_at", pa.timestamp("us")),
+        pa.field("tags", pa.list_(pa.string())),
+        pa.field("vector", pa.list_(pa.float32(), 384)),
+    ])
+    return db.create_table("knowledge", schema=schema, exist_ok=True)
+```
 
-## ---
+### 3.2 Semantic Retrieval Pipeline
 
-**IV. Automated Documentation (Sphinx/Docstrings)**
+```python
+from sentence_transformers import SentenceTransformer
 
-Use **Google-style docstrings**. This allows your team (or your future self) to understand the mathematical "Why" behind the "How."
+MODEL = SentenceTransformer("all-MiniLM-L6-v2")
 
-Python
+def retrieve(
+    table: lancedb.table.Table,
+    query: str,
+    top_k: int = 8,
+    topic_filter: str | None = None,
+) -> list[dict]:
+    """Semantic search with optional topic pre-filter."""
+    q_emb = MODEL.encode(query).tolist()
+    q = table.search(q_emb).limit(top_k)
+    if topic_filter:
+        q = q.where(f"topic = '{topic_filter}'")
+    return q.to_list()
+```
 
-def calculate\_laplace\_beltrami(mesh):  
-    """Calculates the discrete Laplace-Beltrami operator using cotangent weights.
+---
 
-    Args:  
-        mesh (trimesh.base.Trimesh): The input manifold.
+## IV. Agent Coordination Pattern
 
-    Returns:  
-        scipy.sparse.csc\_matrix: The sparse L matrix.  
-          
-    Note:  
-        Implementation based on Meyer et al. (2003).   
-        Critical for Spectral DNA extraction.  
-    """  
-    pass
+### 4.1 Director–Worker Pattern
 
-## ---
+Research tasks are decomposed by a director LLM (Gemini 2.5 Flash) into typed `AgentTask` objects and dispatched to specialized workers:
 
-**V. Final PhD Bibliography: Coding & Architecture**
+```python
+from enum import Enum
+from dataclasses import dataclass
+from typing import Any
 
-| Category | Key Resource | Why it matters |
-| :---- | :---- | :---- |
-| **Clean Code** | [Clean Code (Robert Martin)](https://www.oreilly.com/library/view/clean-code-a/9780136083238/) | Maintainability over years of research. |
-| **Patterns** | [Design Patterns (GoF)](https://www.google.com/search?q=https://www.pearson.com/en-us/subject-catalog/p/design-patterns-elements-of-reusable-object-oriented-software/P200000003254/) | Modularizing complex CAD pipelines. |
-| **Scientific Python** | [Elegant SciPy (Nunez-Iglesias)](https://www.google.com/search?q=https://www.oreilly.com/library/view/elegant-scipy/9781491922866/) | Optimizing mesh processing speed. |
-| **Testing** | [Hypothesis Documentation](https://hypothesis.readthedocs.io/) | Finding edge cases in geometry math. |
+class AgentRole(Enum):
+    RESEARCHER = "researcher"     # Web search, doc reading
+    BUILDER    = "builder"        # Code writing, implementation
+    VERIFIER   = "verifier"       # Code review, fact-check
+    SCRIBE     = "scribe"         # Knowledge base persistence
 
-### ---
+@dataclass
+class AgentTask:
+    role: AgentRole
+    prompt: str
+    context: dict[str, Any]
+    priority: int = 1
+    max_tokens: int = 8192
+```
 
-**Your Next Step**
+### 4.2 Task Routing Strategy
 
-**Would you like me to generate a setup\_project.sh script that you can run in your terminal to automatically build this entire folder structure and install all the necessary PhD-level Python libraries (libigl, scipy, trimesh)?**
+Tasks are routed based on:
+- `researcher`: requires `web_search` tool or has `needs_citation=True`
+- `builder`: has explicit file path targets or code output requirements
+- `verifier`: references an existing code artifact for review
+- `scribe`: has `persist=True` and a structured fact payload
+
+---
+
+## V. Research Quality Gate
+
+Before any finding is persisted to the knowledge base, it passes a 4-stage gate:
+
+| Gate | Check | Tool |
+|------|-------|------|
+| Accuracy | Cross-source verification | `researcher` agent |
+| Completeness | Required fields present | Schema validation |
+| Novelty | Embedding distance > 0.15 | LanceDB similarity |
+| Reproducibility | Code runs without error | `verifier` agent |
+
+---
+
+## References
+
+- Sculley, D. et al. (2015). Hidden Technical Debt in Machine Learning Systems. *NeurIPS 2015*.
+- Amershi, S. et al. (2019). Software Engineering for Machine Learning. *ICSE-SEIP 2019*.
+- Sievert, C. (2020). *Interactive Web-Based Data Visualization with R, Plotly, and Shiny*. CRC Press.
+- Mitchell, M. et al. (2019). Model Cards for Model Reporting. *FAccT 2019*.

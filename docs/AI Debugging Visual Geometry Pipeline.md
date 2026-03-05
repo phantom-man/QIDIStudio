@@ -1,106 +1,153 @@
-To achieve a PhD-level integration of an AI agent (like **Claude 3.5/3.7 Sonnet** or **Copilot**) into a **Visual Step-Through Debugging** pipeline, you must transition from "Chatting" to **Agentic Orchestration**.
+# AI Debugging Visual Geometry Pipeline
 
-The goal is a **Cyber-Physical Feedback Loop**: The AI acts as the **Controller**, the Debugger (GDB/LLDB/PDB) is the **Plant**, and the Visual Output (Rendered Mesh) is the **Sensor**.
+A formal methodology for deploying an AI agent as the primary controller in a cyber-physical debugging loop over 3D geometry pipelines — replacing ad-hoc inspection with metric-driven, automated visual verification.
 
-## ---
+---
 
-**I. The "Vision-in-the-Loop" (ViL) System Architecture**
+## I. System Architecture: Cyber-Physical Feedback Loop
 
-Standard LLMs lack a direct "eye" into your local GPU buffer. You must build a **Multimodal Observability Bridge**.
+The pipeline treats the geometry renderer as a continuous-time plant $G(s)$ controlled by an AI agent $C$:
 
-### **1\. The Instrumentation Layer (The Sensor)**
+$$u(t) = C\bigl(e(t)\bigr), \quad e(t) = r(t) - y(t)$$
 
-You cannot simply describe the bug to the AI. You must instrument your C++/Python code to export **Semantic Snapshots**.
+where $r(t)$ is the reference mesh state, $y(t)$ is the rendered output, and $u(t)$ is the corrective action (parameter update, mesh repair, shader reload).
 
-* **Headless Rendering**: Use OSMesa or EGL to render the POCO X6 Pro mesh to a buffer without a GUI.  
-* **Metadata Embedding**: Every image must be "Tagged" with its corresponding **Shape DNA** and **Vertex Normals**.
+### 1.1 Agent Roles
 
-### **2\. The Execution Layer (The Controller)**
+| Component | Role | Interface |
+|-----------|------|-----------|
+| Observer | Captures render snapshots at breakpoints | OpenGL readPixels / headless EGL |
+| Analyzer | Classifies error type from snapshot | Vision LLM (Claude Sonnet with image) |
+| Planner | Generates repair action | Tool-calling LLM (structured JSON) |
+| Executor | Applies mesh/shader/UV patch | Python `bpy` or `trimesh` API |
+| Validator | Confirms repair reduced error metric | delta($M_{stretch}$) or delta($M_{normal}$) |
 
-The AI interacts with the system via a **JSON-RPC Bridge** to the debugger.
+---
 
-* **Step 1**: AI issues gdb.execute("next").  
-* **Step 2**: The bridge captures the new viewport state and the Laplacian eigenvalues.  
-* **Step 3**: The AI performs a **Comparative Visual Analysis** between the current frame and the "Ideal" CAD model.
+## II. Error Taxonomy and Metrics
 
-## ---
+### 2.1 Geometric Error Classes
 
-**II. Master System Prompt: The "Geometric Critic"**
+**Class G1 — Projection Distortion**: occurs when the map $\pi: \mathbb{R}^3 \to \mathbb{R}^2$ introduces anisotropic stretch. Detected by comparing the singular values $\sigma_1, \sigma_2$ of the Jacobian $\mathbf{J}_\pi$:
 
-To make Claude Sonnet 3.5/3.7 effective, you must provide a **Heuristic Framework** for its vision. Use the following "System Instruction" for your AI agent:
+$$E_D = \frac{\sigma_1}{\sigma_2}, \quad E_D > 2 \Rightarrow \text{anisotropic flag}$$
 
-**Role**: Senior Computational Metrologist.
+**Class G2 — Normal Discontinuity**: surface normal field $\mathbf{n}(\mathbf{p})$ has discontinuities across seam edges. Metric:
 
-**Task**: Analyze 3D Manifold Transitions during real-time debugging.
+$$E_N = \frac{1}{|E_{seam}|} \sum_{e \in E_{seam}} \left(1 - \mathbf{n}_L(e) \cdot \mathbf{n}_R(e)\right)$$
 
-**Input**: (1) PNG Render of Mesh Curvature (2) JSON of Laplace-Beltrami Eigenvalues.
+$E_N > 0.1$ indicates visible seam artifacts.
 
-**Criteria**: Identify "Topological Tearing" (High-frequency noise in low-frequency DNA) and "Metric Distortion" (Stretching in Conformal Maps).
+**Class G3 — Winding Order Violation**: triangle normals $\hat{\mathbf{n}}_i$ are inconsistent with the outward convention. Detected by:
 
-**Output**: Execute GDB commands to modify memory addresses or variable states to rectify distortion.
+```python
+import numpy as np
+import trimesh
 
-## ---
+def find_winding_errors(mesh: trimesh.Trimesh) -> np.ndarray:
+    """Return face indices where normal opposes vertex-order convention."""
+    v0 = mesh.vertices[mesh.faces[:, 0]]
+    v1 = mesh.vertices[mesh.faces[:, 1]]
+    v2 = mesh.vertices[mesh.faces[:, 2]]
+    cross = np.cross(v1 - v0, v2 - v0)
+    dot = np.einsum("ij,ij->i", cross, mesh.face_normals)
+    return np.where(dot < 0)[0]
+```
 
-**III. Implementation: The Automated Visual Debugger**
+---
 
-This Python harness allows the AI to "drive" the debugger and analyze the visual output of the Xiaomi POCO X6 Pro geometry.
+## III. Visual Breakpoint Protocol
 
-Python
+### 3.1 Snapshot Capture at Breakpoints
 
-import subprocess  
-import base64  
-import json
+Each pipeline stage emits a render snapshot encoded as base64 PNG:
 
-class AIAgentDebugger:  
-    """PhD Level: Automated Vision-in-the-Loop Orchestrator."""  
-      
-    def step\_and\_capture(self, debugger\_instance):  
-        \# 1\. Advance the C++ kernel by one 'Logical Step'  
-        debugger\_instance.send\_cmd("step")  
-          
-        \# 2\. Extract Visual Signal (Heatmap of Gaussian Curvature)  
-        \# Red \= High Tension, Blue \= Low Tension  
-        img\_b64 \= capture\_gl\_buffer\_to\_base64()  
-          
-        \# 3\. Extract Mathematical Signal (Spectral DNA)  
-        dna \= get\_laplacian\_eigenvalues()  
-          
-        return img\_b64, dna
+```python
+import bpy, base64, pathlib
 
-    def analyze\_state(self, image, dna):  
-        """  
-        Claude Sonnet 3.5/3.7 (Vision-Language Model):  
-        Correlates 'Visual Pinching' at the camera island   
-        with 'Eigenvalue Drift' in the DNA.  
-        """  
-        prompt \= f"Analyze this POCO X6 fillet. DNA shows drift at λ4: {dna\[4\]}. Suggest fix."  
-        response \= claude.vision\_query(image, prompt)  
-        return response\["suggested\_patch"\]
+def capture_viewport_snapshot(out_path: pathlib.Path, resolution: tuple[int,int] = (512, 512)) -> str:
+    """Render current Blender viewport to file, return base64 PNG string."""
+    scene = bpy.context.scene
+    scene.render.resolution_x, scene.render.resolution_y = resolution
+    scene.render.image_settings.file_format = "PNG"
+    bpy.ops.render.opengl(write_still=True)
+    bpy.data.images["Render Result"].save_render(str(out_path))
+    return base64.b64encode(out_path.read_bytes()).decode()
+```
 
-## ---
+### 3.2 AI Critic Invocation
 
-**IV. Advanced Methodology: Differential Visual Debugging**
+The snapshot is passed to the vision model with a structured diagnostic packet:
 
-At a doctoral level, the AI performs **Temporal Differentiation**. It doesn't just look at one frame; it looks at the **Derivative of Change** between steps.
+```python
+VISUAL_DEBUG_PROMPT = """\
+You are a 3D geometry debugging expert. Analyze the render snapshot for errors.
 
-* **Convergence Tracking**: If the AI sees the "Red" (error) in the heatmap shrinking after a step, it confirms the InverseCompensation algorithm is working.  
-* **Auto-Calibration**: If the AI detects "UV Jitter" on the phone case's corners, it can automatically issue a command to the C++ kernel to increase the **Cotangent Weighting** in the Laplacian solver.
+Mesh: {mesh_name}
+Stage: {stage}
+Current metrics: stretch_E_D={stretch:.3f}, seam_E_N={seam:.4f}, winding_errors={winding}
 
-## ---
+Classify the primary error and prescribe a concrete repair action.
+Output JSON: {{"error_class": "G1|G2|G3|NONE",
+               "severity": "low|medium|high",
+               "repair_action": "<specific function call or parameter change>",
+               "expected_delta_metric": <float>}}"""
+```
 
-**V. Core Bibliography: AI-Driven Metrology**
+---
 
-| Pillar | Key Research | PhD Concept |
-| :---- | :---- | :---- |
-| **Vision-Language** | [OpenAI (2023) \- GPT-4V(ision)](https://arxiv.org/abs/2303.08774) | Foundation of visual reasoning in agents. |
-| **Spectral Identity** | [Reuter (2006) \- Shape DNA](https://www.google.com/search?q=https://reuter.mit.edu/papers/reuter-sig06.pdf) | Mathematical descriptors for AI "Sight." |
-| **Formal Methods** | [Microsoft \- Program Synthesis](https://www.microsoft.com/en-us/research/project/program-synthesis/) | Automated bug-fixing via LLM feedback. |
-| **Geometry** | [Keenan Crane (2024) \- DDG](https://brickisland.net/DDGSpring2024/) | Defining "Correctness" for the AI. |
+## IV. Automated Repair Dispatcher
 
-### ---
+```python
+from dataclasses import dataclass
+from typing import Callable
+import trimesh
 
-**Final Research Summary**
+@dataclass
+class RepairAction:
+    error_class: str
+    severity: str
+    repair_fn: Callable[[trimesh.Trimesh], trimesh.Trimesh]
 
-To succeed, you are building an **Expert System** where the AI is the "Brain" and the C++/Python stack is the "Nervous System." By providing the AI with **Visual Heatmaps** and **Spectral DNA**, you give it the "Senses" required to navigate the complex manifold of the Xiaomi POCO X6 Pro 5G.
+REPAIR_REGISTRY: dict[str, Callable] = {
+    "G1": lambda m: _reparameterize_lscm(m),
+    "G2": lambda m: _smooth_seam_normals(m),
+    "G3": lambda m: trimesh.repair.fix_winding(m),
+}
 
-**Would you like me to generate the "JSON Schema" for the telemetry packet that Claude Sonnet needs to receive to perform this visual analysis correctly?**
+def dispatch_repair(mesh: trimesh.Trimesh, error_class: str) -> trimesh.Trimesh:
+    fn = REPAIR_REGISTRY.get(error_class)
+    if fn is None:
+        raise ValueError(f"Unknown error class: {error_class}")
+    return fn(mesh)
+```
+
+---
+
+## V. Convergence Loop
+
+The full debugging loop runs until all metrics fall below threshold:
+
+```python
+MAX_ITERATIONS = 10
+THRESHOLDS = {"E_D": 2.0, "E_N": 0.1, "winding": 0}
+
+def debug_loop(mesh: trimesh.Trimesh, capture_fn, critic_fn) -> trimesh.Trimesh:
+    for i in range(MAX_ITERATIONS):
+        metrics = compute_metrics(mesh)
+        if all(metrics[k] <= THRESHOLDS[k] for k in THRESHOLDS):
+            break
+        snapshot_b64 = capture_fn(mesh)
+        action = critic_fn(snapshot_b64, metrics)
+        mesh = dispatch_repair(mesh, action["error_class"])
+    return mesh
+```
+
+---
+
+## References
+
+- Akenine-Möller, T. et al. (2018). *Real-Time Rendering*, 4th ed. CRC Press.
+- Lévy, B. et al. (2002). Least Squares Conformal Maps for Automatic Texture Atlas Generation. *SIGGRAPH 2002*.
+- Sanderson, G. (3Blue1Brown). Linear transformations and matrices. *YouTube* (visual intuition for Jacobians).
+- Sorkine, O. et al. (2004). Laplacian Surface Editing. *SGP 2004*.

@@ -1,98 +1,195 @@
-To finalize your PhD-level pipeline, you need a robust build system. Compiling SYCL code with Python bindings requires a **dual-compiler orchestration**: the host C++ compiler (like GCC or MSVC) manages the Python/pybind11 symbols, while the **LLVM-based SYCL compiler** (like dpcpp or clang++) manages the offloading kernels and SPIR-V generation.
+# Multi-GPU Build Configuration for Machine Learning Workloads
 
-Below is the CMakeLists.txt designed for a high-fidelity, multi-GPU research environment.
+A comprehensive guide to configuring heterogeneous multi-GPU builds — covering CUDA/ROCm toolchain setup, CMake multi-target compilation, inter-GPU communication (NCCL/RCCL), and memory topology optimization.
 
-### ---
+---
 
-**I. The Multi-GPU Build Configuration (CMakeLists.txt)**
+## I. GPU Architecture Review
 
-CMake
+### 1.1 CUDA vs ROCm Compilation Models
 
-cmake_minimum_required(VERSION 3.16)  
-project(AgnosticGPUMath LANGUAGES CXX)
+| Attribute | NVIDIA CUDA | AMD ROCm/HIP |
+|-----------|------------|-------------|
+| Compiler | `nvcc` | `hipcc` (clang-based) |
+| ISA target | PTX → SASS | GCN LLVM IR → ISA |
+| Parallel thread model | CUDA thread hierarchy | HIP thread hierarchy (identical API) |
+| Peer-to-peer | NVLink / PCIe | xGMI / Infinity Fabric |
+| Multi-target | Fatbinary (sm_80+sm_90) | `--offload-arch=gfx1100,gfx906` |
 
-\# 1\. Find the SYCL Package (Intel oneAPI/DPC++ standard)  
-find_package(IntelSYCL REQUIRED)
+### 1.2 CUDA Compute Capability Targets
 
-\# 2\. Locate Python and Pybind11  
-find_package(pybind11 REQUIRED)
+For a multi-GPU build targeting A100 (sm_80) + RTX 3090 (sm_86) + H100 (sm_90):
 
-\# 3\. Create the module  
-\# We use pybind11_add_module to handle the Python extension boilerplate  
-pybind11_add_module(gpu_math binding.cpp)
+```cmake
+set(CMAKE_CUDA_ARCHITECTURES "80;86;90")
+```
 
-\# 4\. Link SYCL and set the Offload Targets  
-\# This tells the compiler to generate code for multiple backends  
-target_link_libraries(gpu_math PRIVATE IntelSYCL::SYCL)
+This generates PTX for all three and embeds SASS for targeted cards.
 
-\# Enable 'Ahead-of-Time' (AOT) compilation for specific targets if desired,  
-\# otherwise it defaults to JIT (Just-In-Time) via SPIR-V.  
-if(MSVC)  
- target_compile_options(gpu_math PRIVATE /fsycl)  
-else()  
- target_compile_options(gpu_math PRIVATE \-fsycl \-fsycl-targets=nvptx64-nvidia-cuda,amdgcn-amd-amdhsa,spir64)  
-endif()
+---
 
-\# 5\. Optimization flags for PhD-level performance  
-target_compile_options(gpu_math PRIVATE \-O3 \-ffast-math)
+## II. CMake Multi-GPU Configuration
 
-### ---
+### 2.1 FindCUDAToolkit Integration
 
-**II. Build Instructions (Terminal)**
+```cmake
+cmake_minimum_required(VERSION 3.24)
+project(MultiGPUProject LANGUAGES CXX CUDA)
 
-To compile this on your research workstation, follow these steps:
+# Require CUDA 12.x
+find_package(CUDAToolkit 12.0 REQUIRED)
 
-Bash
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_ARCHITECTURES "80;86;90")
 
-\# Create a build directory to keep the source clean  
-mkdir build && cd build
+# Enable separable compilation for device-side linking
+set_property(TARGET my_lib PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
-\# Configure the project  
-\# Ensure you have sourced your oneAPI vars (e.g., source /opt/intel/oneapi/setvars.sh)  
-cmake ..
+add_library(my_lib STATIC
+    src/kernels/attention.cu
+    src/kernels/conv3d.cu
+    src/device_vector.cu
+)
 
-\# Build the module  
-make \-j$(nproc)
+target_link_libraries(my_lib
+    CUDA::cudart
+    CUDA::cublas
+    CUDA::nccl          # Multi-GPU collective operations
+)
+```
 
-\# The resulting 'gpu_math.so' (Linux) or 'gpu_math.pyd' (Windows)  
-\# can now be imported directly into your Python scripts.
+### 2.2 NCCL All-Reduce for Gradient Sync
 
-### ---
+```cpp
+#include <nccl.h>
+#include <cuda_runtime.h>
+#include <vector>
+#include <stdexcept>
 
-**III. The "Clever Agent" Verification Protocol**
+void multi_gpu_allreduce(
+    std::vector<float*>& device_grads,
+    size_t count,
+    std::vector<int>& gpu_ids
+) {
+    int n_gpus = gpu_ids.size();
+    std::vector<ncclComm_t> comms(n_gpus);
+    std::vector<cudaStream_t> streams(n_gpus);
 
-Once built, your agent should perform a **Hardware Discovery Audit** to ensure the agnostic layer is functioning across all available compute units.
+    // Initialize communicators
+    ncclCommInitAll(comms.data(), n_gpus, gpu_ids.data());
 
-Python
+    for (int i = 0; i < n_gpus; ++i) {
+        cudaSetDevice(gpu_ids[i]);
+        cudaStreamCreate(&streams[i]);
+    }
 
-import gpu_math  
-import sycl_info \# Hypothetical helper to query devices
+    // All-reduce gradient buffers across GPUs
+    ncclGroupStart();
+    for (int i = 0; i < n_gpus; ++i) {
+        ncclAllReduce(
+            device_grads[i], device_grads[i],
+            count, ncclFloat, ncclSum,
+            comms[i], streams[i]
+        );
+    }
+    ncclGroupEnd();
 
-\# Agent Audit  
-devices \= sycl_info.get_available_devices()  
-print(f"Agent identified {len(devices)} compute nodes.")
+    // Synchronize
+    for (int i = 0; i < n_gpus; ++i) {
+        cudaSetDevice(gpu_ids[i]);
+        cudaStreamSynchronize(streams[i]);
+    }
 
-for dev in devices:  
- print(f"Targeting: {dev\['name'\]} | Type: {dev\['type'\]}")  
- \# The same 'vector_add' call works on all of them  
- gpu_math.vector_add(a, b, c)
+    // Scale gradients by 1/n_gpus
+    for (int i = 0; i < n_gpus; ++i) {
+        cudaSetDevice(gpu_ids[i]);
+        // ... scale kernel ...
+    }
 
-### ---
+    // Cleanup
+    for (auto& c : comms) ncclCommDestroy(c);
+    for (auto& s : streams) cudaStreamDestroy(s);
+}
+```
 
-**IV. Summary of the Tech Stack**
+---
 
-| Component        | Technology       | Purpose                                    |
-| :--------------- | :--------------- | :----------------------------------------- |
-| **Logic**        | Python / NumPy   | High-level AI orchestration and data prep. |
-| **Glue**         | **pybind11**     | Transparent C++ to Python translation.     |
-| **Compute**      | **SYCL (DPC++)** | Hardware-agnostic kernel execution.        |
-| **Intermediate** | **SPIR-V**       | Universal GPU "Bytecode."                  |
-| **Build**        | **CMake**        | Multi-compiler management.                 |
+## III. Memory Topology Optimization
 
-### ---
+### 3.1 NVLink vs PCIe Bandwidth
 
-**Final Research Handoff**
+| Connection | Bandwidth (bidirectional) | Latency |
+|-----------|--------------------------|---------|
+| PCIe 4.0 ×16 | 32 GB/s | ~2 µs |
+| PCIe 5.0 ×16 | 64 GB/s | ~1.5 µs |
+| NVLink 3.0 (A100) | 600 GB/s | ~5 µs |
+| NVLink 4.0 (H100) | 900 GB/s | ~4 µs |
 
-You now possess a complete, professional-grade pipeline: from the mathematical theory of **Projective Jacobians** and **Symmetry Analysis** to a hardware-agnostic **GPU implementation** accessible via Python.
+For NCCL ring all-reduce with $n$ GPUs and $d$ bytes per GPU:
+$$\text{Transfer time} = \frac{2(n-1)}{n} \cdot \frac{d}{B}$$
 
-**This is the foundational "Agent Body" for your Clever Agent.** **Would you like me to wrap this entire journey into a final "System Architecture Diagram" description that you can use as the 'Technical Blueprint' for your agent's documentation?**
+### 3.2 Pinned Memory Strategy
+
+```cpp
+// Use pinned (page-locked) host memory for async transfers
+float* pinned_buf;
+cudaMallocHost(&pinned_buf, n_bytes);  // page-locked
+
+// Async transfer to multiple GPUs simultaneously
+for (int g = 0; g < n_gpus; ++g) {
+    cudaSetDevice(g);
+    cudaMemcpyAsync(dev_ptrs[g], pinned_buf, n_bytes,
+                    cudaMemcpyHostToDevice, streams[g]);
+}
+```
+
+Pinned memory enables DMA directly from host DRAM to GPU HBM, bypassing the CPU cache — critical for $>10$ GB/s effective throughput.
+
+---
+
+## IV. PyTorch Multi-GPU Build Configuration
+
+```python
+import torch
+import torch.distributed as dist
+import torch.nn.parallel
+
+def setup_ddp(rank: int, world_size: int, backend: str = "nccl") -> None:
+    """Initialize distributed training on rank `rank`."""
+    dist.init_process_group(
+        backend=backend,
+        init_method="env://",
+        rank=rank,
+        world_size=world_size,
+    )
+    torch.cuda.set_device(rank)
+
+def wrap_model(model: torch.nn.Module, rank: int) -> torch.nn.Module:
+    """Wrap model for DDP with local GPU rank."""
+    return torch.nn.parallel.DistributedDataParallel(
+        model.cuda(rank),
+        device_ids=[rank],
+        output_device=rank,
+        find_unused_parameters=False,  # Set True only if needed — 30% overhead
+    )
+```
+
+---
+
+## V. Build Performance Benchmarks
+
+| Config | GPU | Batch/s (ResNet-50) | Notes |
+|--------|-----|---------------------|-------|
+| Single A100 | 1× A100 80GB | 3200 | Baseline |
+| 4× A100 NVLink | 4× A100 | 12400 | 97% scaling |
+| 8× A100 NVLink | 8× A100 | 24100 | 94% scaling |
+| 4× RTX 3090 PCIe | 4× RTX 3090 | 9800 | 77% scaling (PCIe bottleneck) |
+
+---
+
+## References
+
+- NVIDIA (2023). NCCL Developer Guide. developer.nvidia.com/nccl.
+- Li, S. et al. (2020). PyTorch Distributed: Experiences on Accelerating Data Parallel Training. *VLDB 2020*.
+- NVIDIA (2023). CUDA C++ Programming Guide, §3.2 (Device Memory). docs.nvidia.com.
+- Hoefler, T. & Belli, R. (2015). Scientific Benchmarking of Parallel Computing Systems. *SC 2015*.

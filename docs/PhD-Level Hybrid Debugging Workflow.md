@@ -1,97 +1,187 @@
-This **Debug Configuration & Workflow Manifesto** provides the necessary infrastructure to bridge the gap between Python's high-level objects and C++'s low-level memory management. At a PhD level, we treat the two languages as a single **Unified Execution Trace**.
+# PhD-Level Hybrid Debugging Workflow
 
-## ---
+A rigorous methodology for cross-language debugging of hybrid Python/C++ systems, covering mixed-mode stack tracing, PyObject inspection in GDB, and systematic abstraction-gap bridging.
 
-**I. The "Hybrid Stack" Architecture**
+---
 
-When debugging a system like our POCO X6 Pro geometry engine, the error usually manifests in Python (a RuntimeError) but originates in C++ (a nullptr dereference or std::out\_of\_range).
+## I. The Abstraction Gap Problem
 
-### **1\. Mixed-Mode Symbol Resolution**
+### 1.1 Two Execution Models
 
-To see through the "C-API Curtain," your C++ binaries must be compiled with **External Symbols** and **Optimization Disabled** (-O0).
+Python and C++ operate on fundamentally different memory and execution models:
 
-* **Python Frame**: bpy.ops.geometry.apply\_perfection\_skin()  
-* **C++ Frame**: Perfection::Manifold::applyLSCM(Mesh\* m)
+| Property | Python | C++ (via pybind11) |
+|---------|--------|------------------|
+| Heap | `PyHeap` — GC-managed | `malloc/new` — manual/RAII |
+| Stack frame | `PyFrameObject*` chain | Hardware stack (DWARF metadata) |
+| Debugger | `sys.settrace()` / `pdb` | DWARF + GDB/LLDB |
+| Exception | `PyObject* (PyExc_*)` | `std::exception` hierarchy |
+| Threads | GIL-serialized | Native OS threads |
 
-## ---
+When C++ code is called from Python via pybind11, the debugger sees a `PyObject*` that GDB cannot dereference meaningfully without Python-aware extensions.
 
-**II. Automated Debug Configuration (debug\_build.sh)**
+---
 
-This script configures a **CMake** environment specifically for "Deep Debugging," enabling **AddressSanitizer (ASan)** to catch memory corruption in real-time.
+## II. GDB with Python Extension (libpython-gdb)
 
-Bash
+### 2.1 Setup
 
-\#\!/bin/bash  
-\# setup\_debug\_env.sh \- PhD Level Debug Infrastructure
+Enable Python-aware GDB extensions:
 
-\# 1\. Create Debug Build Directory  
-mkdir \-p build\_debug && cd build\_debug
+```bash
+# Install debug symbols
+sudo apt install python3-dbg gdb
 
-\# 2\. Configure CMake with Sanitizers and Debug Symbols  
-\# \-DCMAKE\_BUILD\_TYPE=Debug: Disables optimizations (-O0) and adds \-g  
-\# \-fsanitize=address: Detects memory leaks and buffer overflows  
-cmake .. \\  
-    \-DCMAKE\_BUILD\_TYPE=Debug \\  
-    \-DCMAKE\_CXX\_FLAGS="-fsanitize=address \-fno-omit-frame-pointer" \\  
-    \-DPYTHON\_EXECUTABLE=$(which python3)
+# In .gdbinit
+add-auto-load-safe-path /usr/lib/python3.X/
+python import gdb.printing
 
-\# 3\. Build the Extension  
-make \-j$(nproc)
+# Or explicitly load
+source /usr/share/gdb/python3/libpython.py
+```
 
-\# 4\. Enable Python Fault Handler in the Test Runner  
-export PYTHONFAULTHANDLER=1  
-echo "Debug Build Complete. Run your script to catch Segfaults with full traces."
+### 2.2 Inspecting Python Frames from GDB
 
-## ---
+```gdb
+(gdb) info threads
+(gdb) thread 1
+(gdb) where                      # C stack trace
+(gdb) py-bt                      # Python call stack (from libpython extension)
+(gdb) py-locals                  # Local Python variables at current frame
+(gdb) py-up                      # Go up one Python frame
+(gdb) print ((PyObject*)obj)->ob_type->tp_name    # Type name of any PyObject*
+```
 
-**III. The "Python-GDB" Methodology**
+---
 
-When your Python script crashes in the C++ layer, a standard pdb session is useless. You must attach **GDB** and use the Python-specific extensions.
+## III. pdb-Based Entry into C++ Breakpoints
 
-### **1\. Essential GDB Commands for Hybrid Systems**
+### 3.1 Embedding a Python Breakpoint near the C Interface
 
-| Command | Result |
-| :---- | :---- |
-| py-bt | Prints the **Python** stack trace inside the C++ debugger. |
-| py-list | Shows the Python source code line currently being executed. |
-| py-locals | Prints the values of Python variables in the current frame. |
-| p (PyObject\*)$obj | Casts a raw pointer to a Python object for inspection. |
+```python
+import ctypes, os, signal
 
-## ---
+def trigger_gdb_breakpoint():
+    """
+    Drop into GDB/LLDB from Python at this exact line.
+    Requires the process to be already attached or launched under gdb.
+    """
+    if os.getenv("ENABLE_CPP_BREAKPOINT"):
+        os.kill(os.getpid(), signal.SIGINT)  # sends SIGINT → GDB catches it
+```
 
-**IV. Defensive Instrumentation (The "Phasing" Strategy)**
+### 3.2 The `pybind11::gil_scoped_release` Pattern
 
-Because C++/Python interactions are often asynchronous or handled via opaque buffers (NumPy arrays), we use **Signal Trapping** and **Shared Memory Logging**.
+When calling long C++ functions, release the GIL to allow Python-side interrupts:
 
-### **1\. The faulthandler Safety Net**
+```cpp
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
 
-At the top of your main.py, always include:
+// In the C++ function binding:
+py::array_t<double> expensive_compute(py::array_t<double> input) {
+    py::gil_scoped_release release;  // GIL released, GDB can now inspect C++ freely
+    // ... long C++ work ...
+    py::gil_scoped_acquire acquire;  // GIL reacquired before returning Python objects
+    return result;
+}
+```
 
-Python
+---
 
-import faulthandler  
+## IV. Mixed-Mode Stack Trace Script
+
+### 4.1 Unified Stack Trace Reporter
+
+```python
+import traceback
 import sys
+import ctypes
 
-\# If C++ crashes, Python will dump the traceback to stderr before exiting  
-faulthandler.enable(file=sys.stderr, all\_threads=True)
+def unified_stack_trace(exc: BaseException | None = None) -> str:
+    """
+    Return a unified Python + C++ stack trace.
+    C++ frames are extracted via the `faulthandler` module on segfault,
+    or via `traceback` for Python exceptions.
+    """
+    lines = ["=== Python stack ==="]
+    if exc is not None:
+        lines += traceback.format_exception(type(exc), exc, exc.__traceback__)
+    else:
+        lines += traceback.format_stack()
 
-### **2\. The "Golden Buffer" Dump**
+    # Check for C++ exception info embedded by pybind11
+    if hasattr(exc, "__cause__") and exc.__cause__ is not None:
+        lines += ["\n=== Caused by C++ exception ==="]
+        lines += [str(exc.__cause__)]
 
-If the **Shape DNA** calculation is failing, dump the raw C++ std::vector\<double\> to a .npy file immediately before the crash. This allows you to inspect the "Geometric Signal" in a standalone environment without the overhead of the Python interpreter.
+    return "".join(lines)
 
-## ---
+# Install as system exception hook
+def install_hybrid_hook():
+    original = sys.excepthook
+    def hook(exc_type, exc_value, exc_tb):
+        print(unified_stack_trace(exc_value))
+        original(exc_type, exc_value, exc_tb)
+    sys.excepthook = hook
+```
 
-**V. Core Bibliography: Hybrid System Debugging**
+---
 
-| Resource | Specialty | Key Concept |
-| :---- | :---- | :---- |
-| **Python DevGuide** | [Debugging with GDB](https://devguide.python.org/development-tools/gdb/) | C-API stack inspection. |
-| **LLVM Project** | [Sanitizer Discovery](https://github.com/google/sanitizers) | Use ASan for memory, TSan for threads. |
-| **Pybind11 Docs** | [Common Pitfalls](https://pybind11.readthedocs.io/en/stable/faq.html) | Object lifetime and reference counting. |
-| **Microsoft Learn** | [Mixed Mode Debugging](https://www.google.com/search?q=https://learn.microsoft.com/en-us/visualstudio/python/debugging-mixed-mode-c-cpp-python) | Step-through GUI debugging. |
+## V. VS Code Launch Configuration
 
-### ---
+### 5.1 Python + C++ Simultaneous Debugger
 
-**Your Final Project Action**
+```jsonc
+// .vscode/launch.json
+{
+  "configurations": [
+    {
+      "name": "Python + C++ Hybrid Debug",
+      "type": "pythoncpp",
+      "request": "launch",
+      "pythonLaunchName": "Python: Run Script",
+      "cppAttachName": "GDB: Attach to Python"
+    },
+    {
+      "name": "Python: Run Script",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/apply_texture_bpy.py",
+      "env": {"ENABLE_CPP_BREAKPOINT": "1"}
+    },
+    {
+      "name": "GDB: Attach to Python",
+      "type": "cppdbg",
+      "request": "attach",
+      "program": "python3",
+      "processId": "${command:pickProcess}",
+      "MIMode": "gdb",
+      "setupCommands": [
+        {"text": "source /usr/share/gdb/python3/libpython.py", "ignoreFailures": true}
+      ]
+    }
+  ]
+}
+```
 
-**Would you like me to generate a "Unit Test Harness" that uses pytest and ctypes to specifically test the memory boundaries of your C++ geometry kernel before you integrate it into the main POCO X6 Pro pipeline?**
+---
+
+## VI. Common Failure Modes
+
+| Symptom | Root Cause | Fix |
+|---------|-----------|-----|
+| `Segmentation fault (core dumped)` | C++ writing past array bounds | Enable AddressSanitizer: `CFLAGS="-fsanitize=address"` |
+| `Couldn't find type PyObject` | libpython debug symbols missing | `sudo apt install python3.X-dbg` |
+| `GIL: thread state mismatch` | C++ holding GIL across thread boundary | Use `py::gil_scoped_release` |
+| Python exception swallowed | pybind11 converts C++ exception silently | Use `py::set_error()` or rethrow |
+| `AttributeError` after C++ mutation | Cached Python object not invalidated | Call `mesh.invalidate()` or return new object |
+
+---
+
+## References
+
+- Galowicz, J. (2017). *C++17 STL Cookbook*. Packt (RAII and exception safety).
+- GDB Manual, §12: Debugging Programs with Multiple Threads. gnu.org/software/gdb.
+- pybind11 Documentation: Exception Handling. pybind11.readthedocs.io.
+- Python C API Reference: Memory Management. docs.python.org/3/c-api/memory.html.

@@ -1,115 +1,157 @@
-To differentiate between parts for an automated transformation pipeline, we move from "shape recognition" to **Manifold Classification and Topological Signature Analysis**. At a PhD level, this is the study of **Computational Topology** and **Spectral Geometry**.
+# Shape Classification for Geometric Transformation Method Selection
 
-Rather than using unreliable "name-based" checks, we use the intrinsic mathematical properties of the object to determine if it should be treated as a **Surface of Revolution** (Funnel) or a **Prismatic Shell** (Phone Case).
+Automated classification of 3D shapes into geometric categories (planar, cylindrical, spherical, toroidal, freeform) enables optimal texture mapping, UV parameterization, and surface processing algorithm selection — avoiding heuristic guessing through principled spectral and differential geometry analysis.
 
-## ---
+---
 
-**I. ACADEMIC FOUNDATIONS: SHAPE CLASSIFICATION**
+## I. Shape Taxonomy
 
-To master this, the researcher must study the relationship between **Betti Numbers** and **Global Curvature**.
+| Class | Gaussian curvature $K$ | Mean curvature $H$ | Examples |
+|-------|----------------------|--------------------|---------|
+| Planar | 0 | 0 | Flat faces, PCB boards |
+| Developable | 0 | $\neq 0$ | Cylinders, cones |
+| Spherical | $+K_0$ (const) | $H_0$ (const) | Spheres, hemispheres |
+| Toroidal | $K$ varies $\pm$ | Varies | Donuts, tubes |
+| Saddle/hyperbolic | $-K_0$ (const) | $\approx 0$ | Minimal surfaces |
+| Freeform | Irregular $K$ | Irregular $H$ | Organic shapes, phones |
+| Multi-genus | $K < 0$ regions + handles | — | High-genus solids |
 
-### **1\. Advanced Coursework**
+The Gauss-Bonnet theorem relates total curvature to topology:
 
-* [Stanford CS233: Geometric and Topological Data Analysis](https://www.google.com/search?q=https://geometry.stanford.edu/courses/cs233-20-spring/)  
-* [CMU 15-458: Discrete Differential Geometry](https://brickisland.net/DDGSpring2024/)  
-* [MIT 18.06: Linear Algebra & Shape Analysis](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/)
+$$\int_{\mathcal{S}} K \, dA = 2\pi \chi(\mathcal{S}) = 2\pi(2 - 2g)$$
 
-### **2\. Core Mathematical Concepts**
+where $\chi$ is the Euler characteristic and $g$ is the genus.
 
-* **Euler Characteristic ($\\chi$):** A topological invariant ($V \- E \+ F$). A phone case and a funnel may both have $\\chi=1$ (disk-like), but their **Curvature Distribution** differs.  
-* **Gaussian Curvature ($K$):** A funnel has high negative curvature ($K \< 0$) at the neck. A phone case has zero curvature ($K \= 0$) on the back and high positive curvature ($K \> 0$) at the corners.
+---
 
-## ---
+## II. Curvature Estimation from Meshes
 
-**II. THE DISPATCH LOGIC: SPECTRAL DIFFERENTIATION**
+### 2.1 Discrete Mean and Gaussian Curvature
 
-We use the **Laplace-Beltrami Spectrum** (Shape DNA) as a "Decision Tree" for our Python pipeline.
+For vertex $v_i$ with 1-ring neighborhood $\mathcal{N}(v_i)$:
 
-### **The "Classifier" Logic:**
+$$K(v_i) = \frac{2\pi - \sum_j \theta_j}{A_{mixed}}$$
 
-1. **Funnel (Revolutionary):** Characterized by high symmetry in its eigenvalues and a specific ratio of principal curvatures. It requires **Polar Parameterization**.  
-2. **Phone Case (Prismatic):** Characterized by a "Flat-Dominant" spectrum with high-frequency spikes at the fillets. It requires **Conformal LSCM Mapping**.
+$$H(v_i) = \frac{1}{4 A_{mixed}} \left\| \sum_{j \in \mathcal{N}} (\cot \alpha_j + \cot \beta_j)(v_j - v_i) \right\|$$
 
-## ---
+```python
+import numpy as np
+import trimesh
 
-**III. MASTER IMPLEMENTATION: THE POLYMORPHIC PIPELINE**
+def compute_curvatures(mesh: trimesh.Trimesh) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Estimate Gaussian and mean curvature at each vertex.
+    Returns: (K: (N,), H: (N,))
+    """
+    # Use trimesh's discrete curvature estimation
+    K = trimesh.curvature.discrete_gaussian_curvature_measure(
+        mesh, mesh.vertices, 0.01 * mesh.scale
+    ) / trimesh.curvature.sphere_ball_intersection(0.01 * mesh.scale)
+    H = trimesh.curvature.discrete_mean_curvature_measure(
+        mesh, mesh.vertices, 0.01 * mesh.scale
+    ) / trimesh.curvature.sphere_ball_intersection(0.01 * mesh.scale)
+    return K, H
+```
 
-This Python script uses **Structural Pattern Matching** and **Curvature Analysis** to choose the transformation method automatically.
+---
 
-Python
+## III. Feature Vector Construction
 
-import bpy  
-import numpy as np  
-from functools import singledispatch
+```python
+import numpy as np
+import trimesh
+from dataclasses import dataclass
+from enum import Enum, auto
 
-\# \--- ACADEMIC TRANSFORMATION MODULES \---
+class ShapeClass(Enum):
+    PLANAR = auto()
+    CYLINDRICAL = auto()
+    SPHERICAL = auto()
+    TOROIDAL = auto()
+    FREEFORM = auto()
 
-def apply\_polar\_transform(obj):  
-    """Transformation for Funnels/Bottles (Surfaces of Revolution)."""  
-    print(f"Executing Polar Parameterization for: {obj.name}")  
-    \# PhD Logic: Minimize distortion along the Z-axis (flow direction)  
-    bpy.ops.uv.cylinder\_project(direction='ALIGN\_TO\_OBJECT')
+@dataclass
+class ShapeFeatureVector:
+    mean_K: float          # Mean Gaussian curvature
+    std_K: float           # Std of Gaussian curvature
+    mean_H: float          # Mean mean curvature
+    std_H: float           # Std of mean curvature
+    K_positive_frac: float # Fraction with K > 0
+    K_negative_frac: float # Fraction with K < 0
+    K_near_zero_frac: float# Fraction |K| < threshold
+    euler_characteristic: int
+    pca_ratio_12: float    # PCA eigenvalue ratio λ1/λ2
+    pca_ratio_23: float    # PCA eigenvalue ratio λ2/λ3
 
-def apply\_prismatic\_transform(obj):  
-    """Transformation for Phone Cases (Xiaomi POCO X6 Pro style)."""  
-    print(f"Executing LSCM Conformal Wrap for: {obj.name}")  
-    \# PhD Logic: Minimize angular distortion (LSCM)  
-    bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.001)
+def extract_shape_features(mesh: trimesh.Trimesh) -> ShapeFeatureVector:
+    """Compute the shape feature vector from mesh geometry."""
+    K, H = compute_curvatures(mesh)
+    thresh = 0.01 * np.abs(K).mean()
 
-\# \--- THE CLASSIFIER DISPATCHER \---
+    # PCA on vertices
+    centered = mesh.vertices - mesh.vertices.mean(0)
+    eigvals = np.linalg.svd(centered, compute_uv=False)[:3]
 
-def classify\_and\_transform(obj):  
-    \# 1\. Calculate Mean Curvature (H)  
-    mesh \= obj.data  
-    total\_h \= sum(\[v.normal.z for v in mesh.vertices\]) \# Simplified heuristic  
-      
-    \# 2\. Extract Bounding Box Aspect Ratio  
-    dims \= obj.dimensions  
-    is\_tall \= dims.z \> dims.x and dims.z \> dims.y  
-      
-    \# 3\. Structural Pattern Matching (Python 3.10+)  
-    match (is\_tall, total\_h \> 10.0):  
-        case (True, \_):  
-            \# Tall objects with axial symmetry are treated as Funnels  
-            return apply\_polar\_transform(obj)  
-        case (False, True):  
-            \# Flat objects with boundary curvature are treated as Cases  
-            return apply\_prismatic\_transform(obj)  
-        case \_:  
-            raise ValueError("Part Topology is Undefined for this Pipeline")
+    return ShapeFeatureVector(
+        mean_K=float(K.mean()),
+        std_K=float(K.std()),
+        mean_H=float(H.mean()),
+        std_H=float(H.std()),
+        K_positive_frac=float((K > thresh).mean()),
+        K_negative_frac=float((K < -thresh).mean()),
+        K_near_zero_frac=float((np.abs(K) <= thresh).mean()),
+        euler_characteristic=int(mesh.euler_number),
+        pca_ratio_12=float(eigvals[0] / max(eigvals[1], 1e-10)),
+        pca_ratio_23=float(eigvals[1] / max(eigvals[2], 1e-10)),
+    )
+```
 
-\# execute: classify\_and\_transform(bpy.context.active\_object)
+---
 
-## ---
+## IV. Classification Logic
 
-**IV. DATA PIPELINE DISSERTATION: METAPROGRAMMING**
+```python
+def classify_shape(fv: ShapeFeatureVector) -> ShapeClass:
+    """
+    Rule-based shape classifier using curvature statistics.
+    Handles genus-0 shapes; multi-genus needs topological extension.
+    """
+    # Mostly flat
+    if fv.K_near_zero_frac > 0.80 and fv.std_H < 0.05:
+        return ShapeClass.PLANAR
 
-When you scale this to 1,000 different CAD parts, you use **Decorators** to register new "Heuristics" without modifying the core engine. This is the **Strategy Pattern** applied to Computational Metrology.
+    # Developable: K~0, H varies (cylinders, cones)
+    if fv.K_near_zero_frac > 0.65 and fv.std_H > 0.05:
+        return ShapeClass.CYLINDRICAL
 
-### **Recommended Research Papers:**
+    # Spherical: K > 0 everywhere, H nearly constant
+    if fv.K_positive_frac > 0.85 and fv.std_K < 0.15 * abs(fv.mean_K):
+        return ShapeClass.SPHERICAL
 
-* [Wadler (1998): The Expression Problem](https://homepages.inf.ed.ac.uk/wadler/papers/expression/expression.txt)  
-* [Reuter (2006): Laplace-Beltrami Spectra for Shape Recognition](https://www.google.com/search?q=https://reuter.mit.edu/papers/reuter-sig06.pdf)  
-* [Kazhdan (2003): Rotation Invariant Spherical Harmonic Shape Descriptors](https://www.cs.jhu.edu/~misha/MyPapers/SGP03.pdf)
+    # Toroidal: mixed positive/negative K
+    if 0.3 < fv.K_positive_frac < 0.7 and fv.K_negative_frac > 0.2:
+        return ShapeClass.TOROIDAL
 
-## ---
+    return ShapeClass.FREEFORM
+```
 
-**V. COMPLETE BIBLIOGRAPHY (THE CLASSIFICATION REPOSITORY)**
+---
 
-| Pillar | Essential Reading | Concept |
-| :---- | :---- | :---- |
-| **Topology** | [Computational Topology (Edelsbrunner)](https://www.cs.duke.edu/courses/fall06/cps296.1/) | Betti numbers and persistence |
-| **Geometry** | [Geometric Modeling (ETH Zurich)](https://www.google.com/search?q=https://geometricmodeling.unige.ch/Courses/GeometryProcessing) | Curvature-based segmentation |
-| **Design** | [Refactoring to Patterns (Kerievsky)](https://www.industriallogic.com/xp/refactoring/) | Implementing the Strategy Pattern |
-| **Dispatch** | [PEP 443: Single-dispatch](https://peps.python.org/pep-0443/) | Decoupling logic from data structures |
+## V. Transformation Method Selection
 
-### ---
+| Shape Class | UV Param | Texture wrap | Distance metric |
+|-------------|----------|-------------|----------------|
+| PLANAR | Orthographic | Direct planar | L2 Euclidean |
+| CYLINDRICAL | Cylindrical unwrap | Seam at ruled edge | Geodesic cylinder |
+| SPHERICAL | Spherical (equirectangular or octahedral) | Pole correction | Geodesic sphere |
+| TOROIDAL | Toroidal coords $(u, v)$ | Dual seams | Torus geodesic |
+| FREEFORM | Harmonic maps / ABF++ | LSCM / ARAP | Computing geodesic |
 
-**Final Workflow Summary**
+---
 
-1. **Analyze**: Calculate the Gaussian Curvature ($K$) and Aspect Ratio.  
-2. **Classify**: Assign the part to a "Revolutionary" or "Prismatic" class.  
-3. **Transform**: Apply the specific mapping (Polar vs. Conformal).  
-4. **Verify**: Extract the Shape DNA to ensure the classification survived the G-Code generation.
+## References
 
-**Would you like me to generate a "Spectral Plotter" script that creates a visual graph of these eigenvalues to help you visually confirm why the computer chose "Funnel" over "Phone Case"?**
+- Rusinkiewicz, S. (2004). Estimating curvatures and their derivatives. *3DPVT*, 486-493.
+- Sheffer, A. et al. (2006). Mesh parameterization methods and their applications. *FTiCG*, 2(2).
+- Kazhdan, M. et al. (2003). Rotation invariant spherical harmonic representation. *SGP*.
+- Botsch, M. et al. (2010). *Polygon Mesh Processing*. AK Peters.

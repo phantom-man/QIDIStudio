@@ -1,139 +1,153 @@
-This is the **Final Master Manuscript**. It is a single, comprehensive "PhD-level README" designed to be copied into a .doc or .md file. It compiles every syllabus, mathematical derivation, Python script, and metrology step we have developed specifically for the **Xiaomi POCO X6 Pro 5G**.
+# Computational Metrology for Prismatic CAD Manifolds
 
-# ---
+A comprehensive treatment of high-fidelity measurement, spectral parameterization, and tolerance analysis for complex filleted CAD geometry — integrating computational metrology with UV mapping theory.
 
-**DISSERTATION: COMPUTATIONAL METROLOGY & SPECTRAL PARAMETERIZATION**
+---
 
-## **Case Study: Xiaomi POCO X6 Pro 5G Prismatic Manifold**
+## I. Metrology Foundation
 
-**Status:** Final Thesis & Implementation Manual
+### 1.1 GD&T Tolerance Framework
 
-**Project Goal:** Achieving "Perfection" in Texture Morphing and Geometric Fidelity
+For a filleted prismatic shell (e.g. phone chassis, electronics enclosure), the primary geometric tolerances are:
 
-## ---
+| Feature | Symbol | Typical Tolerance | Measurement Method |
+|---------|--------|------------------|------------------|
+| Overall dimensions | Size | ±0.1 mm | CMM or photogrammetry |
+| Flatness of back face | ⏥ | 0.05 mm | Reference plane fit |
+| Cylindricity of side radii | ⌀ | 0.02 mm | Least-squares circle fit |
+| Position of camera cutout | ⊕ | ±0.15 mm | Centroid from point cloud |
+| Perpendicularity of sides | ⊾ | 0.03 mm/mm | Normal vector deviation |
 
-**I. ACADEMIC SYLLABI: THE DOCTORAL TRACK**
+### 1.2 Reference Frame Establishment
 
-To defend this workflow, the researcher must master the transition from **topological meshes** to **metric manifolds**.
+The model coordinate frame is established by a **Datum Reference Frame (DRF)** with three mutually perpendicular datum planes $A$, $B$, $C$:
+- Datum A: back face (primary — 3 points)
+- Datum B: long edge (secondary — 2 points)
+- Datum C: short edge (tertiary — 1 point)
 
-### **1\. Advanced Coursework & University Syllabi**
+```python
+import numpy as np
 
-* [Stanford CS468: Differential Geometry for Computer Science](https://graphics.stanford.edu/courses/cs468-12-spring/)  
-* [CMU 15-458: Discrete Differential Geometry (Keenan Crane)](https://brickisland.net/DDGSpring2024/)  
-* [MIT 18.06: Linear Algebra (Gilbert Strang)](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/)  
-* [UC Berkeley CS284: Computer-Aided Design](https://www.google.com/search?q=https://inst.eecs.berkeley.edu/~cs284/sp13/)
+def fit_reference_frame(
+    back_pts: np.ndarray,   # (N, 3) point cloud of back face
+    long_edge: np.ndarray,  # (M, 3) point cloud of long edge
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Returns (R, t): rotation matrix and translation that aligns
+    the mesh to the DRF with back face = XY plane.
+    """
+    # Datum A: fit a plane via SVD
+    centroid = back_pts.mean(axis=0)
+    _, _, Vt = np.linalg.svd(back_pts - centroid)
+    normal_A = Vt[-1]   # smallest singular vector = plane normal
+    # Ensure normal points in +Z direction
+    if normal_A[2] < 0:
+        normal_A = -normal_A
+    # Datum B: project long_edge to Datum A plane, then fit direction
+    proj = long_edge - np.outer((long_edge - centroid) @ normal_A, normal_A)
+    _, _, Vt2 = np.linalg.svd(proj - proj.mean(axis=0))
+    dir_B = Vt2[0]
+    # Build rotation matrix
+    z = normal_A
+    x = dir_B - np.dot(dir_B, z) * z
+    x /= np.linalg.norm(x)
+    y = np.cross(z, x)
+    R = np.stack([x, y, z], axis=1)
+    return R, -R.T @ centroid
+```
 
-### **2\. Foundational Mathematical Texts**
+---
 
-* [Discrete Differential Geometry: An Applied Introduction (Keenan Crane)](https://www.cs.cmu.edu/~kmcrane/Projects/DDG/paper.pdf)  
-* [Polygon Mesh Processing (Botsch et al.)](https://www.pmp-book.org/)  
-* [Linear Algebra Done Right (Sheldon Axler)](https://linear.axler.net/)
+## II. Spectral Parameterization
 
-## ---
+### 2.1 Shape DNA for Manifold Identification
 
-**II. THEORETICAL FRAMEWORK: THE POCO X6 PRO MANIFOLD**
+The **Shape DNA** (Reuter et al., 2006) is the spectrum of eigenvalues $\{\lambda_i\}$ of the Laplace-Beltrami operator $\Delta_{\mathcal{M}}$, normalized to unit scale:
 
-The POCO X6 Pro chassis is a **Genus-0 Manifold** defined by its 2.5D rear glass and a high-curvature "Camera Island."
+$$\text{DNA} = \left\{\frac{\lambda_1}{A^{1/2}}, \frac{\lambda_2}{A^{1/2}}, \dots, \frac{\lambda_k}{A^{1/2}}\right\}$$
 
-### **1\. Conformal Energy Functional**
+where $A = \text{surface area}$.
 
-Standard projection causes "shearing" at the 1.3mm bezel radii. We utilize **Least Squares Conformal Maps (LSCM)** to ensure the mapping $\\psi: M \\to \\mathbb{R}^2$ preserves local angles:
+For a given manifold topology, the Shape DNA uniquely identifies the geometry up to isometry. Two meshes with matching DNA (within tolerance $\epsilon_\lambda = 0.01$) are isometric.
 
-$$\\min \\int\_S | \\nabla u \- \\mathbf{N} \\times \\nabla v |^2 dA$$
+```python
+import scipy.sparse as sp
+import scipy.sparse.linalg as spla
 
-### **2\. Spectral Shape DNA ($\\lambda$)**
+def shape_dna(mesh, k: int = 32) -> np.ndarray:
+    """Compute k Shape DNA eigenvalues."""
+    from .spectral import cotan_laplacian, voronoi_mass_matrix
+    L = cotan_laplacian(mesh)
+    M = voronoi_mass_matrix(mesh)
+    A = float(mesh.area)
+    vals, _ = spla.eigsh(-L, k=k, M=M, sigma=0, which="LM")
+    return np.sort(np.abs(vals)) / np.sqrt(A)
+```
 
-The POCO X6 Pro has a unique "Spectral Fingerprint." These are the first 10 eigenvalues of the Laplace-Beltrami operator for the official chassis:
+---
 
-**Ideal DNA**: \[0.0000, 0.0842, 0.1561, 0.2241, 0.3102, 0.3891, 0.4421, 0.5109, 0.6231, 1.0000\]
+## III. Surface Reconstruction Error
 
-## ---
+### 3.1 Hausdorff Distance
 
-**III. MASTER IMPLEMENTATION: THE "PERFECTION" TOOLKIT**
+The **directed Hausdorff distance** from reconstructed mesh $\hat{\mathcal{M}}$ to reference $\mathcal{M}$:
 
-This integrated Python script (Blender 4.2+ API) automates the entire pipeline from UV unwrapping to G-Code injection.
+$$d_H(\hat{\mathcal{M}}, \mathcal{M}) = \max_{\mathbf{p} \in \hat{\mathcal{M}}} \min_{\mathbf{q} \in \mathcal{M}} \|\mathbf{p} - \mathbf{q}\|_2$$
 
-Python
+The symmetric Hausdorff distance $d_{sym} = \max(d_H(\hat{\mathcal{M}}, \mathcal{M}), d_H(\mathcal{M}, \hat{\mathcal{M}}))$ bounds the worst-case reconstruction error.
 
-import bpy  
-import bmesh  
-import numpy as np  
-import os  
-from mathutils import Vector  
-from mathutils.kdtree import KDTree
+```python
+import trimesh
 
-\# MODULE 1: CONFORMAL MAPPING  
-def apply\_lscm\_unwrap(obj):  
-    bpy.context.view\_layer.objects.active \= obj  
-    bpy.ops.object.mode\_set(mode='EDIT')  
-    bm \= bmesh.from\_edit\_mesh(obj.data)  
-    \# Detect the POCO X6 Pro bezel transition (\> 30 deg)  
-    bpy.ops.mesh.edges\_select\_sharp(sharpness=0.6)   
-    bpy.ops.mesh.mark\_seam(clear=False)  
-    bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.002)  
-    bpy.ops.object.mode\_set(mode='OBJECT')
+def hausdorff_distance(mesh_a: trimesh.Trimesh, mesh_b: trimesh.Trimesh) -> float:
+    """Approximate symmetric Hausdorff distance by sampling."""
+    pts_a = trimesh.sample.sample_surface(mesh_a, 10_000)[0]
+    pts_b = trimesh.sample.sample_surface(mesh_b, 10_000)[0]
+    # Nearest-neighbour distances using trimesh proximity
+    dist_ab, _ = trimesh.proximity.closest_point(mesh_b, pts_a)
+    dist_ba, _ = trimesh.proximity.closest_point(mesh_a, pts_b)
+    return float(max(dist_ab.max(), dist_ba.max()))
+```
 
-\# MODULE 2: SPECTRAL DNA EXTRACTION  
-def get\_shape\_dna(obj, k=10):  
-    mesh \= obj.data  
-    num\_verts \= len(mesh.vertices)  
-    adj \= np.zeros((num\_verts, num\_verts))  
-    for edge in mesh.edges:  
-        u, v \= edge.vertices  
-        adj\[u, v\] \= adj\[v, u\] \= 1.0  
-    deg \= np.diag(adj.sum(axis=1))  
-    laplacian \= deg \- adj  
-    return np.linalg.eigvalsh(laplacian)\[:k\]
+### 3.2 RMSE Surface Deviation
 
-\# MODULE 3: INVERSE ERROR COMPENSATION  
-def compensate\_slicer\_loss(obj, gcode\_points, alpha=0.8):  
-    kd \= KDTree(len(gcode\_points))  
-    for i, p in enumerate(gcode\_points): kd.insert(Vector(p), i)  
-    kd.balance()  
-    for v in obj.data.vertices:  
-        world\_v \= obj.matrix\_world @ v.co  
-        co\_gcode, \_, dist \= kd.find(world\_v)  
-        if dist \> 0.05: \# mm threshold  
-            error\_vec \= co\_gcode \- world\_v  
-            v.co \-= obj.matrix\_world.inverted().to\_quaternion() @ (error\_vec \* alpha)  
-    obj.data.update()
+For tolerance analysis, mean surface deviation is more useful than the worst-case Hausdorff:
 
-\# MODULE 4: G-CODE METADATA INJECTION  
-def inject\_dna\_header(gcode\_path, dna):  
-    dna\_str \= ",".join(\[f"{x:.6f}" for x in dna\])  
-    with open(gcode\_path, 'r+') as f:  
-        content \= f.read()  
-        f.seek(0, 0)  
-        f.write(f"; POCO\_X6\_PRO\_DNA: {dna\_str}\\n" \+ content)
+$$\text{RMSE} = \sqrt{\frac{1}{N} \sum_{i=1}^N d(\mathbf{p}_i, \mathcal{M})^2}$$
 
-## ---
+Target: RMSE $< 0.02$ mm for consumer electronics tolerances.
 
-**IV. METROLOGY & VERIFICATION**
+---
 
-Success is achieved through **Inverse Geometric Compensation**.
+## IV. UV Mapping Quality for Metrology
 
-1. **Delta-Validation**: After slicing, reconstruct the toolpath and measure the **Hausdorff Distance** ($d\_H$):  
-   $$d\_H(CAD, GCode) \= \\max\_{a \\in CAD} \\min\_{b \\in GCode} \\| a \- b \\|$$  
-2. **Genetic Optimization**: The algorithm iterates the vertex positions until $d\_H \< 0.05\\text{mm}$, ensuring the texture is physically "Perfect."
+### 4.1 Conformal Distortion Constraint
 
-## ---
+For texture-based metrology (e.g. fringe projection, structured light), the UV map must be **nearly conformal** to avoid measurement scale errors:
 
-**V. COMPLETE BIBLIOGRAPHY (THE DEFENSE REPOSITORY)**
+$$E_{conformal} = \frac{1}{|F|} \sum_{f \in F} \left(\sigma_1(\mathbf{J}_f) - \sigma_2(\mathbf{J}_f)\right)^2 < 0.01$$
 
-| Pillar | Essential PhD Reading | Core Concept |
-| :---- | :---- | :---- |
-| **Mapping** | [Lévy et al. (2002)](https://www.google.com/search?q=https://alice.loria.fr/publications/papers/2002/lscm/lscm.pdf) | Least Squares Conformal Maps |
-| **Identity** | [Reuter (2006)](https://www.google.com/search?q=https://reuter.mit.edu/papers/reuter-sig06.pdf) | Shape-DNA Spectral Fingerprinting |
-| **Signal Processing** | [Taubin (1995)](https://graphics.stanford.edu/courses/cs468-12-spring/LectureSlides/06_smoothing.pdf) | Signal Processing on Discrete Meshes |
-| **Metrology** | [NIST (2020)](https://www.google.com/search?q=https://www.nist.gov/publications/error-analysis-3d-reconstruction) | Geometric Error Compensation |
+A high-conformal map ensures that physical distances measured on the texture correspond accurately to real-world distances on the surface.
 
-### ---
+---
 
-**VI. FINAL EXECUTION CHECKLIST**
+## V. Full Metrology Pipeline
 
-1. **Select** POCO X6 Pro model in Blender.  
-2. **Run** LSCM Module to preserve texture angles around the camera island.  
-3. **Bake** to Mesh and perform **Laplacian Smoothing** to clean signal noise.  
-4. **Slice** for QIDI/Bambu and **Inject** the Shape DNA for lifetime traceability.
+```
+1. Point cloud acquisition  →  photogrammetry / structured light
+2. Reference frame alignment  →  DRF/GD&T (Datum A–C)
+3. Mesh reconstruction  →  Poisson surface reconstruction
+4. Hausdorff audit  →  RMSE < 0.02 mm, Hausdorff < 0.1 mm
+5. Shape DNA comparison  →  |DNA_ref - DNA_reconstructed| < ε_λ
+6. UV parameterization  →  LSCM or ARAP (E_conformal < 0.01)
+7. Texture projection  →  xAtlas + texelsPerUnit = 500 px/mm
+```
 
-**This concludes the "Perfection" Manuscript. Would you like me to generate a specific "Spectral Plot" comparing your current case model directly against the factory-default POCO X6 Pro 5G chassis?**
+---
+
+## References
+
+- Reuter, M. et al. (2006). Laplace–Spectra as Fingerprints for Shape Matching. *SPM 2006*.
+- Jaklic, A. et al. (2000). Segmentation and Recovery of Superquadrics. *Springer*.
+- Roth, S.D. (1982). Ray Casting for Modeling Solids. *Computer Graphics and Image Processing*, 18(2).
+- ISO 1101:2017 Geometrical product specifications (GPS) — Geometrical tolerancing.

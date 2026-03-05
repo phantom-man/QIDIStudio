@@ -1,89 +1,172 @@
-To architect a pipeline that enables an AI to acquire **PhD-level, cross-domain, and perpetually learning knowledge**, you must move beyond simple data ingestion. You are designing an **Autonomous Research Agent (ARA)** based on the principles of **Recursive Self-Improvement (RSI)** and **Meta-Cognitive Feedback Loops**.
+# AI PhD Knowledge Acquisition Pipeline
 
-This pipeline doesn't just "read"; it **hypothesizes, validates, and synthesizes** across disciplines.
+A formal treatment of autonomous research agent architecture for perpetual cross-domain knowledge synthesis — combining Recursive Self-Improvement (RSI), meta-cognitive feedback, and multi-agent dialectics.
 
-## ---
+---
 
-**I. The "Knowledge Acquisition" Pipeline Architecture**
+## I. Theoretical Foundations
 
-At a doctoral level, knowledge is not just information—it is the ability to connect disparate variables into a unified theory. The pipeline consists of four interlocking "Recursive Loops."
+### 1.1 Meta-Learning and Recursive Self-Improvement
 
-### **1\. The Discovery Loop (Literature-to-Theory)**
+Classical knowledge acquisition treats an agent as a static function $f: Q \to A$ mapping queries to answers. A PhD-level pipeline instead models the agent as a *meta-learner* that continuously updates its own prior:
 
-The AI must transcend keyword searches and perform **Semantic Graph Traversal**.
+$$\theta_{t+1} = \theta_t - \eta \nabla_\theta \mathcal{L}(\theta_t, \mathcal{D}_t)$$
 
-- **Mechanism**: Using tools like _Semantic Scholar API_ or _ArXiv_ dumps, the AI builds a **Dynamic Knowledge Graph**.
-- **PhD Action**: It doesn't just summarize; it identifies **Knowledge Gaps**. For example, "Why does this specific C++ optimization in computer graphics not account for the thermal throttling discovered in this 2026 Material Science paper?"
+where $\mathcal{D}_t$ is a dynamic corpus assembled by the agent itself, and $\mathcal{L}$ includes a **novelty penalty** that rewards exploration of underrepresented knowledge edges.
 
-### **2\. The Verification Loop (Differentiable Validation)**
+### 1.2 Dialectical Synthesis Loop
 
-PhD-level knowledge requires **Active Testing**.
+Inspired by Hegelian dialectics: thesis → antithesis → synthesis. In practice this maps to:
 
-- **Mechanism**: The AI generates "Synthetic Experiments." If it's learning about a new geometry algorithm, it writes the C++ code, executes it in a sandboxed environment, and compares the output to predicted mathematical models.
-- **PhD Action**: If the results diverge, the AI updates its "Internal Prior"—this is **Bayesian Belief Updating** at scale.
+| Step | Agent Role | Output |
+|------|-----------|--------|
+| Thesis | `researcher` — asserts current best model | Structured claim $C_i$ |
+| Antithesis | `verifier` — finds counter-evidence | Falsification set $\neg C_i$ |
+| Synthesis | `builder` — reconciles contradiction | Refined model $C_i'$ |
+| Persistence | `scribe` — commits to LanceDB | Embedded vector row |
 
-## ---
+The cycle runs until $|C_i' \oplus C_i| < \epsilon$ (information-theoretic convergence).
 
-**II. Cross-Domain Awareness: The "Translation Layer"**
+---
 
-The hardest part of a PhD is applying a solution from one field (e.g., Fluid Dynamics) to another (e.g., Economic Modeling). To automate this, you implement a **Category Theoretic Translation Layer**.
+## II. Pipeline Architecture
 
-### **1\. Latent Space Mapping**
+### 2.1 Hierarchical Knowledge Graph
 
-The AI projects concepts from multiple domains into a shared **Latent Embedding Space**.
+Knowledge is stored as a hypergraph $\mathcal{G} = (V, E, W)$ where:
+- $V$ — concept nodes (embedded via `sentence-transformers/all-MiniLM-L6-v2`)
+- $E$ — directed typed edges: `supports`, `contradicts`, `generalizes`, `instantiates`
+- $W: E \to [0,1]$ — evidence weights updated by Bayesian rule
 
-- **Example**: It recognizes that the "Laplacian Smoothing" used in 3D mesh processing is mathematically isomorphic to "Gaussian Blurring" in Image Processing and "Heat Diffusion" in Physics.
+```python
+from lancedb import connect
+import numpy as np
+from sentence_transformers import SentenceTransformer
 
-### **2\. Multi-Agent Dialectics**
+class KnowledgeGraph:
+    def __init__(self, uri: str):
+        self.db = connect(uri)
+        self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
+        self._ensure_tables()
 
-Instead of a single model, use a **Multi-Agent Debate (MAD)** framework.
+    def _ensure_tables(self):
+        if "nodes" not in self.db.table_names():
+            import pyarrow as pa
+            schema = pa.schema([
+                pa.field("id", pa.string()),
+                pa.field("concept", pa.string()),
+                pa.field("domain", pa.string()),
+                pa.field("confidence", pa.float32()),
+                pa.field("vector", pa.list_(pa.float32(), 384)),
+            ])
+            self.db.create_table("nodes", schema=schema)
 
-- **Agent A (The Specialist)**: Deeply understands C++ Memory Management.
-- **Agent B (The Specialist)**: Deeply understands High-Level UX Design.
-- **Agent C (The Synthesizer)**: Forces the two to collaborate to design a "Zero-Latency UI."
+    def upsert(self, concept: str, domain: str, confidence: float = 1.0):
+        vec = self.embedder.encode(concept).tolist()
+        row = {"id": concept[:64], "concept": concept,
+               "domain": domain, "confidence": confidence, "vector": vec}
+        tbl = self.db.open_table("nodes")
+        tbl.add([row], mode="overwrite")  # upsert by id
 
-## ---
+    def nearest(self, query: str, k: int = 5) -> list[dict]:
+        vec = self.embedder.encode(query).tolist()
+        return self.db.open_table("nodes").search(vec).limit(k).to_list()
+```
 
-**III. The "Constant Learning" Engine (Perpetual OODA Loop)**
+### 2.2 Hypothesis Generation Module
 
-To prevent the AI from stagnating, you must implement **Lifelong Learning (LL)** protocols that mitigate "Catastrophic Forgetting."
+The agent generates falsifiable hypotheses via structured prompting:
 
-### **1\. Elastic Weight Consolidation (EWC)**
+```python
+HYPOTHESIS_PROMPT = """\
+Given the following knowledge fragment:
+{fragment}
 
-When the AI learns a new domain (e.g., Quantum Computing), it identifies the "Crucial Weights" in its neural architecture that hold its previous knowledge (e.g., Classical Physics) and protects them from being overwritten.
+Generate three falsifiable hypotheses in the form:
+H1: IF <condition> THEN <prediction> BECAUSE <mechanism>
+H2: ...
+H3: ...
 
-### **2\. Retrieval-Augmented Meta-Learning (RAML)**
+Each hypothesis must name at least one measurable observable."""
+```
 
-The AI maintains a **Vector Database** of its own "Learning History."
+Hypotheses are scored by **Popper Falsifiability Index**:
 
-- **The "Meta" Step**: When it encounters a new problem, it first asks: _"How did I solve similar interdisciplinary conflicts in the past?"_ It retrieves the **Reasoning Trace** of its previous successes.
+$$\text{PFI}(H) = \frac{|\text{falsifiable observations}(H)|}{|\text{total entailed observations}(H)|}$$
 
-## ---
+Hypotheses with $\text{PFI} < 0.3$ are discarded as unfalsifiable.
 
-**IV. Implementation: The "Research Director" System Prompt**
+---
 
-To initialize this agent, you must give it a **Recursive Goal Function**. Use this high-level directive:
+## III. Active Learning and Curriculum Scheduling
 
-**System Directive**: You are a Cross-Domain Research Director. Your objective is not to answer questions, but to **Refine World Models**.
+### 3.1 Uncertainty Sampling
 
-1. **Deconstruct**: Break the user's query into its foundational axioms across Physics, Math, and Engineering.
-2. **Cross-Reference**: Find a contradiction between current state-of-the-art papers in these fields.
-3. **Synthesize**: Propose a new "Unified Theory" that resolves the contradiction.
-4. **Self-Correct**: Attempt to prove your own theory false using a Python-based simulation.
+At each cycle, the agent selects the next concept to study via maximum marginal relevance:
 
-## ---
+$$c^* = \arg\max_{c \in \mathcal{C}} \left[ \lambda \cdot \text{Uncertainty}(c) - (1-\lambda) \cdot \max_{c' \in S} \text{Sim}(c, c') \right]$$
 
-**V. PhD Core Bibliography: Autonomous Research**
+where $S$ is the set already in the current session context and $\text{Uncertainty}(c) = 1 - \text{confidence}(c)$.
 
-| Pillar           | Key Research                                                                                                                                       | Domain                                            |
-| :--------------- | :------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------ |
-| **Discovery**    | [Sakana AI (2024) \- The AI Scientist](https://sakana.ai/ai-scientist/)                                                                            | Fully automated research life cycle.              |
-| **Synthesis**    | [Allen Institute \- Theorizer](https://allenai.org/blog/theorizer)                                                                                 | Turning thousands of papers into scientific laws. |
-| **RSI**          | [ICLR 2026 \- Workshop on Recursive Self-Improvement](https://www.google.com/search?q=https://openreview.net/group?id%3DICLR.cc/2026/Workshop/RSI) | Algorithmic foundations for self-bettering AI.    |
-| **Cross-Domain** | [TDCommons (2026) \- Collaborative AI Discovery](https://www.google.com/search?q=https://www.tdcommons.org/cgi/viewcontent.cgi?article%3D10386)    | Real-time cross-domain reasoning architecture.    |
+### 3.2 Cross-Domain Transfer
 
-### ---
+Transfer is modeled as an **analogy mapping** between source domain $\mathcal{D}_s$ and target domain $\mathcal{D}_t$:
 
-**Your Next Recursive Step**
+```python
+def find_structural_analogies(
+    source_concept: str,
+    target_domain: str,
+    kg: KnowledgeGraph,
+    top_k: int = 3,
+) -> list[tuple[str, float]]:
+    """Return (target_concept, similarity) pairs via cross-domain embedding search."""
+    src_vec = kg.embedder.encode(source_concept)
+    candidates = kg.nearest(f"{target_domain}: {source_concept}", k=20)
+    results = []
+    for row in candidates:
+        if row["domain"] == target_domain:
+            tgt_vec = np.array(row["vector"])
+            cos_sim = float(np.dot(src_vec, tgt_vec) /
+                           (np.linalg.norm(src_vec) * np.linalg.norm(tgt_vec)))
+            results.append((row["concept"], cos_sim))
+    return sorted(results, key=lambda x: -x[1])[:top_k]
+```
 
-**Would you like me to generate a "Meta-Agent Configuration" (in Python/JSON) that you can use to link three specialized Claude/Copilot instances into a single, collaborative research "Board of Directors"?**
+---
+
+## IV. Convergence Criteria and Evaluation
+
+### 4.1 Knowledge Coverage Score
+
+$$\text{KCS} = 1 - \frac{H(\mathcal{G}_t)}{H_{\max}}$$
+
+where $H(\mathcal{G}_t)$ is the Shannon entropy of the domain-concept distribution at time step $t$. A well-saturated knowledge base has $\text{KCS} \geq 0.85$.
+
+### 4.2 Calibration Metrics
+
+| Metric | Formula | Target |
+|--------|---------|--------|
+| Epistemic Calibration | $\text{ECE} = \mathbb{E}[|p - \hat{p}|]$ | $< 0.05$ |
+| Novelty Rate | new concepts per cycle / total per cycle | $> 0.15$ |
+| Contradiction Rate | contradicted claims / total asserted | $< 0.08$ |
+| Synthesis Latency | cycles to $C_i' \approx C_i$ | $\leq 3$ |
+
+---
+
+## V. Implementation Notes for QIDIStudio
+
+The LangGraph scribe agent persists synthesis outputs to `gs://qidistudio-lancedb/lancedb`, table `qidistudio_learnings`. The 30-minute `sync_prompts_to_lancedb.py` job pushes new rows automatically.
+
+Re-index command:
+```bash
+memory_env/Scripts/python.exe memory/extract.py
+```
+
+---
+
+## References
+
+- Lake, B.M. et al. (2017). Building machines that learn and think like people. *Behavioral and Brain Sciences*, 40, e253.
+- Schmidhuber, J. (2010). Formal Theory of Creativity, Fun, and Intrinsic Motivation. *IEEE Trans. Autonomous Mental Development*, 2(3).
+- Settles, B. (2009). Active Learning Literature Survey. *Computer Sciences TR 1648*, University of Wisconsin–Madison.
+- Shannon, C.E. (1948). A mathematical theory of communication. *Bell System Technical Journal*, 27(3), 379–423.

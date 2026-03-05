@@ -1,63 +1,147 @@
-This synthesis marks the transition from a technical project to a formal contribution to the field of **Computer Vision and Inverse Graphics**. Below is the structured outline for a PhD-level Technical Whitepaper, integrating our work on the POCO X6 Pro's non-Euclidean geometry and the differentiable rendering pipeline.
+# Inverse Graphics: A Differentiable Framework for Geometry Recovery
 
-## ---
+A rigorous whitepaper on inverse graphics — recovering 3D geometry, material properties, and lighting from 2D observations — via differentiable rendering, gradient-based optimization, and physics-informed priors.
 
-**Title: _Manifold-Aware Inverse Rendering: A Differentiable Framework for High-Fidelity 3D Reconstruction of Complex Consumer Electronics_**
+---
 
-### **1\. Abstract**
+## I. Problem Formulation
 
-This paper presents a novel pipeline for the digital twin synchronization of the Xiaomi POCO X6 Pro. By leveraging **Projective Jacobians** and **Material Sensitivity Analysis**, we move beyond traditional photogrammetry. We introduce a **Spectral Entropy-based Aesthetic Filter** to quantify the "beauty" of generated textures and use a **Differentiable Rendering Engine** to minimize the residual error between synthetic 3D manifolds and real-world radiometric data. Our results demonstrate a **12% increase in geometric fidelity** over standard industry baselines.
+Inverse graphics seeks to invert the rendering function $\mathcal{R}$:
 
-### ---
+$$\mathbf{I} = \mathcal{R}(\mathcal{M}, \boldsymbol{\Phi}, \mathbf{L}, \mathbf{P})$$
 
-**2\. Introduction: The Problem of "Uncanny" Geometry**
+where $\mathbf{I}$ is the observed image, $\mathcal{M}$ is the geometry (mesh or SDF), $\boldsymbol{\Phi}$ are material parameters (BRDF), $\mathbf{L}$ is the lighting environment, and $\mathbf{P}$ are camera parameters.
 
-- **The Baseline:** Current 3D representations of hardware often suffer from "Metric Drift" and "Albedo Hallucination."
-- **The Thesis:** Accurate representation requires a **Joint Optimization** of the Geometric Jacobian ($\\mathbf{J}\_G$) and the Material Jacobian ($\\mathbf{J}\_M$).
+The inverse problem: given $\{\mathbf{I}_k\}_{k=1}^N$ from $N$ views, recover $(\mathcal{M}, \boldsymbol{\Phi}, \mathbf{L})$ by minimizing:
 
-### ---
+$$\mathcal{L}_{total} = \underbrace{\sum_{k=1}^N \|\mathcal{R}(\mathcal{M}, \boldsymbol{\Phi}, \mathbf{L}, \mathbf{P}_k) - \mathbf{I}_k\|_1}_{\text{photometric loss}} + \lambda_g \underbrace{\mathcal{L}_{geometry}}_{\text{regularization}} + \lambda_s \underbrace{\mathcal{L}_{smooth}}_{\text{smoothness}}$$
 
-**3\. Methodology: The Differentiable Loop**
+---
 
-#### **3.1. Geometric Manifold Projection**
+## II. Differentiable Rendering
 
-Deconstruction of the 2-Manifold mesh using **Laplacian coordinates**. We define the transformation $\\pi: \\mathbb{R}^3 \\to \\mathbb{R}^2$ and derive the 2x3 Jacobian to ensure sub-pixel alignment.
+### 2.1 Rasterization Gradient via SoftRas
 
-#### **3.2. Photometric Sensitivity (The Material Jacobian)**
+Classical rasterization is not differentiable due to hard triangle boundaries. SoftRasterizer (Liu et al., 2019) replaces the indicator function with a smooth sigmoid:
 
-Implementation of a **Microfacet BRDF** (GGX Distribution). We prove that the gradient of the pixel intensity with respect to the surface normal $\\nabla\_\\mathbf{n} L$ is the primary driver for recovering high-frequency details like the POCO's speaker grille and camera housing.
+$$D(q, f_j) = \text{sigmoid}\left(\frac{d(q, f_j)}{\sigma}\right)$$
 
-#### **3.3. Aesthetic Optimization (Symmetry & Entropy)**
+where $d(q, f_j)$ is the signed distance from pixel $q$ to triangle edge $f_j$ and $\sigma$ controls sharpness.
 
-A formal proof defining "Beauty" in hardware design as the **Optimization of Perceptual Fluency**. We use Fast Fourier Transforms (FFT) to calculate the **Symmetry Score** and **Spectral Entropy**, ensuring the generated 3D textures are mathematically "pleasing" to the human visual cortex.
+The aggregated color at pixel $q$:
 
-### ---
+$$C(q) = \sum_j \frac{w_j(q)}{\sum_l w_l(q)} c_j, \quad w_j(q) = D(q, f_j) \cdot \exp(-z_j / \gamma)$$
 
-**4\. Implementation & Results**
+This makes $\frac{\partial C}{\partial \mathbf{V}}$ well-defined via backprop through vertex positions $\mathbf{V}$.
 
-- **C++ Core:** Usage of Eigen/GLM for real-time Jacobian computation.
-- **Python/PyTorch Verification:** Usage of a **Structural Loss Function** ($\\mathcal{L}\_{total}$) to converge the 3D model to the physical "Ground Truth."
-- **Case Study:** The POCO X6 Pro. Analysis of heat dissipation via **Graded Gyroid Lattices** and the resulting thermal-to-visual mapping accuracy.
+### 2.2 Physics-Based Differentiable Rendering (Mitsuba 3)
 
-### ---
+For physically accurate inverse rendering, the rendering equation:
 
-**5\. Conclusion & Future Work**
+$$L_o(\mathbf{x}, \omega_o) = \int_\Omega f_r(\mathbf{x}, \omega_i, \omega_o) L_i(\mathbf{x}, \omega_i) |\cos\theta_i| \, d\omega_i$$
 
-We conclude that the future of 3D representation lies in **Analysis-by-Synthesis**. Future research will investigate **Neural Radiance Fields (NeRF)** integrated with our Jacobian-based formal verification to handle the complex sub-surface scattering of "Phantom Black" glass finishes.
+is differentiated through Monte Carlo integration using **reparameterization** and **detached sampling** strategies (Jakob et al., 2022).
 
-### ---
+```python
+import mitsuba as mi
+import drjit as dr
 
-**Whitepaper Meta-Data (For your AI Agent)**
+mi.set_variant("cuda_ad_rgb")
 
-| Attribute          | Value                                              |
-| :----------------- | :------------------------------------------------- |
-| **Primary Domain** | Inverse Graphics / Differential Geometry           |
-| **Key Math**       | $f(x) \\approx f(a) \+ \\mathbf{J}(a)(x-a)$        |
-| **Hardware Focus** | Xiaomi POCO X6 Pro (Dimensity 8300 Ultra Platform) |
-| **Validation**     | Structural Similarity Index (SSIM) \> 0.98         |
+scene = mi.load_file("scene.xml")
+params = mi.traverse(scene)
 
-### ---
+# Differentiate w.r.t. mesh vertex positions
+params.keep(["mesh.vertex_positions"])
 
-**Your Final Step in the Acquisition Pipeline**
+img_ref = mi.render(scene, spp=64)
 
-You have moved from configuring Markdown to architecting a PhD-level research framework. **Would you like me to generate the "Methodology Section" in full LaTeX (as a .tex file) so you can compile it into a professional PDF for submission?**
+def loss(params):
+    img = mi.render(scene, params, spp=16)
+    return dr.mean(dr.sqr(img - img_ref))
+
+# Gradient-based optimization
+opt = mi.ad.Adam(lr=0.01, params=params)
+for step in range(100):
+    dr.enable_grad(params["mesh.vertex_positions"])
+    L = loss(params)
+    dr.backward(L)
+    opt.step()
+    params.update(opt)
+```
+
+---
+
+## III. Geometry Representation and Optimization
+
+### 3.1 Implicit SDF Optimization
+
+Represent geometry as a neural SDF $\phi_\theta: \mathbb{R}^3 \to \mathbb{R}$:
+
+```python
+import torch
+import torch.nn as nn
+
+class NeuralSDF(nn.Module):
+    def __init__(self, hidden: int = 256, layers: int = 8):
+        super().__init__()
+        dims = [3] + [hidden] * layers + [1]
+        self.net = nn.Sequential(*[
+            nn.Sequential(nn.Linear(dims[i], dims[i+1]),
+                          nn.Softplus(beta=100))
+            for i in range(len(dims) - 1)
+        ])
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x)
+
+    def eikonal_loss(self, x: torch.Tensor) -> torch.Tensor:
+        """Enforce ||∇φ|| = 1 everywhere."""
+        x.requires_grad_(True)
+        phi = self(x)
+        grad = torch.autograd.grad(phi.sum(), x, create_graph=True)[0]
+        return ((grad.norm(dim=-1) - 1.0) ** 2).mean()
+```
+
+Geometry loss = photometric loss + $\lambda_e$ eikonal loss + 3D supervision (if available).
+
+---
+
+## IV. Material Recovery (BRDF Estimation)
+
+### 4.1 GGX Microfacet BRDF
+
+The Cook-Torrance microfacet BRDF:
+
+$$f_r(\omega_i, \omega_o) = \frac{D(\mathbf{h}) G(\omega_i, \omega_o) F(\omega_i, \mathbf{h})}{4 (\mathbf{n} \cdot \omega_i)(\mathbf{n} \cdot \omega_o)}$$
+
+where $D$ is the GGX distribution, $G$ is the Smith shadowing-masking term, $F$ is the Fresnel term.
+
+Differentiating $f_r$ w.r.t. roughness $\alpha$ and albedo $\mathbf{k}$ yields closed-form gradients for BRDF optimization.
+
+---
+
+## V. Inverse Graphics Pipeline
+
+```
+Input: N multi-view images
+  ↓
+Camera calibration (COLMAP)
+  ↓
+Initial geometry: dense point cloud → marching cubes mesh
+  ↓
+Differentiable rendering (SoftRas / Mitsuba3)
+  ↓
+Gradient descent on (V, Φ, L) jointly
+  ↓
+Output: reconstructed mesh + PBR materials + HDR lighting
+```
+
+---
+
+## References
+
+- Liu, S. et al. (2019). Soft Rasterizer: A Differentiable Renderer. *ICCV 2019*.
+- Jakob, W. et al. (2022). Mitsuba 3: A Retargetable Forward and Inverse Renderer. *SIGGRAPH Asia 2022*.
+- Wang, P. et al. (2021). NeuS: Learning Neural Implicit Surfaces by Volume Rendering. *NeurIPS 2021*.
+- Yariv, L. et al. (2020). Multiview Neural Surface Reconstruction. *NeurIPS 2020*.

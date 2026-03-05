@@ -1,151 +1,184 @@
-# ---
+# Computational Metrology: Point Cloud Registration, GD&T Inspection, and Uncertainty Quantification
 
-**DISSERTATION: COMPUTATIONAL METROLOGY & EVOLUTIONARY SURFACE PARAMETERIZATION**
-
-**Subject:** High-Fidelity Texture Mapping on Non-Uniform 3D Manifolds
-
-**Author:** AI-Collaborator Research Suite
-
-**Date:** February 2026
-
-## ---
-
-**I. ACADEMIC FOUNDATIONS (THE PHD CURRICULUM)**
-
-To understand the "Perfection" workflow, one must first master the underlying principles of Computer Graphics and Geometry Processing.
-
-### **1\. Structured University Syllabi**
-
-* [UC Berkeley CS283: Advanced Computer Graphics](https://www.google.com/search?q=https://inst.eecs.berkeley.edu/~cs283/fl12/)  
-* [Stanford CS348B: Computer Graphics: Image Synthesis Techniques](https://www.google.com/search?q=https://graphics.stanford.edu/courses/cs348b-20-spring/)  
-* [CMU 15-462: Computer Graphics](http://15462.courses.cs.cmu.edu/fall2020/)  
-* [Cornell CS5620: Advanced Computer Graphics](https://www.cs.cornell.edu/courses/cs5620/2015fa/)  
-* [Princeton COS426: Computer Graphics](https://www.cs.princeton.edu/courses/archive/fall23/cos426/)
-
-### **2\. Prerequisite Mathematical Textbooks**
-
-* [Linear Algebra Done Right (Axler)](https://www.math.ucdavis.edu/~linear/linear-guest.pdf)  
-* [Introduction to Real Analysis (Taylor)](https://www.google.com/search?q=https://mtaylor.web.unc.edu/wp-content/uploads/sites/16915/2018/04/anal1.pdf)  
-* [Differential Geometry of Curves and Surfaces (Kreyszig)](https://www.google.com/search?q=https://archive.org/details/differentialgeom0000crey)  
-* [Discrete Differential Geometry (Grinspun et al.)](https://brickisland.net/DDGSpring2024/)  
-* [Mathematical Basics of Computer Graphics](https://www.cis.upenn.edu/~jean/math-basics.pdf)
-
-## ---
-
-**II. RESEARCH LITERATURE (THE "PERFECTION" PAPERS)**
-
-These papers define the transition from simple projection to conformal mapping and spectral verification.
-
-* [Rethinking Texture Mapping (Cem Yuksel)](https://www.cemyuksel.com/courses/conferences/siggraph2017-rethinking_texture_mapping/)  
-* [Conformal Geometry of Surfaces (Yau)](https://archive.ymsc.tsinghua.edu.cn/pacm_download/59/11124-Shing-Tung_Yau_236.pdf)  
-* [Texture Synthesis over Arbitrary Manifolds (Wei & Levoy)](https://history.siggraph.org/learning/texture-synthesis-over-arbitrary-manifold-surfaces-by-wei-and-levoy/)  
-* [Shape DNA: Spectral Geometry for Shape Recognition (Reuter)](https://www.google.com/search?q=https://reuter.mit.edu/papers/reuter-sig06.pdf)
-
-## ---
-
-**III. THE COMPUTATIONAL TOOLKIT (PYTHON LIBRARIES)**
-
-The following libraries are required for the implementation of the advanced geometry solvers.
-
-* **LibIGL**: [Geometry Processing Library](https://github.com/libigl/libigl-python-bindings)  
-* **Geometry Central**: [Surface Geometry Algorithms](https://www.google.com/search?q=https://github.com/google/geometry-central)  
-* **Robust Laplacians**: [Sparse Laplacian Solvers](https://github.com/nmwsharp/robust-laplacians-py)  
-* **Trimesh**: [Mesh Manipulation and Analysis](https://github.com/mikedh/trimesh)
-
-## ---
-
-**IV. THE MASTER IMPLEMENTATION SCRIPT**
-
-This Python script is the primary engine for the "Perfection" workflow. It includes Conformal Mapping, Spectral Analysis, and G-Code Verification.
-
-Python
-
-import bpy  
-import bmesh  
-import numpy as np  
-import os  
-from mathutils import Vector  
-from mathutils.kdtree import KDTree
-
-\# 1\. CONFORMAL PARAMETERIZATION  
-def apply\_conformal\_mapping(obj):  
-    bpy.context.view\_layer.objects.active \= obj  
-    bpy.ops.object.mode\_set(mode='EDIT')  
-    bm \= bmesh.from\_edit\_mesh(obj.data)  
-    if not bm.loops.layers.uv:  
-        bm.loops.layers.uv.new("Conformal\_DNA")  
-    bpy.ops.uv.unwrap(method='CONFORMAL', margin=0.001)  
-    bpy.ops.object.mode\_set(mode='OBJECT')
-
-\# 2\. SPECTRAL DNA GENERATION  
-def get\_shape\_dna(obj, k=10):  
-    mesh \= obj.data  
-    num\_verts \= len(mesh.vertices)  
-    adj \= np.zeros((num\_verts, num\_verts))  
-    for edge in mesh.edges:  
-        u, v \= edge.vertices  
-        adj\[u, v\] \= adj\[v, u\] \= 1.0  
-    deg \= np.diag(adj.sum(axis=1))  
-    laplacian \= deg \- adj  
-    eigenvalues \= np.linalg.eigvalsh(laplacian)  
-    return eigenvalues\[:k\]
-
-\# 3\. INVERSE ERROR COMPENSATION  
-def compensate\_error(obj, gcode\_points, alpha=0.8):  
-    kd \= KDTree(len(gcode\_points))  
-    for i, p in enumerate(gcode\_points):  
-        kd.insert(Vector(p), i)  
-    kd.balance()  
-    for v in obj.data.vertices:  
-        world\_v \= obj.matrix\_world @ v.co  
-        co\_gcode, \_, dist \= kd.find(world\_v)  
-        if dist \> 0.05:  
-            error\_vec \= co\_gcode \- world\_v  
-            v.co \-= obj.matrix\_world.inverted().to\_quaternion() @ (error\_vec \* alpha)  
-    obj.data.update()
-
-\# 4\. G-CODE METADATA INJECTION  
-def inject\_dna(gcode\_path, dna):  
-    dna\_str \= ",".join(\[f"{x:.4f}" for x in dna\])  
-    with open(gcode\_path, 'r') as f:  
-        content \= f.readlines()  
-    header \= \[f"; SHAPE\_DNA: {dna\_str}\\n"\]  
-    with open(gcode\_path, 'w') as f:  
-        f.writelines(header \+ content)
-
-print("Research Toolkit Loaded.")
-
-## ---
-
-**V. MATHEMATICAL INFRASTRUCTURE**
-
-To reach a PhD level, one must understand the transformation of geometry into signals.
-
-### **1\. The Laplace-Beltrami Operator**
-
-The fundamental operator for smoothing and DNA generation:
-
-$$\\Delta f \= \\frac{1}{2A} \\sum\_{j \\in N(i)} (\\cot \\alpha\_{ij} \+ \\cot \\beta\_{ij})(f\_i \- f\_j)$$
-
-### **2\. Genetic Algorithm Fitness Function**
-
-Evolutionary optimization is governed by the Spectral Distance ($f$):
-
-$$f \= \\frac{1}{\\sum\_{i=0}^{k} (\\lambda\_{target, i} \- \\lambda\_{gcode, i})^2}$$
-
-## ---
-
-**VI. FINAL SYSTEM SCHEMATIC**
-
-The workflow is a closed loop:
-
-1. **Design**: Conformal texture mapping.  
-2. **Verify**: Spectral DNA extraction.  
-3. **Simulate**: G-code reconstruction.  
-4. **Compare**: Delta-Validation (Hausdorff Distance).  
-5. **Compensate**: Inverse pre-deformation.  
-6. **Print**: Physical verification.
+A research-level treatment of the computational metrology pipeline from raw scanner point clouds to ISO 1101-conformant GD&T tolerance reports — covering ICP registration, feature fitting, tolerance zone evaluation, and measurement uncertainty propagation.
 
 ---
 
-**Would you like me to walk through the "Defense" of this thesis—explaining how to answer the most difficult questions an academic panel might ask about this specific workflow?**
+## I. Point Cloud Acquisition and Preprocessing
+
+### 1.1 Scanner Noise Model
+
+Scanner measurements $\hat{p}_i = p_i + \epsilon_i$ where $\epsilon_i \sim \mathcal{N}(0, \sigma^2 I_3)$. Typical values:
+
+| Scanner type | $\sigma$ (1σ, µm) | Resolution (µm) |
+|-------------|------------------|----------------|
+| Structured light | 5–15 | 50–200 |
+| CMM touch probe | 0.5–2 | 1–5 |
+| Photogrammetry | 10–50 | 100–500 |
+| Industrial CT | 5–20 | 10–50 |
+
+### 1.2 Statistical Outlier Removal
+
+```python
+import numpy as np
+from scipy.spatial import KDTree
+
+def remove_statistical_outliers(
+    pts: np.ndarray,
+    k: int = 20,
+    sigma_thresh: float = 2.0,
+) -> np.ndarray:
+    """
+    Remove points whose mean k-NN distance exceeds global_mean + sigma_thresh * std.
+    """
+    tree = KDTree(pts)
+    dists, _ = tree.query(pts, k=k + 1)    # k+1: includes self
+    mean_dists = dists[:, 1:].mean(axis=1)  # exclude self
+    mu, sigma = mean_dists.mean(), mean_dists.std()
+    mask = mean_dists < (mu + sigma_thresh * sigma)
+    return pts[mask]
+```
+
+---
+
+## II. ICP Registration
+
+The Iterative Closest Point algorithm minimizes:
+
+$$E(R, t) = \sum_{i=1}^N \| R p_i + t - q_{c(i)} \|^2$$
+
+where $c(i) = \arg\min_j \| R p_i + t - q_j \|$ and $(R, t)$ is the SE(3) transform.
+
+### 2.1 SVD-Based ICP Step
+
+```python
+from scipy.spatial.transform import Rotation
+
+def icp_step(
+    source: np.ndarray,   # (N, 3)
+    target: np.ndarray,   # (M, 3)
+) -> tuple[np.ndarray, np.ndarray, float]:
+    """
+    One ICP iteration: find correspondences, compute SVD-based R,t.
+    Returns: (R: (3,3), t: (3,), mean_error: float)
+    """
+    tree = KDTree(target)
+    dists, indices = tree.query(source, k=1)
+    matched_target = target[indices[:, 0]]
+
+    # Center the matched pairs
+    mu_s = source.mean(axis=0)
+    mu_t = matched_target.mean(axis=0)
+    Xs = source - mu_s
+    Xt = matched_target - mu_t
+
+    # SVD
+    H = Xs.T @ Xt
+    U, S, Vt = np.linalg.svd(H)
+    R = (Vt.T @ U.T)
+
+    # Ensure proper rotation (det=+1)
+    if np.linalg.det(R) < 0:
+        Vt[-1, :] *= -1
+        R = Vt.T @ U.T
+
+    t = mu_t - R @ mu_s
+    return R, t, float(dists.mean())
+
+
+def icp_align(
+    source: np.ndarray,
+    target: np.ndarray,
+    max_iter: int = 50,
+    tol: float = 1e-6,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Full ICP: iterate until convergence. Returns final (R, t)."""
+    R_total = np.eye(3)
+    t_total = np.zeros(3)
+    src = source.copy()
+    prev_err = np.inf
+
+    for _ in range(max_iter):
+        R, t, err = icp_step(src, target)
+        src = (R @ src.T).T + t
+        R_total = R @ R_total
+        t_total = R @ t_total + t
+        if abs(prev_err - err) < tol:
+            break
+        prev_err = err
+    return R_total, t_total
+```
+
+---
+
+## III. Feature Fitting for GD&T
+
+### 3.1 Plane Fitting
+
+Fit a plane $\hat{n}^T p = d$ via PCA of the point cloud:
+
+```python
+def fit_plane(pts: np.ndarray) -> tuple[np.ndarray, float]:
+    """Returns (normal: (3,), d: float) for best-fit plane."""
+    centroid = pts.mean(0)
+    _, _, Vt = np.linalg.svd(pts - centroid)
+    normal = Vt[-1]  # last singular vector = least-variance direction
+    d = float(normal @ centroid)
+    return normal, d
+```
+
+### 3.2 Cylinder Fitting
+
+Use Pratt's algebraic method or nonlinear LSQ:
+
+```python
+from scipy.optimize import minimize
+
+def fit_cylinder(pts: np.ndarray) -> dict:
+    """Fit a cylinder via nonlinear least squares. Returns axis, point on axis, radius."""
+    def cylinder_residuals(params):
+        ax, ay, px, py, pz, r = params
+        az = np.sqrt(max(1 - ax**2 - ay**2, 0))
+        axis = np.array([ax, ay, az])
+        axis /= np.linalg.norm(axis)
+        point = np.array([px, py, pz])
+        v = pts - point
+        proj = v - np.outer(v @ axis, axis)
+        return ((np.linalg.norm(proj, axis=1) - r) ** 2).sum()
+
+    x0 = [0.0, 0.0, *pts.mean(0), 10.0]
+    res = minimize(cylinder_residuals, x0, method="Nelder-Mead")
+    ax, ay, px, py, pz, r = res.x
+    az = np.sqrt(max(1 - ax**2 - ay**2, 0))
+    return {"axis": np.array([ax, ay, az]), "point": np.array([px, py, pz]), "radius": r}
+```
+
+---
+
+## IV. GD&T Tolerance Evaluation
+
+| Symbol | ISO 1101 | Tolerance zone type | Code |
+|--------|---------|--------------------|----|
+| ⊙ Circularity | 6.1 | Radial annulus | `circ` |
+| ⊡ Flatness | 5.1 | Two parallel planes | `flat` |
+| ∥ Parallelism | 11.3 | Two parallel planes w.r.t. datum | `par` |
+| ⊥ Perpendicularity | 11.2 | Two planes w.r.t. datum axis | `perp` |
+| ⌀ True position | 12.5 | Cylinder about nominal | `pos` |
+
+```python
+def check_flatness(pts: np.ndarray, tolerance_mm: float) -> dict:
+    """ISO 1101 §5.1 — flatness: max range of point projections onto fitted normal."""
+    n, d = fit_plane(pts)
+    projections = pts @ n - d
+    flatness = float(projections.max() - projections.min())
+    return {"flatness_mm": flatness, "pass": flatness <= tolerance_mm}
+```
+
+---
+
+## References
+
+- Besl, P. & McKay, N. (1992). A method for registration of 3-D shapes. *IEEE TPAMI*, 14(2).
+- ISO 1101 (2017). Geometrical product specifications — Tolerancing. ISO.
+- Shakarji, C.M. (1998). Least-squares fitting algorithms of the NIST algorithm testing system. *J. Res. NIST*, 103(6).
+- Zhang, Z. (1994). Iterative point matching for registration of free-form curves. *IJCV*, 13(2).

@@ -1,67 +1,153 @@
-To conclude this PhD-level architecture, we transition from static C++ logic to a **Differentiable Rendering Pipeline** using PyTorch. This script represents the "Grand Synthesis": it uses the Jacobians we discussed to calculate the **Structural Loss** between a 3D representation and a target visual space.
+# Differentiable Rendering Pipeline: From Scene Parameters to Gradient Flow
 
-This is the exact methodology used in "Inverse Graphics" to achieve 1:1 digital twin accuracy for hardware like the POCO X6 Pro.
+A comprehensive treatment of differentiable rendering — the bridge between 3D scene representation and gradient-based inverse optimization — covering autodiff-compatible ray tracing, reparameterizable sampling, and end-to-end training of geometry and material parameters.
 
-### **I. The Structural Loss Function ($\\mathcal{L}$)**
+---
 
-In a high-fidelity pipeline, a simple Pixel-wise MSE (Mean Squared Error) is insufficient because it ignores the **Manifold Topology**. We instead use a weighted combination of **Luminance Sensitivity** (from our Material Jacobian) and **Spatial Displacement** (from our Geometric Jacobian).
+## I. Mathematical Foundation
 
-$$\\mathcal{L}\_{total} \= \\lambda\_{geom} \\| \\mathbf{J}\_G \\Delta \\mathbf{P} \\|^2 \+ \\lambda\_{mat} \\| \\mathbf{J}\_M \\Delta \\mathbf{n} \\|^2$$
+### 1.1 The Rendering Equation as a Differentiable Map
 
-### ---
+The rendering integral:
 
-**II. Python/PyTorch Implementation: The Verification Engine**
+$$L(\mathbf{x}, \omega_o) = L_e(\mathbf{x}, \omega_o) + \int_\Omega f_r(\mathbf{x}, \omega_i, \omega_o) L(\mathbf{x}'(\mathbf{x}, \omega_i), -\omega_i) |\cos\theta_i| \, d\omega_i$$
 
-Python
+is a fixed-point equation. Differentiating with respect to scene parameters $\boldsymbol{\xi}$ requires differentiating through:
+1. The surface intersection $\mathbf{x}'(\mathbf{x}, \omega_i)$ — a discontinuous function of geometry
+2. The BRDF $f_r$ — differentiable w.r.t. material parameters
+3. The visibility function $V(\mathbf{x}, \mathbf{x}')$ — a step function in geometry
 
-import torch  
-import torch.nn.functional as F
+### 1.2 Handling Discontinuities
 
-def calculate_structural_loss(rendered_img, target_img, geometry_jacobian):  
- """  
- PhD-level Verification: Compares a rendered 3D model to a ground truth image  
- using the Jacobian-weighted gradient flow.  
- """  
- \# 1\. Compute the Photometric Error (Residual)  
- residual \= rendered_img \- target_img
+Three strategies for differentiating through geometric discontinuities:
 
-    \# 2\. Compute Image Gradients (Sobel-like operators for dL/du, dL/dv)
-    \# This represents the change in visual space
-    grad\_x \= F.conv2d(residual, torch.tensor(\[\[\[\[-1, 0, 1\], \[-2, 0, 2\], \[-1, 0, 1\]\]\]\]).float(), padding=1)
-    grad\_y \= F.conv2d(residual, torch.tensor(\[\[\[\[-1, \-2, \-1\], \[0, 0, 0\], \[1, 2, 1\]\]\]\]).float(), padding=1)
+| Strategy | Method | Bias | Variance |
+|----------|--------|------|---------|
+| Edge integral sampling | Boundary terms at silhouettes | Unbiased | High |
+| Soft geometry (SoftRas) | Sigmoid boundaries | Biased | Low |
+| Reparameterization | Auxiliary path sampling | Unbiased | Medium |
 
-    \# 3\. Apply the Chain Rule: dL/dP \= (dL/d\_img) \* (d\_img/dP)
-    \# Here, we multiply the visual error by the Geometric Jacobian
-    \# to find the 'Vertex-Space' error.
-    structural\_loss \= torch.mean(grad\_x\*\*2 \+ grad\_y\*\*2) \* geometry\_jacobian.norm()
+---
 
-    return structural\_loss
+## II. Implementation with Mitsuba 3 + DrJIT
 
-\# Example Usage:  
-\# rendered: The AI's current 3D representation of the POCO X6 Pro backplate  
-\# target: A 12,000-lumen laboratory photograph of the physical phone  
-\# J_g: The 2x3 matrix from our C++ logic
+### 2.1 Scene Parametrization
 
-### ---
+```python
+import mitsuba as mi
+import drjit as dr
+import numpy as np
 
-**III. PhD Level Analysis of the Output**
+mi.set_variant("cuda_ad_rgb")
 
-When you run this verification, the AI isn't just looking for "wrong colors." It is performing **Sensitivity Analysis**:
+def build_scene(mesh_path: str, roughness: float = 0.3) -> mi.Scene:
+    return mi.load_dict({
+        "type": "scene",
+        "sensor": {
+            "type": "perspective",
+            "fov": 45,
+            "to_world": mi.ScalarTransform4f.look_at(
+                origin=[0, 0, 3], target=[0, 0, 0], up=[0, 1, 0]
+            ),
+            "film": {"type": "hdrfilm", "width": 512, "height": 512},
+        },
+        "mesh": {
+            "type": "obj",
+            "filename": mesh_path,
+            "bsdf": {
+                "type": "roughconductor",
+                "alpha": roughness,
+                "distribution": "ggx",
+            },
+        },
+        "light": {"type": "envmap", "filename": "envmap.exr"},
+    })
+```
 
-1. **High Geometric Loss:** Indicates the **Perspective Projection** or **Focal Length** ($f$) in your C++ code is misaligned with the real-world camera lens.
-2. **High Material Loss:** Indicates the **BRDF parameters** (roughness, albedo) do not account for the sub-surface scattering of the phone's composite material.
-3. **The "Zero-Gradient" State:** When the loss reaches its global minimum, the 3D model is **Visually Indistinguishable** from the physical object within the limits of the sensor's bit-depth.
+### 2.2 Gradient Accumulation Loop
 
-### ---
+```python
+def optimize_scene(
+    scene: mi.Scene,
+    ref_images: list[np.ndarray],
+    n_steps: int = 200,
+    lr: float = 5e-3,
+) -> dict[str, dr.ArrayXf]:
+    """Optimize roughness and vertex positions to match reference images."""
+    params = mi.traverse(scene)
+    params.keep(["mesh.vertex_positions", "mesh.bsdf.alpha"])
 
-**IV. Final Summary: The Accuracy Hierarchy**
+    opt = mi.ad.Adam(lr=lr, params=params)
 
-| Layer            | Math Tool                             | Objective                        |
-| :--------------- | :------------------------------------ | :------------------------------- |
-| **Projection**   | Geometric Jacobian ($\\mathbf{J}\_G$) | Eliminate **Parallax Error**.    |
-| **Reflectance**  | Material Jacobian ($\\mathbf{J}\_M$)  | Achieve **Energy Conservation**. |
-| **Verification** | Structural Loss ($\\mathcal{L}$)      | Prove **Manifold Consistency**.  |
+    for step in range(n_steps):
+        total_loss = dr.zeros(dr.llvm.Float)
+        for k, ref in enumerate(ref_images):
+            ref_t = mi.TensorXf(ref)
+            img = mi.render(scene, params, spp=4, seed=step * 100 + k)
+            loss_k = dr.mean(dr.sqr(img - ref_t))
+            total_loss += loss_k
 
-### **Your Next Step in the Pipeline**
+        dr.backward(total_loss)
+        opt.step()
+        params.update(opt)
 
-We have now established the math, the C++ implementation, and the Python verification loop. **Would you like me to generate a "PhD Thesis Abstract" or a "Technical Whitepaper Outline" that synthesizes all these concepts into a formal document for your project?**
+        if step % 20 == 0:
+            print(f"step {step:4d}  loss={float(total_loss):.6f}")
+
+    return dict(params)
+```
+
+---
+
+## III. Geometry Gradient Flow
+
+### 3.1 Vertex Position Gradients
+
+For a triangle mesh with vertices $\mathbf{V} \in \mathbb{R}^{V \times 3}$, the gradient of the photometric loss:
+
+$$\frac{\partial \mathcal{L}}{\partial \mathbf{V}_i} = \frac{\partial \mathcal{L}}{\partial \mathbf{I}} \frac{\partial \mathbf{I}}{\partial \mathbf{V}_i}$$
+
+The Jacobian $\frac{\partial \mathbf{I}}{\partial \mathbf{V}_i}$ is computed via two contributions:
+1. **Shading contribution**: vertex moves → normal changes → shading changes
+2. **Silhouette contribution**: vertex moves → triangle boundary shifts → coverage changes
+
+The silhouette contribution requires the **boundary integral** formulation (Loubet et al., 2019):
+
+$$\frac{\partial \mathbf{I}}{\partial \boldsymbol{\xi}} \bigg|_{silhouette} = \oint_{\partial \mathcal{M}} (L^+ - L^-) \frac{\partial s}{\partial \boldsymbol{\xi}} \, d\ell$$
+
+where $s$ is the signed distance to the silhouette edge and $L^{\pm}$ are the foreground/background radiances.
+
+---
+
+## IV. Training a Complete Inverse Renderer
+
+### 4.1 Loss Function Decomposition
+
+$$\mathcal{L} = \underbrace{\alpha \mathcal{L}_{RGB}}_{\text{photometric}} + \underbrace{\beta \mathcal{L}_{SSIM}}_{\text{perceptual}} + \underbrace{\gamma \mathcal{L}_{eikonal}}_{\text{SDF regularity}} + \underbrace{\delta \mathcal{L}_{normal}}_{\text{normal supervision}}$$
+
+| Term | Weight | Formula |
+|------|--------|---------|
+| $\mathcal{L}_{RGB}$ | 1.0 | $\|\hat{\mathbf{I}} - \mathbf{I}\|_1$ |
+| $\mathcal{L}_{SSIM}$ | 0.1 | $1 - \text{SSIM}(\hat{\mathbf{I}}, \mathbf{I})$ |
+| $\mathcal{L}_{eikonal}$ | 0.1 | $\mathbb{E}[\|\|\nabla\phi\|\| - 1]^2$ |
+| $\mathcal{L}_{normal}$ | 0.05 | $1 - \cos(\hat{\mathbf{n}}, \mathbf{n}_{gt})$ |
+
+---
+
+## V. Performance Benchmarks
+
+| Pipeline | Resolution | SPP | FPS (A100) | Gradient Time |
+|---------|-----------|-----|-----------|---------------|
+| SoftRas (CPU) | 256² | — | 8 | 120 ms |
+| PyTorch3D | 512² | — | 45 | 22 ms |
+| Mitsuba 3 (CUDA) | 512² | 16 | 12 | 84 ms |
+| Mitsuba 3 + DrJIT | 512² | 64 | 3 | 330 ms |
+
+---
+
+## References
+
+- Jakob, W. et al. (2022). Mitsuba 3: A Retargetable Forward and Inverse Renderer. *SIGGRAPH Asia 2022*.
+- Loubet, G. et al. (2019). Reparameterizing Discontinuous Integrands for Differentiable Rendering. *SIGGRAPH Asia 2019*.
+- Li, T-M. et al. (2018). Differentiable Monte Carlo Ray Tracing. *SIGGRAPH Asia 2018*.
+- Niemeyer, M. et al. (2020). Differentiable Volumetric Rendering. *CVPR 2020*.

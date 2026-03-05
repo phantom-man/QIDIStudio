@@ -37,13 +37,14 @@ Agent sees: "━━━ QIDISTUDIO KNOWLEDGE BASE ━━━ ..."
   [session work happens]
       │
       ▼
-Context window fills → PreCompact hook fires (PowerShell)
-      │  1. runs memory/extract.py  ← re-indexes all source docs
-      │  2. git add -A && git commit ← saves to disk
-      │  3. tells agent: "write any NEW learnings you know"
+Agent finishes response → Stop hook fires (PowerShell)
+      │  1. saves prompt + response to Postgres
+      │  2. runs memory/extract.py  ← re-indexes all source docs
+      │  3. runs sync_prompts_to_lancedb.py ← pushes to GCS LanceDB
+      │  4. git commits changed memory files
       │
       ▼
-Agent appends new rows to docs → hook was already indexing on next trigger
+Knowledge persisted to gs://qidistudio-lancedb/lancedb
 ```
 
 ---
@@ -53,22 +54,21 @@ Agent appends new rows to docs → hook was already indexing on next trigger
 ```
 your-repo/
 ├── .env                              ← API keys (NEVER commit)
-├── .gitignore                        ← must exclude .env and data/lancedb/
+├── .gitignore                        ← must exclude .env (NEVER commit API keys)
 ├── .github/
 │   ├── copilot-instructions.md       ← agent bootstrap stub + Session Learnings Log table
 │   └── hooks/
-│       ├── prompt_submit_hook.ps1    ← UserPromptSubmit → calls inject.py
-│       ├── precompact_hook.ps1       ← PreCompact → runs extract.py + git commit
+│       ├── prompt_submit_hook.ps1    ← UserPromptSubmit → Predator + inject.py (GCS LanceDB)
+│       ├── stop_hook.ps1             ← Stop → Postgres + extract.py + sync_prompts_to_lancedb.py
+│       ├── precompact_hook.ps1       ← kept for reference (PreCompact removed in VS Code 1.109+)
 │       └── precompact.log            ← auto-created debug log
 ├── memory/
 │   ├── requirements.txt              ← pip deps for memory module
-│   ├── store.py                      ← LanceDB CRUD layer
+│   ├── store.py                      ← LanceDB CRUD layer (GCS: gs://qidistudio-lancedb/lancedb)
 │   ├── extract.py                    ← indexes source docs into LanceDB
 │   ├── inject.py                     ← hook-facing manifest generator
 │   ├── push_prompt.py                ← (optional) push system prompt to LangSmith Hub
 │   └── langsmith_prompt.md           ← (optional) your full system prompt verbatim
-├── data/
-│   └── lancedb/                      ← auto-created vector store (gitignore this)
 └── docs/
     └── YOUR_KNOWLEDGE.md             ← source of truth doc for your project
 ```
@@ -93,7 +93,7 @@ Hooks require **VS Code 1.96+** with GitHub Copilot Chat. The hooks must be decl
 
 ### 1c. Git
 
-Everything is committed. The precompact hook uses `git add -A && git commit`. If git is not on PATH, the autonomous save step silently fails.
+Everything is committed. The Stop hook uses `git add` + `git commit`. If git is not on PATH, the auto-commit step silently fails.
 
 ---
 
@@ -137,8 +137,8 @@ Install into your Python environment:
 Create `.env` at repo root. **Add `.env` to `.gitignore` immediately.**
 
 ```ini
-# LanceDB (local vector store)
-LANCEDB_PATH=data/lancedb
+# LanceDB (GCS-backed vector store)
+LANCEDB_PATH=gs://qidistudio-lancedb/lancedb
 LANCEDB_TABLE=your_project_learnings
 LANCEDB_EMBEDDING_DIMS=384
 
@@ -209,10 +209,10 @@ Or in `.vscode/settings.json` (workspace-scoped):
 
 ```jsonc
 {
-    "github.copilot.chat.experimental.codebase.hooks": {
-        "userPromptSubmit": "${workspaceFolder}/.github/hooks/prompt_submit_hook.ps1",
-        "preCompact":       "${workspaceFolder}/.github/hooks/precompact_hook.ps1"
-    }
+  "github.copilot.chat.experimental.codebase.hooks": {
+    "userPromptSubmit": "${workspaceFolder}/.github/hooks/prompt_submit_hook.ps1",
+    "preCompact": "${workspaceFolder}/.github/hooks/precompact_hook.ps1",
+  },
 }
 ```
 
@@ -281,9 +281,12 @@ if ($success) {
 
 ---
 
-## Step 6 — Write the PreCompact Hook
+## Step 6 — Write the Stop Hook (replaces PreCompact)
 
-Create `.github/hooks/precompact_hook.ps1`:
+> **Note:** The PreCompact event was removed in VS Code 1.109+. The `stop_hook.ps1` below is the
+> modern replacement — it fires after every agent response instead of on context compaction.
+
+Create `.github/hooks/stop_hook.ps1` (simplified example — see production file for full version):
 
 ```powershell
 $ts   = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
@@ -292,50 +295,38 @@ $repo = 'C:\path\to\your\repo'
 $log  = Join-Path $repo '.github\hooks\precompact.log'
 $py   = 'C:\path\to\python.exe'
 
-Add-Content -Path $log -Value "$ts [PreCompact] fired - running autonomous save"
+Add-Content -Path $log -Value "$ts [Stop] fired - running autonomous save"
 
 Set-Location $repo
 
-# STEP A: Re-index all source docs (runs regardless of agent state)
+# STEP A: Re-index all source docs
 try {
-    $result = & $py memory\extract.py 2>&1
-    Add-Content -Path $log -Value "$ts [PreCompact] extract.py: $($result[-1])"
+    & $py -B memory\extract.py >> $log 2>&1
+    Add-Content -Path $log -Value "$ts [Stop] extract.py done"
 } catch {
-    Add-Content -Path $log -Value "$ts [PreCompact] extract.py FAILED: $_"
+    Add-Content -Path $log -Value "$ts [Stop] extract.py FAILED: $_"
 }
 
-# STEP B: Commit pending disk changes (runs regardless of agent state)
+# STEP B: Sync Postgres prompts/responses to GCS LanceDB
+try {
+    & $py -B memory\sync_prompts_to_lancedb.py >> $log 2>&1
+    Add-Content -Path $log -Value "$ts [Stop] sync done"
+} catch {
+    Add-Content -Path $log -Value "$ts [Stop] sync FAILED: $_"
+}
+
+# STEP C: Commit pending disk changes
 $status = & git status --porcelain 2>&1
 if ($status) {
-    & git add -A
-    & git commit --allow-empty -m "docs: pre-compact auto-save [$date]"
-    Add-Content -Path $log -Value "$ts [PreCompact] committed pending changes"
-} else {
-    Add-Content -Path $log -Value "$ts [PreCompact] nothing to commit"
+    & git add '.github/copilot-instructions.md' 'memory/session_learnings_archive.md'
+    & git commit --allow-empty -m "chore(memory): stop-hook auto-sync [$date]"
+    Add-Content -Path $log -Value "$ts [Stop] committed changes"
 }
 
-# STEP C: Tell the agent to write any NEW learnings it knows from this conversation
-@{
-    hookSpecificOutput = @{
-        hookEventName     = "PreCompact"
-        additionalContext = @"
-IMPORTANT: Context is about to be compacted. The precompact hook has already run memory\extract.py and committed any pending file changes. Your job is ONE thing only:
-
-WRITE NEW LEARNINGS: Read this conversation. Identify every new convention, gotcha, bug fix, confirmed value, or architectural decision that is NOT yet in the Session Learnings Log in .github/copilot-instructions.md. Append those rows now. For major discoveries also update your main knowledge doc.
-
-Be specific - real values, real function names, real filenames. Not vague summaries.
-
-After writing, run:
-  Set-Location $repo
-  & '$py' memory\extract.py
-  git add -A
-  git commit --allow-empty -m 'docs: pre-compact session learnings [$date]'
-"@
-    }
-} | ConvertTo-Json -Compress
+# No output needed — Stop hook never outputs JSON
 ```
 
-**Design rationale:** Steps A and B run as shell commands — they always execute, even if the agent is out of context budget. The agent only needs to handle Step C (writing NEW learnings not yet on disk), which is cheap file edits only.
+**Design rationale:** Steps A, B, and C always run after every agent response with no user action. No `additionalContext` output is needed because injection happens via the UserPromptSubmit hook.
 
 ---
 
@@ -350,7 +341,7 @@ import lancedb
 import pyarrow as pa
 from sentence_transformers import SentenceTransformer
 
-LANCEDB_PATH  = os.getenv("LANCEDB_PATH",  "data/lancedb")
+LANCEDB_PATH  = os.getenv("LANCEDB_PATH",  "gs://qidistudio-lancedb/lancedb")
 LANCEDB_TABLE = os.getenv("LANCEDB_TABLE", "your_project_learnings")
 EMBED_DIMS    = 384
 EMBED_MODEL   = "all-MiniLM-L6-v2"
@@ -416,7 +407,7 @@ Run strategy: **idempotent** — safe to re-run at any time. All rows are upsert
 ```bash
 python memory/extract.py
 # Example output:
-# Indexed 70 chunks into data/lancedb/your_project_learnings
+# Indexed 70 chunks into gs://qidistudio-lancedb/lancedb/your_project_learnings
 #   copilot-instructions → 13 chunks
 #   knowledge-doc        → 44 chunks
 #   langsmith-prompt     → 13 chunks
@@ -471,18 +462,18 @@ Look above — you should see ━━━ YOURPROJECT KNOWLEDGE BASE ━━━.
 
 **If you see it:** knowledge base is loaded. Proceed.
 **If you do NOT see it:** run this in a terminal, then read the output:
-  python memory/inject.py
+python memory/inject.py
 
 ---
 
 ## Memory Commands
 
-| Purpose | Command |
-|---------|---------|
-| Compact manifest (all topics) | `python memory/inject.py` |
-| Full text dump | `python memory/inject.py --full` |
-| Semantic search | `python memory/inject.py --query "cmake build"` |
-| Re-index docs to LanceDB | `python memory/extract.py` |
+| Purpose                       | Command                                         |
+| ----------------------------- | ----------------------------------------------- |
+| Compact manifest (all topics) | `python memory/inject.py`                       |
+| Full text dump                | `python memory/inject.py --full`                |
+| Semantic search               | `python memory/inject.py --query "cmake build"` |
+| Re-index docs to LanceDB      | `python memory/extract.py`                      |
 
 ---
 
@@ -498,7 +489,7 @@ Look above — you should see ━━━ YOURPROJECT KNOWLEDGE BASE ━━━.
 Append rows here — memory/extract.py auto-indexes them into LanceDB.
 
 | Date | Category | Topic | Decision | Rationale |
-|------|----------|-------|----------|-----------|
+| ---- | -------- | ----- | -------- | --------- |
 ```
 
 **Important:** The log table at the bottom is what `extract.py` reads to populate the "copilot-instructions" source in LanceDB. Every row you add here becomes a searchable vector chunk.
@@ -555,7 +546,7 @@ If you see `memory inject FAILED`, check:
 
 1. Python path is correct in the hook script
 2. `memory/requirements.txt` packages are installed in that Python env
-3. `data/lancedb/` directory exists and is writable
+3. `LANCEDB_PATH` env var is set to `gs://qidistudio-lancedb/lancedb` (or GCS credentials are available)
 
 If you see `memory inject OK` but the manifest isn't showing in the agent context, the hook is registered incorrectly in VS Code settings.
 
@@ -565,29 +556,32 @@ If you see `memory inject OK` but the manifest isn't showing in the agent contex
 
 ```gitignore
 .env
-data/lancedb/
 memory/__pycache__/
 memory/*.txt
 *.pyc
 __pycache__/
 ```
 
-Commit `data/lancedb/` to `.gitignore` so the vector files don't bloat the repo. The LanceDB store is always reconstructed from the source markdown files by `extract.py`.
+LanceDB is hosted on GCS (`gs://qidistudio-lancedb/lancedb`) — no local `data/lancedb/` directory exists.
 
 ---
 
 ## How the Autonomous Save Works
 
-When the context window fills, VS Code fires the PreCompact hook **before** truncating:
+After every agent response, VS Code fires the **Stop hook**:
 
 1. **Hook shell (invisible to agent, always runs)**
-   - `python memory/extract.py` — re-indexes whatever markdown files are on disk
-   - `git add -A && git commit` — saves everything, including any edits the agent made this session
+   - Saves prompt + response text to Postgres
+   - `python memory/extract.py` — re-indexes source markdown docs into GCS LanceDB
+   - `python memory/sync_prompts_to_lancedb.py` — pushes Postgres Q&A pairs to GCS LanceDB
+   - `git commit` — saves pending changes to disk
 
-2. **`additionalContext` (visible to agent, injected into compaction prompt)**
-   - "The hook already ran extract.py and committed. Your one job: write any NEW learnings from this conversation that aren't on disk yet."
+2. **Semantic injection (on every new prompt — UserPromptSubmit hook)**
+   - `prompt_submit_hook.ps1` runs Predator (context pruner) + `inject.py --prompt-file` (LanceDB semantic search)
+   - inject.py returns the top-N most relevant chunks as `additionalContext`
+   - The agent sees `━━━ QIDISTUDIO KNOWLEDGE BASE ━━━ ...` at the top of its context
 
-The design means even if the agent completely runs out of tokens and can't respond, the disk state is still saved. The agent only needs to handle the case where it _knows_ something that isn't written down yet.
+The design means knowledge is **persisted on every response** and **injected on every prompt**, with no manual steps required.
 
 ---
 
@@ -618,33 +612,33 @@ This is also what the precompact hook does automatically. If the hook fires and 
 
 ### Memory & Hooks
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| Hook fires but manifest not in context | Hook not registered in VS Code settings | Add `github.copilot.chat.experimental.codebase.hooks` to settings.json |
-| `memory inject FAILED: ImportError: No module named lancedb` | pip packages not installed | `pip install -r memory/requirements.txt` |
-| `list_tables() TypeError` | lancedb >= 0.6 returns `ListTablesResponse`, not list | Access via `resp.tables` attr, not `in resp` |
-| `to_pandas() ImportError` | pandas absent from Python 3.13 | Use `table.to_arrow().to_pylist()` instead |
-| LangSmith push: "Cannot create prompt for another tenant" | Hub handle prefix in prompt name | Use simple name only + pass `workspace_id` to `Client()` |
-| LangSmith push: HTTP 409 | Prompt unchanged | Treat 409 "Nothing to commit" as success, not error |
-| PowerShell hook syntax error | Em-dash `—` (U+2014) in double-quoted string | Replace with plain hyphen `-` or use single-quoted strings |
-| `git commit` in precompact hook fails silently | git not on PATH | Add git to system PATH, or use full path to git.exe in hook |
-| 0 rows in LanceDB after extract.py | Wrong path to source docs | Check `REPO_ROOT` in extract.py resolves correctly |
-| Hook log not updating | Log path wrong | Confirm `$logFile` path is absolute and directory exists |
+| Symptom                                                      | Cause                                                 | Fix                                                                    |
+| ------------------------------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| Hook fires but manifest not in context                       | Hook not registered in VS Code settings               | Add `github.copilot.chat.experimental.codebase.hooks` to settings.json |
+| `memory inject FAILED: ImportError: No module named lancedb` | pip packages not installed                            | `pip install -r memory/requirements.txt`                               |
+| `list_tables() TypeError`                                    | lancedb >= 0.6 returns `ListTablesResponse`, not list | Access via `resp.tables` attr, not `in resp`                           |
+| `to_pandas() ImportError`                                    | pandas absent from Python 3.13                        | Use `table.to_arrow().to_pylist()` instead                             |
+| LangSmith push: "Cannot create prompt for another tenant"    | Hub handle prefix in prompt name                      | Use simple name only + pass `workspace_id` to `Client()`               |
+| LangSmith push: HTTP 409                                     | Prompt unchanged                                      | Treat 409 "Nothing to commit" as success, not error                    |
+| PowerShell hook syntax error                                 | Em-dash `—` (U+2014) in double-quoted string          | Replace with plain hyphen `-` or use single-quoted strings             |
+| `git commit` in precompact hook fails silently               | git not on PATH                                       | Add git to system PATH, or use full path to git.exe in hook            |
+| 0 rows in LanceDB after extract.py                           | Wrong path to source docs                             | Check `REPO_ROOT` in extract.py resolves correctly                     |
+| Hook log not updating                                        | Log path wrong                                        | Confirm `$logFile` path is absolute and directory exists               |
 
 ### Agent Fleet & Vertex AI
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `PERMISSION_DENIED: 403 Permission denied on resource project X` | Wrong project ID in env — stale process-level var overriding .env | Call `load_dotenv(..., override=True)` with explicit path; check `$env:GOOGLE_CLOUD_PROJECT` in terminal |
-| `PERMISSION_DENIED` with truncated project ID (e.g. `crafty-hook-483415S`) | Shell env var set to wrong value from earlier session | `Remove-Item Env:\GOOGLE_CLOUD_PROJECT` then re-run with override=True |
-| `CONSUMER_INVALID` 403 on Vertex | Wrong location (e.g. `global` instead of `us-central1`) | Set `GOOGLE_CLOUD_LOCATION=us-central1` in .env; load with override=True |
-| `AQ.Ab8...` key fails | `AQ.` prefix = OAuth token, not an API key | Vertex AI uses ADC — no API key at all. Remove `google_api_key`, use `project=` + `location=` |
-| `AIzaSy...` key fails for Vertex | Consumer API key doesn't work for Vertex AI | Same fix — remove key, use ADC |
-| LangGraph tool count validator error | `bind_tools()` + `create_react_agent(tools=...)` mismatch | Use `model_kwargs={"tools": [...]}` at constructor instead of `bind_tools()` |
-| `max_size must be greater or equal than min_size` | `ConnectionPool(max_size=N)` without min_size — default min_size=4 | Always set both: `min_size=1, max_size=N` |
-| `no pq wrapper available` / `psycopg_binary MISSING` after installing `psycopg[binary]` | `pip install "psycopg[binary]"` extra silently exits 0 without installing binary | Run `pip install psycopg-binary` directly, then verify with `python -c "import psycopg_binary"` |
-| `ImportError: cannot import name 'PostgresSaver'` | `langgraph-checkpoint-postgres` not installed | `pip install langgraph-checkpoint-postgres psycopg-binary psycopg-pool` |
-| Orchestrator 401 on `plan()` but agents load fine | `orchestrator.py` has its own separate LLM constructor not updated | Both `agents/agents.py` AND `agents/orchestrator.py` have independent LLM constructors — update both |
+| Symptom                                                                                 | Cause                                                                            | Fix                                                                                                      |
+| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `PERMISSION_DENIED: 403 Permission denied on resource project X`                        | Wrong project ID in env — stale process-level var overriding .env                | Call `load_dotenv(..., override=True)` with explicit path; check `$env:GOOGLE_CLOUD_PROJECT` in terminal |
+| `PERMISSION_DENIED` with truncated project ID (e.g. `crafty-hook-483415S`)              | Shell env var set to wrong value from earlier session                            | `Remove-Item Env:\GOOGLE_CLOUD_PROJECT` then re-run with override=True                                   |
+| `CONSUMER_INVALID` 403 on Vertex                                                        | Wrong location (e.g. `global` instead of `us-central1`)                          | Set `GOOGLE_CLOUD_LOCATION=us-central1` in .env; load with override=True                                 |
+| `AQ.Ab8...` key fails                                                                   | `AQ.` prefix = OAuth token, not an API key                                       | Vertex AI uses ADC — no API key at all. Remove `google_api_key`, use `project=` + `location=`            |
+| `AIzaSy...` key fails for Vertex                                                        | Consumer API key doesn't work for Vertex AI                                      | Same fix — remove key, use ADC                                                                           |
+| LangGraph tool count validator error                                                    | `bind_tools()` + `create_react_agent(tools=...)` mismatch                        | Use `model_kwargs={"tools": [...]}` at constructor instead of `bind_tools()`                             |
+| `max_size must be greater or equal than min_size`                                       | `ConnectionPool(max_size=N)` without min_size — default min_size=4               | Always set both: `min_size=1, max_size=N`                                                                |
+| `no pq wrapper available` / `psycopg_binary MISSING` after installing `psycopg[binary]` | `pip install "psycopg[binary]"` extra silently exits 0 without installing binary | Run `pip install psycopg-binary` directly, then verify with `python -c "import psycopg_binary"`          |
+| `ImportError: cannot import name 'PostgresSaver'`                                       | `langgraph-checkpoint-postgres` not installed                                    | `pip install langgraph-checkpoint-postgres psycopg-binary psycopg-pool`                                  |
+| Orchestrator 401 on `plan()` but agents load fine                                       | `orchestrator.py` has its own separate LLM constructor not updated               | Both `agents/agents.py` AND `agents/orchestrator.py` have independent LLM constructors — update both     |
 
 ---
 
@@ -652,36 +646,37 @@ This is also what the precompact hook does automatically. If the hook fires and 
 
 ### Core Memory System (required)
 
-| File | Must exist | Description |
-|------|-----------|-------------|
-| `.env` | Yes | API keys + DSNs. Never commit. |
-| `.gitignore` | Yes | Must exclude `.env` and `data/lancedb/` |
-| `memory/requirements.txt` | Yes | lancedb, sentence-transformers, psycopg-binary, etc. |
-| `memory/store.py` | Yes | LanceDB CRUD layer |
-| `memory/extract.py` | Yes | Indexes source docs |
-| `memory/inject.py` | Yes | Hook-facing manifest generator |
-| `.github/hooks/prompt_submit_hook.ps1` | Yes | Calls inject.py on every message |
-| `.github/hooks/precompact_hook.ps1` | Yes | Autonomous save on context full |
-| `.github/copilot-instructions.md` | Yes | Bootstrap stub + Session Learnings Log |
-| `docs/YOUR_KNOWLEDGE.md` | Yes | Main knowledge source |
-| `memory/langsmith_prompt.md` | Optional | Full system prompt for LangSmith Hub |
-| `memory/push_prompt.py` | Optional | Push system prompt to LangSmith Hub |
-| `data/lancedb/` | Auto-created | Vector store (gitignored) |
+| File                                   | Must exist | Description                                              |
+| -------------------------------------- | ---------- | -------------------------------------------------------- |
+| `.env`                                 | Yes        | API keys + DSNs. Never commit.                           |
+| `.gitignore`                           | Yes        | Must exclude `.env` (never commit API keys)              |
+| `memory/requirements.txt`              | Yes        | lancedb, sentence-transformers, psycopg-binary, etc.     |
+| `memory/store.py`                      | Yes        | LanceDB CRUD layer (GCS backend)                         |
+| `memory/extract.py`                    | Yes        | Indexes source docs                                      |
+| `memory/inject.py`                     | Yes        | Hook-facing manifest generator (--prompt-file)           |
+| `.github/hooks/prompt_submit_hook.ps1` | Yes        | UserPromptSubmit: Predator + inject.py semantic memory   |
+| `.github/hooks/stop_hook.ps1`          | Yes        | Stop: Postgres + extract.py + sync_prompts_to_lancedb.py |
+| `.github/hooks/precompact_hook.ps1`    | Reference  | Kept but PreCompact event removed in VS Code 1.109+      |
+| `.github/copilot-instructions.md`      | Yes        | Bootstrap stub + Session Learnings Log                   |
+| `docs/YOUR_KNOWLEDGE.md`               | Yes        | Main knowledge source                                    |
+| `memory/langsmith_prompt.md`           | Optional   | Full system prompt for LangSmith Hub                     |
+| `memory/push_prompt.py`                | Optional   | Push system prompt to LangSmith Hub                      |
+| GCS `gs://qidistudio-lancedb/lancedb`  | Cloud      | LanceDB vector store (GCS-backed, not local)             |
 
 ### Agent Fleet (optional — for autonomous multi-agent execution)
 
-| File | Description |
-|------|-------------|
-| `agents/agents.py` | Agent factory — `get_agent(id)` returns `CompiledStateGraph` for each of 4 agents |
-| `agents/orchestrator.py` | Director + LangGraph `StateGraph` — `run(task)` fan-out via Send API |
-| `agents/tools.py` | Python tool definitions for each agent |
-| `agents/prompts/director.md` | Director system prompt (pushed to LangSmith Hub as `qidi-director`) |
-| `agents/prompts/researcher.md` | Researcher system prompt |
-| `agents/prompts/builder.md` | Builder system prompt |
-| `agents/prompts/verifier.md` | Verifier system prompt |
-| `agents/prompts/scribe.md` | Scribe system prompt |
-| `agents/_agentcomms_check.py` | Health check script — run this to verify the full stack |
-| `agents/push_all_prompts.py` | Push all 5 prompts to LangSmith Hub |
+| File                           | Description                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| `agents/agents.py`             | Agent factory — `get_agent(id)` returns `CompiledStateGraph` for each of 4 agents |
+| `agents/orchestrator.py`       | Director + LangGraph `StateGraph` — `run(task)` fan-out via Send API              |
+| `agents/tools.py`              | Python tool definitions for each agent                                            |
+| `agents/prompts/director.md`   | Director system prompt (pushed to LangSmith Hub as `qidi-director`)               |
+| `agents/prompts/researcher.md` | Researcher system prompt                                                          |
+| `agents/prompts/builder.md`    | Builder system prompt                                                             |
+| `agents/prompts/verifier.md`   | Verifier system prompt                                                            |
+| `agents/prompts/scribe.md`     | Scribe system prompt                                                              |
+| `agents/_agentcomms_check.py`  | Health check script — run this to verify the full stack                           |
+| `agents/push_all_prompts.py`   | Push all 5 prompts to LangSmith Hub                                               |
 
 ---
 
@@ -747,14 +742,14 @@ gcloud auth application-default login
 
 **Available Gemini models on Vertex AI (as of 2026-02-27):**
 
-| Model | Status | Notes |
-|-------|--------|-------|
-| `gemini-2.5-flash` | OK | Use as default — fast, cheap, capable |
-| `gemini-2.5-pro` | OK | Use for builder — best reasoning |
-| `gemini-2.5-flash-lite` | OK | Ultra-fast, lowest cost |
-| `gemini-2.0-flash` | DEPRECATED | Shutdown June 1 2026 — do not use |
-| `gemini-2.0-flash-lite` | DEPRECATED | Shutdown June 1 2026 — do not use |
-| `gemini-1.5-*` | NOT AVAILABLE | Not on Vertex paid tier |
+| Model                   | Status        | Notes                                 |
+| ----------------------- | ------------- | ------------------------------------- |
+| `gemini-2.5-flash`      | OK            | Use as default — fast, cheap, capable |
+| `gemini-2.5-pro`        | OK            | Use for builder — best reasoning      |
+| `gemini-2.5-flash-lite` | OK            | Ultra-fast, lowest cost               |
+| `gemini-2.0-flash`      | DEPRECATED    | Shutdown June 1 2026 — do not use     |
+| `gemini-2.0-flash-lite` | DEPRECATED    | Shutdown June 1 2026 — do not use     |
+| `gemini-1.5-*`          | NOT AVAILABLE | Not on Vertex paid tier               |
 
 ### Built-in Gemini Tools
 

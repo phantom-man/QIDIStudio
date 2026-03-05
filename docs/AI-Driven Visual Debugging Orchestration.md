@@ -1,106 +1,190 @@
-Achieving a PhD-level orchestration of an AI (like Claude 3.5/3.7 Sonnet or Copilot) to perform **Automated Visual Step-Through Debugging** requires moving beyond simple "chatting." You must implement a **Cyber-Physical Feedback Loop** where the AI acts as the "Controller" in a **Formal Verification** environment.
+# AI-Driven Visual Debugging Orchestration
 
-To debug a Xiaomi POCO X6 Pro geometry pipeline visually, the AI needs to "see" the state of the manifold at every breakpoint.
+A formal architecture for AI-orchestrated automated visual debugging of 3D geometry pipelines — combining formal verification principles, cyber-physical control loops, and multi-modal LLM inspection.
 
-## ---
+---
 
-**I. The Architectural Framework: "Vision-in-the-Loop" (ViL)**
+## I. Control-Theoretic Architecture
 
-Standard LLMs are text-in, text-out. To perform visual analysis, you must architect a **Multimodal Observability Pipeline**. The AI doesn't just read the code; it analyzes the **Frame Buffer** of the application.
+### 1.1 The Debugging Agent as PID Controller
 
-### **1\. The Instrumentation Layer**
+The AI agent acts as a discrete-time controller in a feedback loop over the rendering pipeline:
 
-You must instrument your C++/Python hybrid system to export **State Snapshots** at every significant transformation step (e.g., after the Laplacian Smoothing but before the LSCM Unwrapping).
+$$e_t = \mathbf{s}_{ref} - \mathbf{s}_t$$
+$$\mathbf{u}_t = K_P e_t + K_I \sum_{k=0}^{t} e_k + K_D (e_t - e_{t-1})$$
 
-* **Metadata Injection**: Every visual export (PNG/glTF) must be paired with a JSON "Context Header" containing the **Shape DNA** and **Vertex Normals**.
+where $\mathbf{s}_t$ is the current pipeline state (metric vector), $\mathbf{u}_t$ is the corrective action, and the PID gains are meta-learned across sessions.
 
-### **2\. The AI Agent Loop (The "Orchestrator")**
+In practice $K_I$ and $K_D$ are often zero for discrete repair cycles, reducing to proportional control with per-action cost estimation.
 
-The AI is not just a "helper"; it is a **Closed-Loop Governor**.
+### 1.2 State Representation
 
-* **Observe**: The AI receives a screenshot of the 3D viewport (via a headless Blender instance or a custom OpenGL/Vulkan buffer).  
-* **Orient**: It compares the visual state against the "Golden Ideal" (the CAD dimensions).  
-* **Decide**: It identifies "Shearing" or "Manifold Non-Uniformity" in the texture wrap.  
-* **Act**: It issues a GDB/PDB command to "Step" or "Inject" a new parameter value.
+The pipeline state $\mathbf{s}_t \in \mathbb{R}^6$ encodes:
 
-## ---
+| Index | Metric | Range | Threshold |
+|-------|--------|-------|---------|
+| 0 | Mean stretch $\bar{E}_D$ | $[1, \infty)$ | $< 2.0$ |
+| 1 | Max stretch $E_{D,\max}$ | $[1, \infty)$ | $< 5.0$ |
+| 2 | Seam normal jump $E_N$ | $[0, 2]$ | $< 0.1$ |
+| 3 | Texel density CV | $[0, 1]$ | $< 0.3$ |
+| 4 | Winding error count | $[0, F]$ | $= 0$ |
+| 5 | Island margin (px) | $[0, 64]$ | $\geq 4$ |
 
-**II. Implementation: The Automated Debugger Script**
+---
 
-This Python harness allows Claude/Copilot to "drive" the debugger and analyze the visual output.
+## II. Symbolic Breakpoint Injection
 
-Python
+### 2.1 Pipeline Instrumentation
 
-import subprocess  
-import PIL.Image  
+Each stage of the pipeline is wrapped with a breakpoint emitter:
+
+```python
+from contextlib import contextmanager
+from typing import Generator
+import trimesh
+
+class PipelineInspector:
+    def __init__(self, ai_critic):
+        self.critic = ai_critic
+        self.history: list[dict] = []
+
+    @contextmanager
+    def stage(self, name: str, mesh: trimesh.Trimesh) -> Generator:
+        yield mesh  # caller mutates mesh inside context
+        metrics = self._measure(mesh)
+        snapshot = self._capture(mesh)
+        verdict = self.critic(name, metrics, snapshot)
+        self.history.append({"stage": name, "metrics": metrics, "verdict": verdict})
+        if verdict["severity"] == "high":
+            raise PipelineHalt(f"Stage {name!r} emitted critical error: {verdict}")
+
+    def _measure(self, mesh: trimesh.Trimesh) -> dict:
+        from scripts.apply_texture_bpy import compute_uv_metrics
+        return compute_uv_metrics(mesh)
+
+    def _capture(self, mesh: trimesh.Trimesh) -> str:
+        import base64, io
+        scene = mesh.scene()
+        png = scene.save_image(resolution=(512, 512))
+        return base64.b64encode(png).decode()
+```
+
+---
+
+## III. Multi-Modal LLM Inspector
+
+### 3.1 Structured Inspection Protocol
+
+The AI critic receives: (a) the render snapshot, (b) the metric vector, (c) the stage name. It returns a structured JSON verdict:
+
+```python
 import json
+import anthropic
 
-class VisualAIDebugger:  
-    """PhD Level: Automated Vision-in-the-Loop Orchestrator."""  
-      
-    def capture\_viewport\_state(self, step\_id):  
-        \# 1\. Capture the 3D state as a 2D Projection (Vision input)  
-        \# Using a headless GL renderer to get the 'Visual Signal'  
-        screenshot\_path \= f"debug\_frame\_{step\_id}.png"  
-        render\_current\_buffer(screenshot\_path)  
-        return screenshot\_path
+SYSTEM = """\
+You are an expert 3D geometry debugging agent.
+Given a render snapshot and pipeline metrics, classify the primary error class and prescribe a
+concrete repair action. Respond ONLY with valid JSON matching the schema:
+{"error_class": "G1|G2|G3|G4|NONE",
+ "severity": "low|medium|high",
+ "repair_call": "<Python function call string>",
+ "confidence": <0.0-1.0>}"""
 
-    def get\_system\_telemetry(self):  
-        \# 2\. Capture the 'C-API' state (Mathematical input)  
-        return {  
-            "eigenvalues": get\_laplacian\_spectrum(),  
-            "mem\_usage": get\_asan\_report(),  
-            "stack\_trace": get\_interleaved\_stack()  
-        }
+def inspect_stage(
+    stage: str,
+    metrics: dict,
+    snapshot_b64: str,
+    client: anthropic.Anthropic,
+) -> dict:
+    msg = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=256,
+        system=SYSTEM,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {"type": "base64",
+                 "media_type": "image/png", "data": snapshot_b64}},
+                {"type": "text", "text": f"Stage: {stage}\nMetrics: {json.dumps(metrics)}"},
+            ],
+        }],
+    )
+    return json.loads(msg.content[0].text)
+```
 
-    def query\_ai\_agent(self, image\_path, telemetry):  
-        """  
-        Claude Sonnet 4.6 (Visual Reasoning):  
-        Analyses the image for geometric artifacts (e.g. UV stretching)  
-        and correlates it with the 'Shape DNA' telemetry.  
-        """  
-        analysis \= claude.analyze\_visual\_state(image=image\_path, data=telemetry)  
-        return analysis\["next\_debugger\_command"\]
+---
 
-\# Example: AI detects a texture pinch on the POCO X6 camera island  
-\# AI Command: "set alpha\_parameter \= 0.85; continue"
+## IV. Formal Verification Layer
 
-## ---
+### 4.1 Invariant Assertions
 
-**III. Advanced Methodology: Differential Visual Debugging**
+Each pipeline stage has formally specified invariants checked post-mutation:
 
-At a doctoral level, the AI shouldn't just look at one image. It should perform **Temporal and Spatial Differentiation**.
+```python
+from typing import NamedTuple
 
-### **1\. The "A/B" Visual Diff**
+class StageInvariant(NamedTuple):
+    metric: str
+    op: str         # "<", "<=", "==", ">=", ">"
+    threshold: float
 
-The AI compares the visual state of the **Current Toolpath (G-Code)** against the **Original CAD**.
+STAGE_INVARIANTS: dict[str, list[StageInvariant]] = {
+    "unwrap": [
+        StageInvariant("mean_E_D", "<", 2.5),
+        StageInvariant("winding_errors", "==", 0.0),
+    ],
+    "pack": [
+        StageInvariant("texel_density_CV", "<", 0.3),
+        StageInvariant("island_margin_px", ">=", 4.0),
+    ],
+    "export": [
+        StageInvariant("mean_E_D", "<", 2.0),
+        StageInvariant("seam_E_N", "<", 0.1),
+    ],
+}
 
-* **Heatmap Analysis**: The AI analyzes a "Deviation Map" (where color indicates distance). If the AI sees "Red" on the POCO X6 fillets, it knows the C++ kernel's rounding\_algorithm is under-compensating.
+def verify_invariants(stage: str, metrics: dict) -> list[str]:
+    """Return list of violated invariant descriptions."""
+    violations = []
+    for inv in STAGE_INVARIANTS.get(stage, []):
+        v = metrics.get(inv.metric, 0.0)
+        ops = {"<": v < inv.threshold, "<=": v <= inv.threshold,
+               "==": v == inv.threshold, ">=": v >= inv.threshold, ">": v > inv.threshold}
+        if not ops[inv.op]:
+            violations.append(f"{inv.metric} {inv.op} {inv.threshold} (got {v:.4f})")
+    return violations
+```
 
-### **2\. Semantic Breakpoints**
+---
 
-Instead of breaking at "Line 45," the AI sets a breakpoint at **"Geometric Discontinuity."**
+## V. Orchestration Loop
 
-* **Logic**: "Pause execution when the Hausdorff distance exceeds 0.05mm and send me the vertex buffer for visual inspection."
+```python
+def orchestrated_debug_run(
+    mesh: trimesh.Trimesh,
+    pipeline_stages: list[tuple[str, callable]],
+    critic,
+    max_retries: int = 3,
+) -> trimesh.Trimesh:
+    inspector = PipelineInspector(critic)
+    for stage_name, stage_fn in pipeline_stages:
+        for attempt in range(max_retries):
+            with inspector.stage(stage_name, mesh):
+                mesh = stage_fn(mesh)
+            violations = verify_invariants(stage_name, inspector.history[-1]["metrics"])
+            if not violations:
+                break
+            repair = inspector.history[-1]["verdict"].get("repair_call", "")
+            if repair:
+                eval(repair, {"mesh": mesh})  # execute repair in mesh scope
+    return mesh
+```
 
-## ---
+---
 
-**IV. Core Bibliography: AI-Driven Metrology**
+## References
 
-| Resource | Domain | PhD Concept |
-| :---- | :---- | :---- |
-| **Vaswani et al. (2017)** | [Attention is All You Need](https://arxiv.org/abs/1706.03762) | Foundation of Multimodal reasoning. |
-| **Reuter (2006)** | [Spectral Shape DNA](https://www.google.com/search?q=https://reuter.mit.edu/papers/reuter-sig06.pdf) | Providing 'Shape Context' to the AI. |
-| **Google Research** | [Visual Question Answering (VQA)](https://visualqa.org/) | Training AI to identify "bad geometry." |
-| **Microsoft** | [Copilot for Systems Programming](https://github.com/features/copilot) | Context-aware code generation and fix suggestions. |
-
-## ---
-
-**V. The "Perfection" Workflow for AI Debugging**
-
-1. **Instrument**: Add hooks to your C++ code to export .png buffers of the mesh.  
-2. **Contextualize**: Feed the AI the **Shape DNA** alongside the images.  
-3. **Validate**: Have the AI generate the **Hypothesis Test** (e.g., "If I change the LSCM weighting, the stretching at the camera island should decrease").  
-4. **Execute**: Let the AI run the debug\_build.sh we created earlier and parse the **AddressSanitizer** output visually.
-
-**Would you like me to generate a "System Prompt" for Claude Sonnet 3.5/3.7 that specifically instructs it on how to interpret Gaussian Curvature heatmaps for the POCO X6 Pro?**
+- Seshia, S.A. et al. (2018). Formal Specification for Deep Neural Networks. *ATVA 2018.*
+- Doyle, J.C., Francis, B.A. & Tannenbaum, A.R. (1992). *Feedback Control Theory*. Macmillan.
+- Anthropic. (2024). Claude Model Card. Anthropic.com.
+- Sorkine, O. & Alexa, M. (2007). As-Rigid-As-Possible Surface Modeling. *SGP 2007*.

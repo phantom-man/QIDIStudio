@@ -168,7 +168,7 @@ GitHub Copilot (primary)
 
 - A session has produced a confirmed new fact, bug fix, or architectural decision.
 - `reindex_memory` is needed (new docs added to `docs/`, `memory/langsmith_prompt.md` updated).
-- The PreCompact hook fires (automatic — scribe runs without explicit invocation).
+- The Stop hook fires automatically after every agent response (persists to Postgres + GCS LanceDB).
 
 **Scribe writes to LanceDB via `memory_write`**:
 
@@ -277,13 +277,14 @@ Session start
     └─ UserPromptSubmit hook → memory/inject.py → LanceDB manifest injected into my context
 
 During session
-    └─ Any confirmed new fact → manually invoke scribe OR defer to PreCompact
+    └─ Any confirmed new fact → manually invoke scribe OR write a COMPACTION_SUMMARY block
 
-Session end (context approaching limit)
-    └─ PreCompact hook fires automatically:
-           ├─ memory/extract.py  (re-index all docs/memory/*.md to LanceDB)
-           ├─ git add -A && git commit (auto-saves pending changes)
-           └─ Prompt injection: "Save any new learnings you know from this session"
+Session end (every agent response)
+    └─ Stop hook fires automatically:
+           ├─ saves prompt + response to Postgres
+           ├─ memory/extract.py  (re-index all docs/memory/*.md to LanceDB on GCS)
+           ├─ sync_prompts_to_lancedb.py  (pushes Postgres rows to GCS LanceDB)
+           └─ git commit (auto-saves pending changes)
 ```
 
 **What must be saved** (scribe writes these):
