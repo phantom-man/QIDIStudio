@@ -597,10 +597,10 @@ These rules are **mandatory**. Violating them is the #1 performance problem.
 memory, causes silent hangs on long-running processes, loses output on early exit, and
 has caused repeated debugging disasters. It is anathema.
 
-| ❌ FORBIDDEN | ✅ CORRECT replacement |
-|---|---|
-| `command 2>&1 \| Tee-Object out.txt` | `command > out.txt 2>&1; echo 'DONE' >> out.txt` |
-| `cmake ... 2>&1 \| Tee-Object build.txt` | `cmake ... > build.txt 2>&1; echo 'DONE' >> build.txt` |
+| ❌ FORBIDDEN                                  | ✅ CORRECT replacement                                    |
+| --------------------------------------------- | --------------------------------------------------------- |
+| `command 2>&1 \| Tee-Object out.txt`          | `command > out.txt 2>&1; echo 'DONE' >> out.txt`          |
+| `cmake ... 2>&1 \| Tee-Object build.txt`      | `cmake ... > build.txt 2>&1; echo 'DONE' >> build.txt`    |
 | `python script.py 2>&1 \| Tee-Object run.txt` | `python script.py > run.txt 2>&1; echo 'DONE' >> run.txt` |
 
 Then use `read_file` on the output file — never poll the terminal.
