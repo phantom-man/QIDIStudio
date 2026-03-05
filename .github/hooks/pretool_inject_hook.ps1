@@ -86,26 +86,26 @@ try {
         Add-Content -Path $logFile -Value "$ts [PreTool] session log already created this turn — guard OK"
     }
     else {
-        $logGuardMessage = @"
-⛔⛔⛔ MANDATORY PROTOCOL VIOLATION DETECTED ⛔⛔⛔
-You are about to run a tool WITHOUT first creating a session log file.
-This violates the PROMPT EXECUTION PROTOCOL in copilot-instructions.md (Phase 0, Step 0.2).
-
-The transcript shows NO create_file call targeting logs/YYYY-MM-DD_HHMMSS_<slug>.md
-has been made since the current prompt arrived. You have not created the session log yet.
-
-STOP. Your next action MUST be:
-  1. Scan logs/ for OPEN logs: grep '- \[ \]' logs/*.md + '## Status: OPEN'
-     Ask user YES/NO to inherit before continuing.
-  2. Create the log file NOW via create_file:
-       Path:  logs/$today`_<HHMMSS>_<3-6-word-slug>.md
-       (Get time: Get-Date -Format 'HH:mm:ss' then strip colons for filename)
-       Content: canonical template with Task Checklist + ## Status: OPEN
-  3. ONLY THEN run any other tool.
-
-Do NOT proceed with the currently requested tool call first.
-⛔⛔⛔ END MANDATORY PROTOCOL REMINDER ⛔⛔⛔
-"@
+        $logGuardMessage = @(
+            "STOP -- MANDATORY PROTOCOL VIOLATION DETECTED",
+            "You are about to run a tool WITHOUT first creating a session log file.",
+            "This violates the PROMPT EXECUTION PROTOCOL in copilot-instructions.md (Phase 0, Step 0.2).",
+            "",
+            "The transcript shows NO create_file call targeting logs/YYYY-MM-DD_HHMMSS_<slug>.md",
+            "has been made since the current prompt arrived. You have not created the session log yet.",
+            "",
+            "STOP. Your next action MUST be:",
+            "  1. Scan logs/ for OPEN logs (find files with '- [ ]' AND '## Status: OPEN').",
+            "     Ask user YES/NO to inherit before continuing.",
+            "  2. Create the log file NOW via create_file:",
+            "       Path:  logs/${today}_<HHMMSS>_<3-6-word-slug>.md",
+            "       (Get time: Get-Date -Format 'HH:mm:ss' then strip colons for filename)",
+            "       Content: canonical template with Task Checklist + ## Status: OPEN",
+            "  3. ONLY THEN run any other tool.",
+            "",
+            "Do NOT proceed with the currently requested tool call first.",
+            "STOP -- END MANDATORY PROTOCOL REMINDER"
+        ) -join "`n"
         Add-Content -Path $logFile -Value "$ts [PreTool] NO session log this turn — log guard triggered"
     }
 }

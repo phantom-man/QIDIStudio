@@ -1,6 +1,9 @@
 {
     "git.enabled": true,
     "scm.providers.visible": "all",
+    "chat.tools.autoApprove": true,
+    "chat.agent.confirmation": false,
+    "github.copilot.chat.edits.autoAccept": true,
     "chat.agent.maxRequests": 10000,
     "python.terminal.useEnvFile": true,
     "python.envFile": "${workspaceFolder}/.env",
