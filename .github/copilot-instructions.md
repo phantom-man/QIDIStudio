@@ -22,7 +22,7 @@
 | 10  | GCS buckets             | `qidistudio-lancedb`, `qidistudio-filaments` listable                                                                      | ADC                                          |
 | 11  | Firestore               | write + read probe document under `_startup_check/probe`                                                                   | ADC                                          |
 | 12  | BigQuery                | dataset `qidistudio_research` accessible                                                                                   | ADC                                          |
-| 13  | External APIs           | Tavily search · GitHub rate-limit · HuggingFace whoami                                                                     | `TAVILY_API_KEY`, `GITHUB_TOKEN`, `HF_TOKEN` |
+| 13  | External APIs           | Google Search (Gemini grounded) · GitHub rate-limit · HuggingFace whoami                                                   | `GOOGLE_API_KEY`, `GITHUB_TOKEN`, `HF_TOKEN` |
 | 14  | Pipeline imports        | every entry-point in `docs/KNOWN_PIPELINES.md` importable                                                                  | `agents/`, `scripts/`, `GCodeRefiner/`       |
 | 15  | Memory inject           | `memory/inject.py --query "test"` returns LanceDB results                                                                  | `memory_env` + LanceDB                       |
 

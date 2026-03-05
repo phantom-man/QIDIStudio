@@ -140,7 +140,6 @@ def check_env_vars() -> None:
         "GOOGLE_API_KEY": "Direct Gemini API key (non-ADC fallback)",
         "PG_DSN": "PostgreSQL connection string",
         "LANCEDB_PATH": "gs://qidistudio-lancedb/lancedb",
-        "TAVILY_API_KEY": "Tavily web search",
         "HF_TOKEN": "HuggingFace (sentence-transformers)",
         "GITHUB_TOKEN": "GitHub API (slicer harvester)",
     }
@@ -657,21 +656,28 @@ print('DATASETS:', ','.join(datasets))
 
 
 def check_external_apis() -> None:
-    """Verify Tavily, GitHub, and HuggingFace tokens are valid."""
-    # Tavily
-    code_tavily = """
+    """Verify Google Search (Gemini grounded), GitHub, and HuggingFace tokens are valid."""
+    # Google Search via Gemini grounding — uses GOOGLE_API_KEY, no CSE ID needed
+    code_google_search = """
 import sys, os
 sys.path.insert(0, '.')
 from dotenv import load_dotenv
 load_dotenv('.env')
-from tavily import TavilyClient
-c = TavilyClient(api_key=os.environ['TAVILY_API_KEY'])
-r = c.search('3D printing nozzle', max_results=1)
-print('OK Tavily results:', len(r.get('results', [])))
+from google import genai
+from google.genai import types
+client = genai.Client(api_key=os.environ['GOOGLE_API_KEY'])
+response = client.models.generate_content(
+    model='gemini-2.0-flash',
+    contents='What is PLA filament? Reply in one sentence.',
+    config=types.GenerateContentConfig(
+        tools=[types.Tool(google_search=types.GoogleSearch())]
+    ),
+)
+print('OK Google Search grounded:', len(response.text), 'chars')
 """
-    ok, out = _run_py("memory_env", code_tavily, timeout=30)
+    ok, out = _run_py("memory_env", code_google_search, timeout=30)
     _record(
-        "external_api:tavily",
+        "external_api:google_search",
         ok,
         out.strip().split("\n")[-1] if out.strip() else "No response",
     )
@@ -925,7 +931,7 @@ def main() -> int:
         )
         check_bigquery()
 
-        print("\n── 12. External APIs (Tavily, GitHub, HuggingFace) ──────────────────")
+        print("\n── 12. External APIs (Google Search, GitHub, HuggingFace) ───────────")
         check_external_apis()
 
     print("\n── 13. Pipeline Imports ──────────────────────────────────────────────")
