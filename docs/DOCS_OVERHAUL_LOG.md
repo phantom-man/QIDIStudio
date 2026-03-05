@@ -84,8 +84,8 @@ See "Phase 5 — Individual Document Status" section below.
 
 ### Phase 6 — LanceDB (all docs)
 
-- [ ] Delete all old entries
-- [ ] Re-index all via `memory/extract.py`
+- [x] Delete all old entries — **done 2026-06-09 (replace_all=True in batch_upsert)**
+- [x] Re-index all via `memory/extract.py` — **done 2026-06-09: 534 rows indexed, 606 total in store (72 agent-sourced rows preserved)**
 
 ### Phase 7 — KNOWLEDGE.md Final Audit
 
@@ -126,7 +126,7 @@ See "Phase 5 — Individual Document Status" section below.
 | `Computational Metrology for Phone Chassis.md`              | ☐ pending | GD&T, ISO 1101                         |
 | `Computational Metrology PhD Manuscript.md`                 | ☐ pending | Feature extraction, NURBS              |
 | `CPP_MODERNIZATION_SCORE.md`                                | ☐ pending | C++23 modernization                    |
-| `Cylindrical Texturing for 3D Models.md`                    | ☐ pending | Cylinder UV math                       |
+| `Cylindrical Texturing for 3D Models.md`                    | ✓ done    | Cylinder UV math                       |
 | `Debugging C++ and Python Systems.md`                       | ☐ pending | Sanitizers, rr, py-spy                 |
 | `DESKTOP_COMMANDER_MCP.md`                                  | ☐ pending | MCP protocol                           |
 | `Directing LLMs_ Advanced Techniques.md`                    | ☐ pending | Constitutional AI, DSPy                |
