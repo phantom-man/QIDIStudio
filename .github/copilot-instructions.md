@@ -25,26 +25,26 @@ Look above — you should see `━━━ QIDISTUDIO KNOWLEDGE BASE ━━━`.
 
 > All memory commands use the **universal memory venv**: `memory_env\Scripts\python.exe`
 
-| Purpose                              | Command                                                                     |
-| ------------------------------------ | --------------------------------------------------------------------------- |
-| Compact manifest (all topics)        | `memory_env\Scripts\python.exe memory/inject.py`                            |
-| Full text dump (everything verbatim) | `memory_env\Scripts\python.exe memory/inject.py --full`                     |
-| Semantic search                      | `memory_env\Scripts\python.exe memory/inject.py --query "cmake build"`      |
-| Re-index docs to LanceDB             | `memory_env\Scripts\python.exe memory/extract.py`                           |
-| Prompt/response daily stats          | `memory_env\Scripts\python.exe memory/prompt_store.py --daily-stats`        |
-| Unsynced pairs (pending LanceDB)     | `memory_env\Scripts\python.exe memory/prompt_store.py --unsynced`           |
-| Run 30-min LanceDB sync manually     | `memory_env\Scripts\python.exe memory/sync_prompts_to_lancedb.py`           |
-| Run daily LanceDB dedup manually     | `memory_env\Scripts\python.exe memory/daily_lancedb_dedupe.py`              |
-| Push prompt to LangSmith Hub         | `memory_env\Scripts\python.exe memory/push_prompt.py`                       |
-| Push ALL agent prompts to Hub        | `memory_env\Scripts\python.exe agents/push_all_prompts.py`                  |
-| Re-install deps                      | `.\memory_env\Scripts\python.exe -m pip install -r memory\requirements.txt` |
-| Run agent fleet                      | `memory_env\Scripts\python.exe agents/orchestrator.py "your request"`       |
-| List recent fleet runs               | `memory_env\Scripts\python.exe -m agents.run_store`                         |
-| Structured log (agents + rows)       | `memory_env\Scripts\python.exe -m agents.run_store --log`                   |
-| Latest run drilldown (per-agent)     | `memory_env\Scripts\python.exe -m agents.run_store --latest-detail`         |
-| Show latest run result               | `memory_env\Scripts\python.exe -m agents.run_store --latest`                |
-| Show specific run                    | `memory_env\Scripts\python.exe -m agents.run_store -r <run_id>`             |
-| Filter by fleet                      | `memory_env\Scripts\python.exe -m agents.run_store -f dev_fleet -n 5`       |
+| Purpose                                 | Command                                                                     |
+| --------------------------------------- | --------------------------------------------------------------------------- |
+| Compact manifest (all topics)           | `memory_env\Scripts\python.exe memory/inject.py`                            |
+| Full text dump (everything verbatim)    | `memory_env\Scripts\python.exe memory/inject.py --full`                     |
+| Semantic search                         | `memory_env\Scripts\python.exe memory/inject.py --query "cmake build"`      |
+| Re-index docs to LanceDB                | `memory_env\Scripts\python.exe memory/extract.py`                           |
+| Prompt/response daily stats             | `memory_env\Scripts\python.exe memory/prompt_store.py --daily-stats`        |
+| Unsynced pairs (pending LanceDB)        | `memory_env\Scripts\python.exe memory/prompt_store.py --unsynced`           |
+| Sync prompts→LanceDB (now in Stop hook) | `memory_env\Scripts\python.exe memory/sync_prompts_to_lancedb.py`           |
+| Run daily LanceDB dedup manually        | `memory_env\Scripts\python.exe memory/daily_lancedb_dedupe.py`              |
+| Push prompt to LangSmith Hub            | `memory_env\Scripts\python.exe memory/push_prompt.py`                       |
+| Push ALL agent prompts to Hub           | `memory_env\Scripts\python.exe agents/push_all_prompts.py`                  |
+| Re-install deps                         | `.\memory_env\Scripts\python.exe -m pip install -r memory\requirements.txt` |
+| Run agent fleet                         | `memory_env\Scripts\python.exe agents/orchestrator.py "your request"`       |
+| List recent fleet runs                  | `memory_env\Scripts\python.exe -m agents.run_store`                         |
+| Structured log (agents + rows)          | `memory_env\Scripts\python.exe -m agents.run_store --log`                   |
+| Latest run drilldown (per-agent)        | `memory_env\Scripts\python.exe -m agents.run_store --latest-detail`         |
+| Show latest run result                  | `memory_env\Scripts\python.exe -m agents.run_store --latest`                |
+| Show specific run                       | `memory_env\Scripts\python.exe -m agents.run_store -r <run_id>`             |
+| Filter by fleet                         | `memory_env\Scripts\python.exe -m agents.run_store -f dev_fleet -n 5`       |
 
 ---
 
