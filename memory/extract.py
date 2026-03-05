@@ -492,6 +492,24 @@ def main() -> None:
     print()
 
     all_rows: list[dict] = []
+
+    # ── Docs directory: index ALL .md files (PhD-level reference library) ──────
+    # Excluded: QIDISTUDIO_KNOWLEDGE.md (handled separately), DOCS_OVERHAUL_LOG.md
+    # (internal maintenance doc), and anything under docs/private/.
+    _DOCS_DIR = REPO_ROOT / "docs"
+    _DOCS_EXCLUDE = {
+        "QIDISTUDIO_KNOWLEDGE.md",
+        "DOCS_OVERHAUL_LOG.md",
+    }
+    docs_md_files: list[Path] = sorted(
+        f for f in _DOCS_DIR.glob("*.md") if f.name not in _DOCS_EXCLUDE
+    )
+    for doc_path in docs_md_files:
+        doc_prefix = f"docs/{doc_path.stem}"
+        doc_chunks = extract_sections(doc_path, doc_prefix)
+        print(f"  {doc_path.name:<45} sections : {len(doc_chunks)}")
+        all_rows.extend(doc_chunks)
+
     sources = [
         (REPO_ROOT / ".github" / "copilot-instructions.md", "copilot-instructions"),
         (REPO_ROOT / "docs" / "QIDISTUDIO_KNOWLEDGE.md", "knowledge-doc"),

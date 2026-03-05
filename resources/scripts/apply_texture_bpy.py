@@ -1659,6 +1659,91 @@ def _render_checkerboard_diagnostic(obj, output_png: str, log: "Logger | None") 
         return False
 
 
+def _render_texture_preview(obj, output_png: str, log: "Logger | None") -> bool:
+    """Render the actual textured mesh from a 3/4 isometric perspective camera.
+
+    Shows the real applied skin material (not the heatmap or checkerboard
+    overlay), making the render suitable for visual beauty critique by the
+    vision agent (Gemini 2.5 Pro multimodal).
+
+    Camera: 45° azimuth, 35° elevation, 2× span distance — standard
+    industrial isometric presentation view (ASME Y14.100 §6).
+
+    Resolution: 1024×1024 PNG, EEVEE renderer.
+    Returns True on success, False on any error (never raises).
+    """
+    import math as _math
+
+    try:
+        verts_list = [v.co for v in obj.data.vertices]
+        xs = [v.x for v in verts_list]
+        ys = [v.y for v in verts_list]
+        zs = [v.z for v in verts_list]
+        cx = (min(xs) + max(xs)) * 0.5
+        cy = (min(ys) + max(ys)) * 0.5
+        cz = (min(zs) + max(zs)) * 0.5
+        span = max(max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs), 1.0)
+
+        # 3/4 isometric offset: 45° azimuth, 35° elevation
+        dist = span * 2.0
+        az = _math.radians(45)
+        el = _math.radians(35)
+        cam_x = cx + dist * _math.cos(el) * _math.cos(az)
+        cam_y = cy + dist * _math.cos(el) * _math.sin(az)
+        cam_z = cz + dist * _math.sin(el)
+
+        import mathutils as _mu
+
+        cam_data = bpy.data.cameras.new("__prev_cam__")
+        cam_data.type = "PERSP"
+        cam_data.lens = 50.0
+        cam_obj = bpy.data.objects.new("__prev_cam__", cam_data)
+        bpy.context.collection.objects.link(cam_obj)
+        cam_obj.location = (cam_x, cam_y, cam_z)
+        direction = _mu.Vector((cx - cam_x, cy - cam_y, cz - cam_z))
+        cam_obj.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+        prev_cam = bpy.context.scene.camera
+        bpy.context.scene.camera = cam_obj
+
+        scn = bpy.context.scene
+        prev_engine = scn.render.engine
+        prev_path = scn.render.filepath
+        prev_format = scn.render.image_settings.file_format
+        prev_rx, prev_ry = scn.render.resolution_x, scn.render.resolution_y
+
+        try:
+            scn.render.engine = "BLENDER_EEVEE_NEXT"
+        except Exception:
+            scn.render.engine = "BLENDER_EEVEE"
+        scn.render.filepath = output_png
+        scn.render.image_settings.file_format = "PNG"
+        scn.render.resolution_x = 1024
+        scn.render.resolution_y = 1024
+        scn.render.film_transparent = False
+
+        os.makedirs(os.path.dirname(output_png) or ".", exist_ok=True)
+        bpy.ops.render.render(write_still=True)
+
+        # Restore render settings
+        scn.render.engine = prev_engine
+        scn.render.filepath = prev_path
+        scn.render.image_settings.file_format = prev_format
+        scn.render.resolution_x = prev_rx
+        scn.render.resolution_y = prev_ry
+        bpy.context.scene.camera = prev_cam
+        bpy.data.cameras.remove(cam_data)
+        bpy.data.objects.remove(cam_obj)
+
+        if log:
+            log.log(f"  [debug] texture preview render \u2192 {output_png}")
+        return True
+
+    except Exception as _e:
+        if log:
+            log.log(f"  [debug] texture preview render failed: {_e}")
+        return False
+
+
 def _calculate_uv_stretch_metrics(
     obj, log: "Logger | None", exclude_axial_frac: "float | None" = None
 ) -> dict:
@@ -1853,6 +1938,12 @@ def _export_debug_snapshot(
             checker_path = os.path.join(snap_dir, f"checker_{stage}.png")
             if _render_checkerboard_diagnostic(obj, checker_path, log):
                 record["checker_png"] = checker_path
+            # Texture preview: 3/4 isometric render of actual skin material.
+            # Rendered once (post_displace stage only) for the vision beauty agent.
+            if stage == "post_displace":
+                preview_path = os.path.join(snap_dir, "preview_post_displace.png")
+                if _render_texture_preview(obj, preview_path, log):
+                    record["preview_png"] = preview_path
 
         # UV stretch metrics: computed at post_displace whenever a UV layer exists.
         # This is the primary metric signal read by scripts/ai_texture_critic.py.
@@ -1885,6 +1976,52 @@ def _export_debug_snapshot(
     except Exception as _e:
         if log:
             log.log(f"  [debug-snapshot:{stage}] ERROR: {_e}")
+
+
+def _mesh_is_conical(obj, taper_threshold: float = 0.20) -> bool:
+    """Return True if a REVOLUTION mesh has significant cone/taper sections.
+
+    Splits the mesh Z-range into bottom and top halves and computes the XY
+    bounding-circle radius for each half.  If the radii differ by more than
+    *taper_threshold* (default 20 %), the mesh is considered conical and
+    cylinder projection should be avoided (falls back to LSCM).
+
+    True for:  tapered nozzles, frustums, stepped cones, vacuum_nozzle_lower.
+    False for: ideal cylinders, bottles with small endcap variation.
+
+    Complexity: O(V) — runs on the raw vertex list, no bmesh conversion needed.
+    """
+    vertices = obj.data.vertices
+    if not vertices:
+        return False
+
+    z_coords = [v.co.z for v in vertices]
+    z_min, z_max = min(z_coords), max(z_coords)
+    if z_max - z_min < 1e-6:
+        return False  # degenerate flat mesh
+
+    z_mid = (z_min + z_max) / 2.0
+
+    def _half_radius(z_lo: float, z_hi: float) -> float:
+        pts = [v.co for v in vertices if z_lo <= v.co.z <= z_hi]
+        if not pts:
+            return 0.0
+        xs = [p.x for p in pts]
+        ys = [p.y for p in pts]
+        cx = (max(xs) + min(xs)) / 2.0
+        cy = (max(ys) + min(ys)) / 2.0
+        return max(((p.x - cx) ** 2 + (p.y - cy) ** 2) ** 0.5 for p in pts)
+
+    r_bottom = _half_radius(z_min, z_mid)
+    r_top = _half_radius(z_mid, z_max)
+
+    if r_bottom < 1e-6 or r_top < 1e-6:
+        return False  # degenerate half — cannot determine taper
+
+    r_larger = max(r_bottom, r_top)
+    r_smaller = min(r_bottom, r_top)
+    taper_ratio = (r_larger - r_smaller) / r_larger
+    return taper_ratio > taper_threshold
 
 
 def _apply_displacement_blender(
@@ -2002,7 +2139,21 @@ def _apply_displacement_blender(
                 # distorted by cylinder_project — UV stretch metrics at
                 # post_displace filter those faces out (exclude_axial_frac=0.8)
                 # so the reported high_energy_frac reflects wall quality only.
+                #
+                # CONE/TAPER FIX (PhD §23.10 / E_D=230 bug):
+                # cylinder_project applied to tapered/conical frustum sections
+                # produces degenerate UV triangles (near-zero UV area for
+                # intermediate-Z faces) → s_i = a3_i * total_uv / (au_i *
+                # total_3d) → ∞.  Detect cone taper and fall back to LSCM.
+                # See: docs/DOCS_OVERHAUL_LOG.md Phase 4 analysis.
                 projection = "cylinder"
+                if _mesh_is_conical(obj):
+                    projection = "lscm"
+                    log.log(
+                        "  UV: REVOLUTION conical taper detected — falling back "
+                        "to LSCM (cylinder_project produces degenerate UV on "
+                        "frustum sections, causing E_D spike)"
+                    )
                 seam_angle_rad = sig.seam_angle_rad  # 30° (logged only)
                 full_surface = True
             case MeshClass.ORGANIC:

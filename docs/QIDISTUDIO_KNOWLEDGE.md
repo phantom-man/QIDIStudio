@@ -1,6 +1,6 @@
 # QIDIStudio — Complete Engineering Knowledge Base
 
-_Maintained by: GitHub Copilot | Last updated: 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, \_DebugSession, ai_debug_pipeline.py, §15.14) + 2026-02-28 (§18: PhD Cognitive Architecture — full absorption of PSV loop, System 1/2 thinking, HAVEN, Lean 4, cross-domain isomorphisms, applied to all pipelines) + 2026-02-28 (§19: Computational Aesthetics — Fourier symmetry score, spectral entropy, Leder B(s,σ) model, Golden Zone, skin FFT tile refinement, ai_beauty_scorer.py) + 2025 (§20: 3D Viewer PhD code review — Gouraud/PBR/gamma/lights/FXAA/SSAO/shadow deficiencies catalogued; full report docs/3D_Viewer_Code_Review_Report.md) + 2026-02-28 (§21: C++ Modernization Scorecard — PhD-level tech stack audit, 43/100 baseline score, full action plan; full report docs/CPP_MODERNIZATION_SCORE.md) + 2026-02-28 (§21 update: P1+P2 implemented — C++20 global, CMakePresets.json, .clang-tidy, std::jthread, noexcept move ctors, GLResource.hpp RAII, [[nodiscard]] on parse/IO, #pragma once pilot; score 43→54/100)_
+_Maintained by: GitHub Copilot | Last updated: 2026-06-09 (§23: PhD-Level Texture & ML Reference — Cook-Torrance BRDF, PBR channel specs, GPU compression codecs, EWA filtering, Vulkan layout transitions, xAtlas density, OIIO/OCIO, LangGraph typed state + reducers + checkpointing, torch.compile/Inductor, CPG Fiedler λ₂ + structural controllability; docs overhaul started) + 2026-02-28 (§21 update: P1+P2 implemented — C++20 global, CMakePresets.json, .clang-tidy, std::jthread, noexcept move ctors, GLResource.hpp RAII, [[nodiscard]] on parse/IO, #pragma once pilot; score 43→54/100) + 2026-02-27 (Blender pipeline: vertex group, fail-fast, CAD topology fix, mid_level=0.0, Blender 4.1 API changes) + 2026-02-27 (computational metrology: conformal UV, spectral Shape DNA, libigl, robust_laplacian, trimesh) + 2026-02-28 (topology classifier: MeshClass enum, match/case dispatch, euler characteristic, spectral DNA) + 2026-02-28 (dev workflow: NTFS junction single-source-of-truth, run_texture_pipeline.ps1) + 2026-02-28 (PhD architecture guide, hybrid C++/Python debugging workflow absorbed) + 2026-02-28 (ViL debug harness: --debug-snapshots, \_DebugSession, ai_debug_pipeline.py, §15.14) + 2026-02-28 (§18: PhD Cognitive Architecture — full absorption of PSV loop, System 1/2 thinking, HAVEN, Lean 4, cross-domain isomorphisms, applied to all pipelines) + 2026-02-28 (§19: Computational Aesthetics — Fourier symmetry score, spectral entropy, Leder B(s,σ) model, Golden Zone, skin FFT tile refinement, ai_beauty_scorer.py) + 2025 (§20: 3D Viewer PhD code review — Gouraud/PBR/gamma/lights/FXAA/SSAO/shadow deficiencies catalogued; full report docs/3D_Viewer_Code_Review_Report.md) + 2026-02-28 (§21: C++ Modernization Scorecard — PhD-level tech stack audit, 43/100 baseline score, full action plan; full report docs/CPP_MODERNIZATION_SCORE.md) + 2026-02-28 (§21 update: P1+P2 implemented — C++20 global, CMakePresets.json, .clang-tidy, std::jthread, noexcept move ctors, GLResource.hpp RAII, [[nodiscard]] on parse/IO, #pragma once pilot; score 43→54/100)_
 
 This document captures all reverse-engineered knowledge about QIDIStudio's source code,
 build system, configuration, and 3MF format. It serves as the single source of truth
@@ -23,7 +23,16 @@ for anyone working on the phantom-man/QIDIStudio fork.
 11. [Known Bugs & Workarounds](#11-known-bugs--workarounds)
 12. [GCode Post-Processing Integration](#12-gcode-post-processing-integration)
 13. [Our Modifications vs Upstream](#13-our-modifications-vs-upstream)
-14. [§21 C++ Modernization Scorecard](#21-c-modernization-scorecard)
+14. [Development Tooling & Memory System](#14-development-tooling--memory-system)
+15. [Computational Metrology & Geometry Processing](#15-computational-metrology--geometry-processing)
+16. [§16 PhD Knowledge Acquisition Pipeline](#16-phd-knowledge-acquisition-pipeline)
+17. [§17 OCP CAD Viewer Integration](#17-ocp-cad-viewer-integration)
+18. [§18 PhD-Level Cognitive Architecture](#18-phd-level-cognitive-architecture--applied-to-every-pipeline)
+19. [§19 PhD-Level Computational Aesthetics](#19-phd-level-computational-aesthetics--beauty-scoring-for-textures)
+20. [§20 3D Viewer Rendering Architecture](#20-3d-viewer-rendering-architecture--phd-level-analysis)
+21. [§21 C++ Modernization Scorecard](#21-c-modernization-scorecard)
+22. [§22 Nexus Workshop — Product Sites & Infrastructure](#22-nexus-workshop--product-sites--infrastructure)
+23. [§23 PhD-Level Texture & ML Reference](#23-phd-level-texture--ml-reference--absorbed-from-docs-overhaul)
 
 ---
 
@@ -854,10 +863,12 @@ Session knowledge is stored in a GCS-backed LanceDB vector DB at `gs://qidistudi
 
 ### Hooks Architecture
 
-| Hook             | File                                   | What it does                                                      |
-| ---------------- | -------------------------------------- | ----------------------------------------------------------------- |
-| UserPromptSubmit | `.github/hooks/prompt_submit_hook.ps1` | Calls `memory/inject.py`; outputs manifest as `additionalContext` |
-| PreCompact       | `.github/hooks/precompact_hook.ps1`    | Outputs "Save This Protocol" JSON instruction to agent            |
+| Hook             | File                                    | What it does                                                                         |
+| ---------------- | --------------------------------------- | ------------------------------------------------------------------------------------ |
+| UserPromptSubmit | `.github/hooks/prompt_submit_hook.ps1`  | Calls `memory/inject.py`; outputs manifest as `additionalContext`                    |
+| Stop             | `.github/hooks/stop_hook.ps1`           | Saves to Postgres, runs extract.py, syncs GCS LanceDB, git commits                   |
+| UserPromptSubmit | `.github/hooks/prompt_submit_hook.ps1`  | Runs Predator (context pruner) + inject.py --prompt-file (semantic memory injection) |
+| _PreCompact_     | ~~`.github/hooks/precompact_hook.ps1`~~ | _Event removed in VS Code 1.109+ — file kept for reference only_                     |
 
 **Critical**: Hook shell commands are NOT visible to the agent. Only the JSON `additionalContext` output reaches the agent. All file writes must be done by the agent itself, not the hook script.
 
@@ -2965,14 +2976,15 @@ Three product site domains bundled as **Nexus Workshop** (planned VS Code extens
 
 ### 22.1 Firebase Hosting
 
-| Firebase Site ID       | Default URL                           | Local folder             | Custom domain               |
-| ---------------------- | ------------------------------------- | ------------------------ | --------------------------- |
-| `nexuicer`             | https://nexuicer.web.app              | `sites/nexusslicer/`     | `nexusslicer.com`           |
-| `nexuicer-desktop`     | https://nexuicer-desktop.web.app      | `sites/nexusslicer-desktop/` | `desktop.nexusslicer.com` |
-| `nexusmill-app`        | https://nexusmill-app.web.app         | `sites/nexusmill/`       | `nexusmill.com`             |
-| `nexusgauge-app`       | https://nexusgauge-app.web.app        | `sites/nexusgauge/`      | `nexusgauge.com`            |
+| Firebase Site ID   | Default URL                      | Local folder                 | Custom domain             |
+| ------------------ | -------------------------------- | ---------------------------- | ------------------------- |
+| `nexuicer`         | https://nexuicer.web.app         | `sites/nexusslicer/`         | `nexusslicer.com`         |
+| `nexuicer-desktop` | https://nexuicer-desktop.web.app | `sites/nexusslicer-desktop/` | `desktop.nexusslicer.com` |
+| `nexusmill-app`    | https://nexusmill-app.web.app    | `sites/nexusmill/`           | `nexusmill.com`           |
+| `nexusgauge-app`   | https://nexusgauge-app.web.app   | `sites/nexusgauge/`          | `nexusgauge.com`          |
 
 **Key facts:**
+
 - **Firebase project ID:** `nexuicer` — Firebase auto-truncated "NexusSlicer" on project creation; this is NOT a typo
 - **Firebase project number:** `457376060296`
 - **Firebase account:** `damienfosborn@gmail.com`
@@ -2980,6 +2992,7 @@ Three product site domains bundled as **Nexus Workshop** (planned VS Code extens
 - Site IDs for mill/gauge use `-app` suffix because Firebase requires site IDs prefixed with the project ID and these names were taken without suffix
 
 **Deploy command (preferred — CLI, not REST API):**
+
 ```powershell
 cd sites
 firebase deploy --only hosting
@@ -2988,6 +3001,7 @@ firebase deploy --only hosting
 REST API deploy (`sites/deploy_all.py`) hangs on the `populateFiles` endpoint — always use the CLI.
 
 **Key config files:**
+
 - `sites/.firebaserc` — project mapping + hosting targets
 - `sites/firebase.json` — 4 hosting targets, cache headers, SPA rewrites
 - `sites/FIREBASE_SETTINGS.md` — full reference (project IDs, site IDs, DNS table, deploy commands)
@@ -2996,19 +3010,20 @@ REST API deploy (`sites/deploy_all.py`) hangs on the `populateFiles` endpoint �
 
 **Required CNAME records (7 total):**
 
-| Zone             | Record name                   | CNAME target                    | Proxied |
-| ---------------- | ----------------------------- | ------------------------------- | ------- |
-| nexusslicer.com  | `nexusslicer.com`             | `nexuicer.web.app`              | No      |
-| nexusslicer.com  | `www.nexusslicer.com`         | `nexuicer.web.app`              | No      |
-| nexusslicer.com  | `desktop.nexusslicer.com`     | `nexuicer-desktop.web.app`      | No      |
-| nexusmill.com    | `nexusmill.com`               | `nexusmill-app.web.app`         | No      |
-| nexusmill.com    | `www.nexusmill.com`           | `nexusmill-app.web.app`         | No      |
-| nexusgauge.com   | `nexusgauge.com`              | `nexusgauge-app.web.app`        | No      |
-| nexusgauge.com   | `www.nexusgauge.com`          | `nexusgauge-app.web.app`        | No      |
+| Zone            | Record name               | CNAME target               | Proxied |
+| --------------- | ------------------------- | -------------------------- | ------- |
+| nexusslicer.com | `nexusslicer.com`         | `nexuicer.web.app`         | No      |
+| nexusslicer.com | `www.nexusslicer.com`     | `nexuicer.web.app`         | No      |
+| nexusslicer.com | `desktop.nexusslicer.com` | `nexuicer-desktop.web.app` | No      |
+| nexusmill.com   | `nexusmill.com`           | `nexusmill-app.web.app`    | No      |
+| nexusmill.com   | `www.nexusmill.com`       | `nexusmill-app.web.app`    | No      |
+| nexusgauge.com  | `nexusgauge.com`          | `nexusgauge-app.web.app`   | No      |
+| nexusgauge.com  | `www.nexusgauge.com`      | `nexusgauge-app.web.app`   | No      |
 
 **`proxied: False` is required** — Firebase must provision its own SSL certificates. Cloudflare proxying (orange cloud) prevents Firebase from seeing the direct CNAME and blocks SSL issuance.
 
 **Automation script:** `sites/cf_dns.py`
+
 - Reads `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_EMAIL` from `.env`
 - Calls `GET /user/tokens/verify` to confirm token is active
 - Tries `GET /zones?per_page=50` then per-name fallback for each domain
@@ -3021,15 +3036,393 @@ REST API deploy (`sites/deploy_all.py`) hangs on the `populateFiles` endpoint �
 ### 22.3 SSL Certificate Provisioning
 
 After adding domains to Cloudflare and pointing nameservers, Firebase needs time to provision SSL certs. While awaiting:
+
 1. Cloudflare records must be DNS-only (grey cloud, `proxied: False`)
 2. Firebase Hosting → Custom Domains → domain shows "Pending" until cert is issued
 3. Once Firebase SSL is active, can optionally re-enable Cloudflare proxying for DDoS protection, but NOT required
 
 ### 22.4 Site Design
 
-| Site            | Theme color | Type    | Status |
-| --------------- | ----------- | ------- | ------ |
-| NexusSlicer     | Dark purple | Full    | Live   |
-| NexusSlicer Desktop | Blue    | Full    | Live   |
-| NexusMill       | Amber       | Teaser  | Live   |
-| NexusGauge      | Teal        | Teaser  | Live   |
+| Site                | Theme color | Type   | Status |
+| ------------------- | ----------- | ------ | ------ |
+| NexusSlicer         | Dark purple | Full   | Live   |
+| NexusSlicer Desktop | Blue        | Full   | Live   |
+| NexusMill           | Amber       | Teaser | Live   |
+| NexusGauge          | Teal        | Teaser | Live   |
+
+---
+
+## §23 PhD-Level Texture & ML Reference — Absorbed from Docs Overhaul
+
+_Absorbed: 2026-06-09. Sources: `docs/PhD-Level Texture Application in 3D.md`, `docs/PhD-Level 3D Texturing with Libraries.md`, `docs/PyTorch, LangChain, and Cyber-Physical Graphs.md`._
+
+---
+
+### §23.1 Cook-Torrance BRDF — Mathematical Foundation
+
+The physically-based rendering (PBR) pipeline centres on the **Cook-Torrance microfacet BRDF**:
+
+$$f_r(\mathbf{l}, \mathbf{v}) = \frac{D(\mathbf{h})\, G(\mathbf{l}, \mathbf{v})\, F(\mathbf{v}, \mathbf{h})}{4\,(\mathbf{n} \cdot \mathbf{l})\,(\mathbf{n} \cdot \mathbf{v})}$$
+
+where $\mathbf{h} = \text{normalize}(\mathbf{l} + \mathbf{v})$ is the half-vector.
+
+**D — GGX Normal Distribution Function (NDF):**
+
+$$D_{\text{GGX}}(\mathbf{h}) = \frac{\alpha^2}{\pi \left[(\mathbf{n} \cdot \mathbf{h})^2(\alpha^2 - 1) + 1\right]^2}$$
+
+$\alpha = \text{roughness}^2$. GGX produces the characteristic "hot" specular core with a long tail vs. Blinn-Phong.
+
+**G — Smith Geometry / Masking-Shadowing:**
+
+$$G(\mathbf{l}, \mathbf{v}) = G_1(\mathbf{l})\, G_1(\mathbf{v}), \quad G_1(\mathbf{x}) = \frac{\mathbf{n} \cdot \mathbf{x}}{(\mathbf{n} \cdot \mathbf{x})(1 - k) + k}$$
+
+Remapping $k = \alpha/2$ (IBL) or $k = (\text{roughness}+1)^2/8$ (direct lighting).
+
+**F — Schlick Fresnel:**
+
+$$F(\mathbf{v}, \mathbf{h}) = F_0 + (1 - F_0)(1 - \mathbf{v} \cdot \mathbf{h})^5$$
+
+$F_0 = 0.04$ for dielectrics; $F_0 = \text{albedo}$ for metals.
+
+**Energy conservation fix (Karis, Epic 2013):** Standard single-scattering GGX loses energy at high roughness because inter-facet bounces are ignored. Filament and Real Shading in Unreal Engine both apply a DFG split-sum normalization: divide specular by a pre-integrated $(D \cdot F \cdot G / (4 \cdot \text{NdotL} \cdot \text{NdotV}))$ look-up table sampled at `(NdotV, roughness)`.
+
+---
+
+### §23.2 PBR Texture Channel Specifications
+
+| Channel                | Color Space | GPU Format                                    | Range                      | Notes                                                                                                                                                  |
+| ---------------------- | ----------- | --------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Albedo / Base Color    | sRGB        | `GL_SRGB8_ALPHA8` / `VK_FORMAT_R8G8B8A8_SRGB` | [0, 1]                     | No lighting baked in. Metals: raw reflectance. Dielectrics: diffuse color, F₀ ~0.04                                                                    |
+| Roughness              | Linear      | `GL_R8` / `BC4_UNORM`                         | [0, 1]                     | **Green channel** in ORM pack. 0 = mirror, 1 = fully diffuse                                                                                           |
+| Metallic               | Linear      | `GL_R8` / `BC4_UNORM`                         | Binary [0,1] or continuous | **Blue channel** in ORM pack. Controls conductor F₀ = albedo                                                                                           |
+| Normal                 | Linear      | `BC5_UNORM` (RG)                              | [-1, 1] → stored [0, 1]    | Tangent-space. RG encodes X/Y; Z reconstructed as $\sqrt{1-r^2-g^2}$. **Never compress normal maps with BC1/BC3** — lossy alpha ruins Z reconstruction |
+| Height / Displacement  | Linear      | `GL_R16F` (16-bit half)                       | Application-specific       | Used for tessellation-based parallax or Blender Displace modifier. 16-bit gives 65 535 discrete depths                                                 |
+| AO (Ambient Occlusion) | Linear      | `GL_R8` / `BC4_UNORM`                         | [0, 1]                     | **Red channel** in ORM pack. Multiplied **only** with indirect (IBL) lighting — never with direct lights                                               |
+| Emissive               | Linear HDR  | `GL_RGB16F` / `BC6H_UF16`                     | [0, ∞)                     | HDR multiplier commonly 2–50× for glow effects. Requires tone mapping                                                                                  |
+
+**ORM packing convention** (Unity HDRP / Three.js): pack Occlusion → R, Roughness → G, Metallic → B in a single `GL_RGB8` texture. Saves 3× sampler slots. Three.js `roughnessMap.g` and `metalnessMap.b` read from the same ORM texture via GLSL channel masking.
+
+**sRGB linearization is mandatory for albedo.** Sampling `GL_SRGB8_ALPHA8` with a hardware sampler auto-linearises on read (gamma 2.2 ≈ sRGB piecewise). Passing an sRGB albedo through a linear sampler produces visually incorrect BRDF results (too dark in shadows / over-bright in highlights). This is the most common production PBR bug.
+
+---
+
+### §23.3 GPU Texture Compression Codec Reference
+
+| Codec      | Bit rate   | Color Space         | Block    | GPU                | Use Case                                                                                    |
+| ---------- | ---------- | ------------------- | -------- | ------------------ | ------------------------------------------------------------------------------------------- |
+| BC1 (DXT1) | 4 bpp      | Linear / sRGB       | 4×4      | All DX10+          | Opaque albedo without alpha. **Do NOT use for normals.**                                    |
+| BC3 (DXT5) | 8 bpp      | Linear / sRGB       | 4×4      | All DX10+          | Albedo with alpha. Alpha channel is 8-bit interpolated (better than BC1)                    |
+| BC4 (ATI1) | 4 bpp      | Linear              | 4×4      | All DX10+          | Single-channel: roughness, AO, metallic, height                                             |
+| BC5 (ATI2) | 8 bpp      | Linear              | 4×4      | All DX10+          | **Normal maps** — separate 4-bpp blocks for R and G, no cross-channel artifact              |
+| BC6H       | 8 bpp      | Linear HDR          | 4×4      | DX11+              | HDR emissive, environment maps in FP16                                                      |
+| BC7        | 8 bpp      | Linear / sRGB       | 4×4      | DX11+              | **High quality** albedo, complex colour + alpha (8 block modes)                             |
+| ASTC       | 0.89–8 bpp | Linear / sRGB / HDR | Variable | Mobile / Apple M1+ | Universal mobile codec — replaces ETC2 + PVRTC. Block sizes 4×4 to 12×12. 2D and 3D support |
+
+**Key rule:** Normal maps require BC5 (not BC3). BC3 alpha is independent of RGB — it introduces blocking artefacts cross-channel that produce bumpy normals under grazing angle. BC5's per-channel separate blocks avoid this entirely.
+
+---
+
+### §23.4 EWA Anisotropic Filtering & Mip Theory
+
+**Mip level selection** (OpenGL core): the GPU computes the LOD $\lambda$:
+
+$$\lambda = \log_2\!\left(\max\left(\sqrt{\left(\frac{\partial u}{\partial x}\right)^2 + \left(\frac{\partial v}{\partial x}\right)^2},\, \sqrt{\left(\frac{\partial u}{\partial y}\right)^2 + \left(\frac{\partial v}{\partial y}\right)^2}\right)\right)$$
+
+Standard trilinear (`GL_LINEAR_MIPMAP_LINEAR`) isotropically samples a circular footprint — appropriate for normal-incidence surfaces, but aliased on oblique surfaces where the footprint is an elongated ellipse.
+
+**EWA (Elliptical Weighted Average)** filtering samples the elliptical texture footprint analytically: the footprint is a 2D Gaussian in UV space, and EWA integrates the texture over this ellipse using a pre-computed Gaussian weight table. This eliminates the directional aliasing artefacts visible on oblique geometry (floors, runways). Hardware equivalent: `glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, N)` enables hardware EWA with N-tap anisotropic samples (up to driver-reported `GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT`).
+
+**OIIO Lanczos3 mip filter** (`ImageBufAlgo::make_texture` with `"filter", "lanczos3"`) produces significantly sharper mip levels than standard box filtering by using a sinc-windowed approximation. Box filtering blurs detail prematurely; Lanczos recovers 1–2 additional mip levels of detail.
+
+---
+
+### §23.5 Vulkan Texture Lifecycle — Image Layout Transitions
+
+Every Vulkan texture access requires the image to be in the correct **VkImageLayout**. Transitioning layouts requires an explicit **pipeline barrier** — this is the most common source of Vulkan validation errors.
+
+```cpp
+// Helper: transition image layout with a barrier
+void transition_image_layout(
+    VkCommandBuffer cmd,
+    VkImage         image,
+    VkImageLayout   old_layout,
+    VkImageLayout   new_layout,
+    VkAccessFlags   src_access,
+    VkAccessFlags   dst_access,
+    VkPipelineStageFlags src_stage,
+    VkPipelineStageFlags dst_stage)
+{
+    VkImageMemoryBarrier barrier{};
+    barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout           = old_layout;
+    barrier.newLayout           = new_layout;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image               = image;
+    barrier.subresourceRange    = {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS,
+                                   0, VK_REMAINING_ARRAY_LAYERS};
+    barrier.srcAccessMask       = src_access;
+    barrier.dstAccessMask       = dst_access;
+
+    vkCmdPipelineBarrier(cmd, src_stage, dst_stage, 0,
+                         0, nullptr, 0, nullptr, 1, &barrier);
+}
+
+// Upload path:
+// 1. UNDEFINED → TRANSFER_DST_OPTIMAL (for vkCmdCopyBufferToImage)
+transition_image_layout(cmd, image,
+    VK_IMAGE_LAYOUT_UNDEFINED,
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    0, VK_ACCESS_TRANSFER_WRITE_BIT,
+    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+    VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+// 2. Copy staging buffer → image
+vkCmdCopyBufferToImage(cmd, staging_buf, image,
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
+
+// 3. TRANSFER_DST_OPTIMAL → SHADER_READ_ONLY_OPTIMAL (for sampling)
+transition_image_layout(cmd, image,
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+    VK_PIPELINE_STAGE_TRANSFER_BIT,
+    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+```
+
+**Key layout table:**
+
+| Layout                     | Usage                                                            |
+| -------------------------- | ---------------------------------------------------------------- |
+| `UNDEFINED`                | Initial state — contents may be discarded on transition          |
+| `TRANSFER_DST_OPTIMAL`     | Target of `vkCmdCopyBufferToImage`                               |
+| `TRANSFER_SRC_OPTIMAL`     | Source of `vkCmdCopyImageToBuffer` or `vkCmdBlitImage` (mip gen) |
+| `SHADER_READ_ONLY_OPTIMAL` | Sampled by fragment / compute shaders                            |
+| `COLOR_ATTACHMENT_OPTIMAL` | Written as render target                                         |
+| `PRESENT_SRC_KHR`          | Ready for swapchain presentation                                 |
+
+---
+
+### §23.6 xAtlas — UV Atlas Generation Pipeline
+
+**xAtlas** (nothings/xatlas) provides a complete CPU-side UV atlas pipeline: chart segmentation → LSCM per-chart parameterization → skyline bin packing.
+
+```cpp
+xatlas::Atlas *atlas = xatlas::Create();
+
+// Add mesh
+xatlas::MeshDecl mesh_decl;
+mesh_decl.vertexCount     = num_verts;
+mesh_decl.vertexPositionData   = positions.data();
+mesh_decl.vertexPositionStride = sizeof(glm::vec3);
+mesh_decl.vertexNormalData     = normals.data();
+mesh_decl.vertexNormalStride   = sizeof(glm::vec3);
+mesh_decl.indexCount      = num_indices;
+mesh_decl.indexData        = indices.data();
+mesh_decl.indexFormat      = xatlas::IndexFormat::UInt32;
+xatlas::AddMesh(atlas, mesh_decl);
+
+// Pack options
+xatlas::PackOptions pack_opts;
+pack_opts.texelsPerUnit = 256.0f;  // ~ density: 256 texels per world unit
+pack_opts.padding       = 2;       // gutter pixels between charts (prevents bleeding)
+pack_opts.maxChartSize  = 512;     // maximum chart dimension in pixels
+
+xatlas::Generate(atlas, xatlas::ChartOptions{}, pack_opts);
+
+const xatlas::Mesh &out = atlas->meshes[0];
+// out.vertexArray — remeshed vertices with UVs (may have MORE verts than input)
+// out.indexArray  — new index buffer
+for (uint32_t i = 0; i < out.vertexCount; ++i) {
+    const xatlas::Vertex &v = out.vertexArray[i];
+    new_uvs[i] = {v.uv[0] / atlas->width,
+                  v.uv[1] / atlas->height};  // normalize to [0,1]
+}
+xatlas::Destroy(atlas);
+```
+
+**`texelsPerUnit` density normalization:** This is the critical parameter for multi-mesh scenes. `texelsPerUnit = 256` means every world-space unit gets 256 texels of coverage, regardless of object scale. For a 1-metre cube: 256 texels/unit. For a 10-cm part: 256 texels/unit (same density). This ensures consistent texel density across the entire scene. Without it, large objects get low-resolution UVs and small objects waste atlas space.
+
+**Vertex count warning:** xAtlas may increase vertex count — seam edges get duplicated because two UV islands require different UV coordinates at the same geometric vertex. The output `vertexCount` ≥ input `vertexCount`. This must not be cached or compared against the original mesh index count.
+
+---
+
+### §23.7 OIIO + OCIO Color-Managed Texture Pipeline
+
+**OpenImageIO** with **OpenColorIO** provides a production-grade colour-safe texture pipeline:
+
+```cpp
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include <OpenColorIO/OpenColorIO.h>
+namespace OCIO = OCIO_NAMESPACE;
+
+// 1. Set up OCIO config (load from $OCIO or custom path)
+auto ocio_cfg = OCIO::Config::CreateFromFile("config.ocio");
+
+// 2. Load source image (sRGB JPEG albedo)
+OIIO::ImageBuf src("albedo_srgb.jpg");
+
+// 3. Apply OCIO color transform: sRGB → scene-linear
+OIIO::ImageBufAlgo::colorconvert(src, src, "sRGB", "scene_linear",
+    true, "", "", {}, ocio_cfg);
+
+// 4. Generate mip chain with Lanczos3 (sharper than box)
+OIIO::ImageSpec spec;
+spec["maketx:filtername"] = "lanczos3";
+spec["maketx:colorconvert"] = 0;  // already linear
+OIIO::ImageBufAlgo::make_texture(
+    OIIO::ImageBufAlgo::MakeTxTexture, src,
+    "albedo_linear.tx", spec);
+```
+
+**Channel packing for ORM** (AO, Roughness, Metallic into RGB):
+
+```cpp
+OIIO::ImageBuf ao("ao.png"), roughness("roughness.png"), metallic("metallic.png");
+OIIO::ImageBuf orm(OIIO::ImageSpec(w, h, 3, OIIO::TypeDesc::UINT8));
+
+// Assign channels: R=AO, G=roughness, B=metallic
+OIIO::ImageBufAlgo::channel_append(orm, ao, roughness);          // RG
+OIIO::ImageBufAlgo::channel_append(orm, orm, metallic);          // RGB
+OIIO::ImageBufAlgo::make_texture(OIIO::ImageBufAlgo::MakeTxTexture,
+    orm, "orm.tx", OIIO::ImageSpec{});
+```
+
+Key pitfall: `.tx` tiled MIP files from OIIO are in Targa-compatible format but laid out as tiled EXR under the hood. Don't parse them as raw EXR — use `OIIO::ImageInput::open()` which handles both correctly.
+
+---
+
+### §23.8 LangGraph — Typed State Machines for Agent Pipelines
+
+LangGraph (LangChain Labs) implements **cyclic directed graphs** over typed state dictionaries — a fundamental departure from LangChain's linear `Chain` primitives.
+
+**State schema with reducers:**
+
+```python
+from typing import Annotated
+from langgraph.graph import StateGraph, END
+from langgraph.graph.message import add_messages
+from langchain_core.messages import BaseMessage
+
+class PipelineState(TypedDict):
+    # add_messages is a reducer: appends new messages rather than replacing
+    messages: Annotated[list[BaseMessage], add_messages]
+    topology: str              # REVOLUTION | PRISMATIC | FREEFORM
+    stretch_energy: float      # E_D from UV quality metric
+    iteration: int             # coder/tester loop counter
+
+def uv_unwrap_node(state: PipelineState) -> dict:
+    """Returns a partial state update — only keys returned are merged."""
+    result = run_uv_pipeline(state["topology"])
+    return {"stretch_energy": result.E_D, "iteration": state["iteration"] + 1}
+
+# Build graph
+builder = StateGraph(PipelineState)
+builder.add_node("classify", classifier_node)
+builder.add_node("uv_unwrap", uv_unwrap_node)
+builder.add_node("quality_check", quality_node)
+
+builder.set_entry_point("classify")
+builder.add_edge("classify", "uv_unwrap")
+builder.add_conditional_edges("quality_check",
+    lambda s: "uv_unwrap" if s["stretch_energy"] > 50.0 else END,
+    {"uv_unwrap": "uv_unwrap", END: END})
+
+# Persistent checkpointing (survives crash/restart)
+from langgraph.checkpoint.postgres import PostgresSaver
+checkpointer = PostgresSaver.from_conn_string(os.environ["POSTGRES_URL"])
+graph = builder.compile(checkpointer=checkpointer)
+```
+
+**Key LangGraph concepts:**
+
+- **State merging:** nodes return `dict` — only changed keys. The `add_messages` reducer annotation means `messages` are appended (not replaced) by any update. Other keys follow last-write-wins.
+- **Cyclic execution:** `add_conditional_edges` creates a feedback loop — the graph can run a node arbitrarily many times based on state. This is the pattern for agentic retry loops.
+- **Checkpointing:** `PostgresSaver` persists the full state graph snapshot to PostgreSQL after every node execution. On crash-resume, the graph rehydrates from the last checkpoint without re-running completed nodes.
+- **`thread_id`:** Every invocation needs a `config={"configurable": {"thread_id": "run-001"}}`. The same `thread_id` resumes an interrupted run.
+
+---
+
+### §23.9 torch.compile — TorchDynamo/AOTAutograd/Inductor Pipeline
+
+`torch.compile()` (PyTorch 2.0+) is a **whole-graph ahead-of-time compilation** stack:
+
+```
+Python code
+    ↓  TorchDynamo (PEP 523 frame evaluation hook)
+       traces Python bytecode → FX graph (ATen ops)
+    ↓  AOTAutograd
+       differentiates the entire FX graph symbolically
+       → joint forward+backward graph in ATen IR
+    ↓  TorchInductor (default backend)
+       lowers ATen → Triton (GPU) or C++ OpenMP (CPU)
+       performs loop fusion, layout optimization, persistent reductions
+    ↓  Triton JIT → PTX → CUDA binary
+```
+
+**Usage:**
+
+```python
+import torch
+
+@torch.compile(
+    mode="reduce-overhead",   # max GPU kernel fusion
+    fullgraph=True,           # fail if graph break detected
+    dynamic=True,             # support varying batch sizes
+)
+def forward_pass(x: torch.Tensor) -> torch.Tensor:
+    return model(x)
+
+# Distributed: FSDP (Fully Sharded Data Parallel)
+# Shards parameters + gradients + optimizer states across ranks
+# Effective batch size = local_batch × world_size
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+model = FSDP(model, device_mesh=device_mesh,
+             sharding_strategy=ShardingStrategy.FULL_SHARD)
+```
+
+**Graph breaks** occur when TorchDynamo encounters Python constructs it cannot trace (data-dependent control flow, arbitrary Python side effects). `fullgraph=True` surfaces these as errors. `torch._dynamo.explain(fn)` dumps every graph break with source location — essential for debugging compilation failures.
+
+**Inductor's key optimizations:**
+
+- Horizontal kernel fusion: adjacent element-wise ops merged into a single Triton kernel
+- Persistent reductions: softmax/layernorm with non-power-of-2 sizes compiled to single-pass kernels
+- Memory layout optimization: inserts `permute/contiguous` ops to improve cache locality
+
+---
+
+### §23.10 Cyber-Physical Graph (CPG) — Algebraic Connectivity & Controllability
+
+A CPG is a **hybrid automaton** $H = (Q, X, F, \text{Init}, D, E, G, R)$ where:
+
+- $Q$ is the set of discrete control modes (e.g., `IDLE`, `EXTRUSION`, `COOL_DOWN`)
+- $X \subset \mathbb{R}^n$ is the continuous state space (temperature, motor position, etc.)
+- $F: Q \times X \to TX$ defines continuous vector fields per mode
+- $E$ is the set of discrete transitions (guard conditions + resets)
+
+For the **network layer** (robot fleet, multi-printer coordination), model the system as a graph $G = (V, E, W)$ and analyze via the **Laplacian** $L = D - A$:
+
+$$\lambda_2(L) = \text{algebraic connectivity (Fiedler value)}$$
+
+- $\lambda_2 > 0$: graph is connected — any agent can reach any other
+- $\lambda_2 \approx 0$: near-disconnected — single edge removal splits the network
+- $\lambda_2 \to \infty$: dense connectivity (complete graph: $\lambda_2 = n$)
+
+**Structural controllability** (Lin, 1974): a system is structurally controllable from input set $U$ iff the bipartite graph $B(A, B)$ (state-to-state edges from $A$, input-to-state edges from $B$) has a **perfect matching** (Dulmage-Mendelsohn decomposition). For a 3D printer CPG: motor drivers are inputs — if a motor driver loses communication (edge removed), the corresponding axis becomes uncontrollable. DM decomposition identifies exactly which state variables become unobservable or uncontrollable under each failure mode.
+
+**FDI (Fault Detection & Isolation) attack vectors:** A false-data injection attacker who knows the system model $\hat{A}$ can craft a perturbation $\Delta x$ such that $A \hat{x} = \hat{A}(x + \Delta x)$ — indistinguishable from legitimate sensor data. The attack set $\mathcal{A} \subseteq V$ must satisfy: $\text{span}(\Delta x) \cap \text{span}(C_{\bar{\mathcal{A}}}) = \emptyset$ (where $C_{\bar{\mathcal{A}}}$ is the observable subspace from non-attacked sensors). GNN-based digital twins can detect these by learning residual patterns that naive Kalman filters miss.
+
+---
+
+### §23.11 Cross-Reference
+
+| Topic                              | Primary Doc                                             | Section    |
+| ---------------------------------- | ------------------------------------------------------- | ---------- |
+| Cook-Torrance BRDF full derivation | `docs/PhD-Level Texture Application in 3D.md`           | §II        |
+| xAtlas complete source + options   | `docs/PhD-Level 3D Texturing with Libraries.md`         | §IV        |
+| Vulkan image lifecycle full        | `docs/PhD-Level 3D Texturing with Libraries.md`         | §II        |
+| LangGraph + torch.compile full     | `docs/PyTorch, LangChain, and Cyber-Physical Graphs.md` | §I, §II    |
+| CPG hybrid automata + GNN          | `docs/PyTorch, LangChain, and Cyber-Physical Graphs.md` | §III       |
+| UV stretch bug E_D=230 analysis    | `docs/DOCS_OVERHAUL_LOG.md`                             | Phase 4    |
+| Docs overhaul status               | `docs/DOCS_OVERHAUL_LOG.md`                             | All phases |
