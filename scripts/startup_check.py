@@ -396,8 +396,8 @@ import lancedb
 db = lancedb.connect("{lancedb_path}")
 tables = db.table_names()
 print('TABLES:', ','.join(tables[:10]))
-if 'documents' in tables:
-    t = db.open_table('documents')
+if 'qidistudio_learnings' in tables:
+    t = db.open_table('qidistudio_learnings')
     print('ROWS:', len(t))
 else:
     print('ROWS: N/A')
@@ -411,21 +411,21 @@ else:
         rows_str = row_line.replace("ROWS:", "").strip()
         if rows_str.isdigit() and int(rows_str) > 0:
             _record(
-                "lancedb:gcs:documents_table",
+                "lancedb:gcs:learnings_table",
                 True,
                 f"{rows_str} rows (knowledge base seeded)",
             )
         elif rows_str == "N/A":
             _record(
-                "lancedb:gcs:documents_table",
+                "lancedb:gcs:learnings_table",
                 False,
-                "documents table missing — run: memory_env\\Scripts\\python.exe memory/extract.py",
+                "qidistudio_learnings table missing — run: memory_env\\Scripts\\python.exe memory/extract.py",
             )
         else:
             _record(
-                "lancedb:gcs:documents_table",
+                "lancedb:gcs:learnings_table",
                 False,
-                f"documents table has 0 rows — run memory/extract.py",
+                f"qidistudio_learnings table has 0 rows — run memory/extract.py",
             )
     else:
         _record("lancedb:gcs:connection", False, out.strip().split("\n")[-1])
@@ -667,7 +667,7 @@ from google import genai
 from google.genai import types
 client = genai.Client(api_key=os.environ['GOOGLE_API_KEY'])
 response = client.models.generate_content(
-    model='gemini-2.0-flash',
+    model='gemini-2.5-flash',
     contents='What is PLA filament? Reply in one sentence.',
     config=types.GenerateContentConfig(
         tools=[types.Tool(google_search=types.GoogleSearch())]
