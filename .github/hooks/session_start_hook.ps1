@@ -14,7 +14,7 @@
 $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 $logFile = Join-Path $PSScriptRoot "precompact.log"
 $repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent  # hooks → .github → repo root
-$kbFile = Join-Path $repo 'memory\langsmith_prompt.md'
+$kbFile = Join-Path $repo 'docs\QIDISTUDIO_KNOWLEDGE.md'
 
 Add-Content -Path $logFile -Value "$ts [SessionStart] fired"
 
