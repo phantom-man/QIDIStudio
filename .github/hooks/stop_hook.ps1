@@ -101,7 +101,7 @@ if ($responseText -ne "" -and (Test-Path $py)) {
         else {
             # No user message found; write a placeholder so the FK is satisfied
             $placeholderFile = Join-Path $tmpDir "_prompt_tmp_$([System.Guid]::NewGuid()).txt"
-            [System.IO.File]::WriteAllText($placeholderFile, "[session $sessionId — prompt not captured]", (New-Object System.Text.UTF8Encoding($false)))
+            [System.IO.File]::WriteAllText($placeholderFile, "[session $sessionId -- prompt not captured]", (New-Object System.Text.UTF8Encoding($false)))
             & $py -B $store --save-prompt `
                 --prompt-id  $promptId `
                 --session-id $sessionId `

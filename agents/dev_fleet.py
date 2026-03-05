@@ -93,6 +93,7 @@ class TeamResult(TypedDict):
     final_status: str  # "PASS" | "FAIL" | "ESCALATED" | "EXHAUSTED"
     history: list[dict]  # iteration-by-iteration record
     lancedb_written: bool
+    eval: NotRequired[dict]  # trajectory eval scores from trajectory_eval.py
     error: NotRequired[str]
 
 
@@ -465,6 +466,40 @@ def _run_team_loop(team_name: str, task: str, max_iterations: int) -> TeamResult
     print(f"[{team_name}] Persisting learnings to LanceDB...", flush=True)
     written = _persist_team_learnings(team_name, task, history)
 
+    # ── Trajectory evaluation ─────────────────────────────────────────────────
+    print(f"[{team_name}] Running trajectory evaluation...", flush=True)
+    eval_result: dict = {}
+    try:
+        from agents.trajectory_eval import (
+            evaluate_team_trajectory,
+            submit_langsmith_feedback,
+        )
+
+        eval_result = evaluate_team_trajectory(team_name, task, history, final_status)
+        score_str = "PASS" if eval_result.get("score") else "FAIL"
+        print(
+            f"[{team_name}] Eval → {score_str} | "
+            f"mfg={eval_result.get('manufacturing_correctness', 0):.2f} "
+            f"conv={eval_result.get('convergence_efficiency', 0):.2f} "
+            f"prod={eval_result.get('production_readiness', 0):.2f}",
+            flush=True,
+        )
+
+        # Submit scores to LangSmith as run feedback
+        try:
+            import langsmith as _ls
+
+            run_tree = _ls.get_current_run_tree()
+            run_id = str(run_tree.id) if run_tree else None
+        except Exception:
+            run_id = None
+        submit_langsmith_feedback(run_id, eval_result, team_name)
+    except Exception as exc:
+        eval_result = {"eval_error": str(exc)}
+        print(
+            f"[{team_name}] Trajectory eval failed: {exc}", file=sys.stderr, flush=True
+        )
+
     result: TeamResult = {
         "team_name": team_name,
         "task": task,
@@ -472,6 +507,7 @@ def _run_team_loop(team_name: str, task: str, max_iterations: int) -> TeamResult
         "final_status": final_status,
         "history": history,
         "lancedb_written": written,
+        "eval": eval_result,
     }
     if error:
         result["error"] = error
@@ -564,6 +600,20 @@ def report(state: FleetState) -> FleetState:
                 "status": r["final_status"],
                 "iterations": r["iterations_completed"],
                 "summary": r["history"][-1].get("summary", "") if r["history"] else "",
+                "trajectory_eval": {
+                    "score": r.get("eval", {}).get("score"),
+                    "reasoning": r.get("eval", {}).get("reasoning", ""),
+                    "manufacturing_correctness": r.get("eval", {}).get(
+                        "manufacturing_correctness"
+                    ),
+                    "convergence_efficiency": r.get("eval", {}).get(
+                        "convergence_efficiency"
+                    ),
+                    "production_readiness": r.get("eval", {}).get(
+                        "production_readiness"
+                    ),
+                    "convergence_rate": r.get("eval", {}).get("convergence_rate"),
+                },
             }
             for r in state["team_results"]
         ],
@@ -579,9 +629,10 @@ def report(state: FleetState) -> FleetState:
                 "role": "user",
                 "content": (
                     f"Original request: {state['user_request']}\n\n"
-                    f"Team results:\n{results_text}\n\n"
+                    f"Team results (including trajectory evaluation scores):\n{results_text}\n\n"
                     "Write a brief final report: what was implemented, what passed, "
-                    "what failed or is still open, and recommended next steps."
+                    "what failed or is still open, trajectory quality scores (manufacturing "
+                    "correctness, convergence, production readiness), and recommended next steps."
                 ),
             },
         ]
