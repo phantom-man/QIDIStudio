@@ -42,55 +42,71 @@ if ((-not $transcriptPath) -or (-not (Test-Path $transcriptPath))) {
     exit 0
 }
 
-# ── Log protocol enforcement ──────────────────────────────────────────────────
-# Check whether a session log was created in the last 90 minutes.
-# If not, prepend a hard-stop reminder to every tool call's context.
+# ── Extract last human message + log protocol enforcement ─────────────────────
+# 1. Find the last user.message in the transcript and record its line index.
+# 2. Scan every line AFTER that index for a create_file call targeting logs/*.md
+#    (the canonical session log pattern: logs/YYYY-MM-DD_HHMMSS_<slug>.md).
+#    If no such call exists yet this turn → the log hasn't been created → warn.
 $logGuardMessage = ''
-$logsDir = Join-Path $repo 'logs'
-$cutoff = (Get-Date).AddMinutes(-90)
 $today = Get-Date -Format 'yyyy-MM-dd'
-$recentLog = $null
-if (Test-Path $logsDir) {
-    $recentLog = Get-ChildItem -Path $logsDir -Filter "$today*.md" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CreationTime -ge $cutoff -or $_.LastWriteTime -ge $cutoff } |
-        Sort-Object LastWriteTime -Descending |
-        Select-Object -First 1
-}
-if (-not $recentLog) {
-    $logGuardMessage = @"
-⛔⛔⛔ MANDATORY PROTOCOL VIOLATION DETECTED ⛔⛔⛔
-You are about to run a tool WITHOUT first creating a session log file.
-This violates the PROMPT EXECUTION PROTOCOL in copilot-instructions.md (Phase 0, Step 0.2).
-
-BEFORE running ANY tool you MUST:
-  1. Check logs/ for unfinished tasks (grep for '- [ ]' + '## Status: OPEN')
-  2. Create a log file: logs/$today_HHMMSS_<slug>.md  using create_file
-     Template: # Log: <title> / **Date:** / **Time:** / **Model:** Claude Sonnet 4.6 /
-               **Prompt Summary:** / ## Task Checklist / ## Status: OPEN
-  3. THEN proceed with the actual work
-
-Do NOT skip this. Do NOT continue with the current tool call.
-Create the session log NOW.
-⛔⛔⛔ END MANDATORY PROTOCOL REMINDER ⛔⛔⛔
-"@
-    Add-Content -Path $logFile -Value "$ts [PreTool] NO SESSION LOG — log guard triggered"
-} else {
-    Add-Content -Path $logFile -Value "$ts [PreTool] session log found: $($recentLog.Name)"
-}
-
-# Extract last human message from JSONL transcript
-# Format: {"type":"user.message","data":{"content":"..."},...}
 $promptText = ''
+$lastUserLineIdx = -1
+
 try {
     $lines = [System.IO.File]::ReadAllLines($transcriptPath)
+
+    # Walk backwards to find the last user message and its line index
     for ($i = $lines.Length - 1; $i -ge 0; $i--) {
         $line = $lines[$i].Trim()
         if (-not $line) { continue }
         $entry = $line | ConvertFrom-Json -ErrorAction SilentlyContinue
         if ($entry -and $entry.type -eq 'user.message' -and $entry.data -and $entry.data.content) {
             $promptText = [string]$entry.data.content
+            $lastUserLineIdx = $i
             break
         }
+    }
+
+    # Scan forward from that point for a create_file call to logs/YYYY-MM-DD_*.md
+    $sessionLogCreated = $false
+    if ($lastUserLineIdx -ge 0) {
+        $logPattern = [System.Text.RegularExpressions.Regex]::new(
+            'create_file.*logs[\\/]\d{4}-\d{2}-\d{2}_\d{6}',
+            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+        )
+        for ($i = $lastUserLineIdx + 1; $i -lt $lines.Length; $i++) {
+            if ($logPattern.IsMatch($lines[$i])) {
+                $sessionLogCreated = $true
+                break
+            }
+        }
+    }
+
+    if ($sessionLogCreated) {
+        Add-Content -Path $logFile -Value "$ts [PreTool] session log already created this turn — guard OK"
+    }
+    else {
+        $logGuardMessage = @"
+⛔⛔⛔ MANDATORY PROTOCOL VIOLATION DETECTED ⛔⛔⛔
+You are about to run a tool WITHOUT first creating a session log file.
+This violates the PROMPT EXECUTION PROTOCOL in copilot-instructions.md (Phase 0, Step 0.2).
+
+The transcript shows NO create_file call targeting logs/YYYY-MM-DD_HHMMSS_<slug>.md
+has been made since the current prompt arrived. You have not created the session log yet.
+
+STOP. Your next action MUST be:
+  1. Scan logs/ for OPEN logs: grep '- \[ \]' logs/*.md + '## Status: OPEN'
+     Ask user YES/NO to inherit before continuing.
+  2. Create the log file NOW via create_file:
+       Path:  logs/$today`_<HHMMSS>_<3-6-word-slug>.md
+       (Get time: Get-Date -Format 'HH:mm:ss' then strip colons for filename)
+       Content: canonical template with Task Checklist + ## Status: OPEN
+  3. ONLY THEN run any other tool.
+
+Do NOT proceed with the currently requested tool call first.
+⛔⛔⛔ END MANDATORY PROTOCOL REMINDER ⛔⛔⛔
+"@
+        Add-Content -Path $logFile -Value "$ts [PreTool] NO session log this turn — log guard triggered"
     }
 }
 catch {
@@ -103,61 +119,75 @@ if (-not $promptText) {
     exit 0
 }
 
-# Dedup: skip if same prompt was already injected this turn
+# Dedup: skip memory injection if same prompt was already injected this turn,
+# but do NOT skip if the log guard needs to fire (we want it on every tool call
+# until the session log is actually created).
 $fp = "$($promptText.Length):$($promptText.Substring(0, [math]::Min(80, $promptText.Length)))"
 $lastFp = if (Test-Path $dedupFile) { (Get-Content $dedupFile -Raw).Trim() } else { '' }
-if ($fp -eq $lastFp) {
-    Add-Content -Path $logFile -Value "$ts [PreTool] same prompt - already injected"
+$skipMemoryInject = ($fp -eq $lastFp)
+if ($skipMemoryInject -and -not $logGuardMessage) {
+    Add-Content -Path $logFile -Value "$ts [PreTool] same prompt - already injected (no guard needed)"
     Write-Output '{}'
     exit 0
+}
+if ($skipMemoryInject) {
+    Add-Content -Path $logFile -Value "$ts [PreTool] same prompt - skipping memory inject but guard still active"
 }
 
 # Guard: python must exist
 if (-not (Test-Path $python)) {
     Add-Content -Path $logFile -Value "$ts [PreTool] python not found"
-    Write-Output '{}'
+    # Still emit guard if needed
+    if ($logGuardMessage) {
+        @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; additionalContext = $logGuardMessage } } | ConvertTo-Json -Compress -Depth 5
+    }
+    else { Write-Output '{}' }
     exit 0
 }
 
-# Write prompt to temp file
-$tmpPrompt = [System.IO.Path]::Combine(
-    [System.IO.Path]::GetTempPath(),
-    "pretool_$([System.Guid]::NewGuid().ToString('N')).txt"
-)
-[System.IO.File]::WriteAllText($tmpPrompt, $promptText, (New-Object System.Text.UTF8Encoding($false)))
-
-# Run inject.py
+# Run inject.py (skip if same prompt already injected this turn)
 $additionalContext = ''
-try {
-    $result = & $python -B $inject --prompt-file $tmpPrompt 2>$null
-    if ($result) {
-        $parsed = $result | ConvertFrom-Json -ErrorAction SilentlyContinue
-        if ($parsed -and $parsed.hookSpecificOutput -and $parsed.hookSpecificOutput.additionalContext) {
-            $additionalContext = [string]$parsed.hookSpecificOutput.additionalContext
+if (-not $skipMemoryInject) {
+    $tmpPrompt = [System.IO.Path]::Combine(
+        [System.IO.Path]::GetTempPath(),
+        "pretool_$([System.Guid]::NewGuid().ToString('N')).txt"
+    )
+    [System.IO.File]::WriteAllText($tmpPrompt, $promptText, (New-Object System.Text.UTF8Encoding($false)))
+    try {
+        $result = & $python -B $inject --prompt-file $tmpPrompt 2>$null
+        if ($result) {
+            $parsed = $result | ConvertFrom-Json -ErrorAction SilentlyContinue
+            if ($parsed -and $parsed.hookSpecificOutput -and $parsed.hookSpecificOutput.additionalContext) {
+                $additionalContext = [string]$parsed.hookSpecificOutput.additionalContext
+            }
+        }
+        if ($additionalContext) {
+            Add-Content -Path $logFile -Value "$ts [Inject/PreTool] injected $($additionalContext.Length) chars"
+        }
+        else {
+            Add-Content -Path $logFile -Value "$ts [Inject/PreTool] no relevant memory"
         }
     }
-    if ($additionalContext) {
-        Add-Content -Path $logFile -Value "$ts [Inject/PreTool] injected $($additionalContext.Length) chars"
+    catch {
+        Add-Content -Path $logFile -Value "$ts [Inject/PreTool] error: $_"
     }
-    else {
-        Add-Content -Path $logFile -Value "$ts [Inject/PreTool] no relevant memory"
+    finally {
+        Remove-Item $tmpPrompt -ErrorAction SilentlyContinue
     }
-}
-catch {
-    Add-Content -Path $logFile -Value "$ts [Inject/PreTool] error: $_"
 }
 
-# Cleanup + save fingerprint
-Remove-Item $tmpPrompt -ErrorAction SilentlyContinue
+# Save fingerprint (always, so dedup tracks even guard-only turns)
 [System.IO.File]::WriteAllText($dedupFile, $fp, (New-Object System.Text.UTF8Encoding($false)))
 
 # Emit
 if ($additionalContext -or $logGuardMessage) {
     $combined = if ($logGuardMessage -and $additionalContext) {
         "$logGuardMessage`n`n$additionalContext"
-    } elseif ($logGuardMessage) {
+    }
+    elseif ($logGuardMessage) {
         $logGuardMessage
-    } else {
+    }
+    else {
         $additionalContext
     }
     $out = @{
