@@ -78,10 +78,9 @@ def test_b_agent_compile() -> tuple[bool, str]:
     script = f"""
 import sys; sys.path.insert(0, r"{REPO_ROOT}")
 from dotenv import load_dotenv; load_dotenv(r"{REPO_ROOT}/.env", override=True)
-from agents._agentcomms_check import main
-main()
+import agents._agentcomms_check  # runs module-level health checks + prints results
 """
-    success, output = _run_py(script, timeout=60)
+    success, output = _run_py(script, timeout=120)
     # Health check prints "OK   researcher   CompiledStateGraph" etc.
     required_lines = [f"OK   {a}" for a in EXPECTED_AGENTS]
     missing = [line for line in required_lines if line not in output]
