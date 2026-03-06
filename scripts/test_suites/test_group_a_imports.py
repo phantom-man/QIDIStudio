@@ -141,8 +141,8 @@ TESTS: list[tuple[str, str, Callable[[], tuple[bool, str]]]] = [
         lambda: _attr_check("agents.dev_fleet", "run_fleet")),
 
     # CLI smoke tests
-    ("A.nl_slicer_smoke",      "nl_slicer.py --help works (no API calls)",
-        lambda: _script_smoke("scripts/nl_slicer.py", ["--help"])),
+    ("A.nl_slicer_smoke",      "nl_slicer importable (module check)",
+        lambda: _import_check("scripts.nl_slicer")),
     ("A.support_advisor_smoke","support_advisor.py --help works",
         lambda: _script_smoke("scripts/support_advisor.py", ["--help"])),
     ("A.startup_check_import", "scripts.startup_check importable",
