@@ -1112,7 +1112,7 @@ class KnowledgeValidator:
 
         verdicts: list[ClaimVerdict] = []
 
-        with ThreadPoolExecutor(max_workers=min(8, len(self.sources))) as pool:
+        with ThreadPoolExecutor(max_workers=max(1, min(8, len(self.sources)))) as pool:
             for claim in claims:
                 futures = {
                     pool.submit(source.search, claim): source for source in self.sources
@@ -1120,20 +1120,31 @@ class KnowledgeValidator:
                 all_evidence: list[Evidence] = []
                 source_contributions: dict[str, float] = {}
 
-                for future in as_completed(futures, timeout=20):
-                    source = futures[future]
-                    try:
-                        ev_list = future.result()
-                        all_evidence.extend(ev_list)
-                        if ev_list:
-                            best_relevance = max(e.relevance for e in ev_list)
-                            source_contributions[source.name] = (
-                                source.authority * best_relevance
+                try:
+                    completed_iter = as_completed(futures, timeout=60)
+                except Exception:
+                    completed_iter = futures.keys()
+
+                try:
+                    for future in completed_iter:
+                        source = futures[future]
+                        try:
+                            ev_list = future.result(timeout=5)
+                            all_evidence.extend(ev_list)
+                            if ev_list:
+                                best_relevance = max(e.relevance for e in ev_list)
+                                source_contributions[source.name] = (
+                                    source.authority * best_relevance
+                                )
+                        except Exception as exc:
+                            log.debug(
+                                "Source %s raised during search: %s", source.name, exc
                             )
-                    except Exception as exc:
-                        log.debug(
-                            "Source %s raised during search: %s", source.name, exc
-                        )
+                except TimeoutError:
+                    log.warning(
+                        "Timeout waiting for %d sources after 60s — using partial results",
+                        len(futures),
+                    )
 
                 # Aggregate confidence (normalised weighted sum)
                 total_authority = sum(s.authority for s in self.sources)

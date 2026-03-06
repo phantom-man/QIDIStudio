@@ -259,7 +259,7 @@ def test_c7_knowledge_validator() -> tuple[bool, str]:
 import sys, tempfile, pathlib
 sys.path.insert(0, r"{REPO_ROOT}")
 from dotenv import load_dotenv; load_dotenv(r"{REPO_ROOT}/.env", override=True)
-from scripts.knowledge_validator import validate_document
+from scripts.knowledge_validator import KnowledgeValidator
 
 # Write a tiny test document
 test_md = \"\"\"
@@ -286,16 +286,19 @@ None.
 - [1] NIST, Fundamental Constants, 2018.
 \"\"\"
 
-with tempfile.NamedTemporaryFile(suffix=".md", mode="w", delete=False) as f:
+with tempfile.NamedTemporaryFile(suffix=".md", mode="w", delete=False, encoding="utf-8") as f:
     f.write(test_md)
     tmp = f.name
 
-result = validate_document(tmp)
-# validate_document returns a ValidationReport dataclass (not a dict)
+# Use no external network sources to avoid arXiv/CrossRef timeout in CI
+validator = KnowledgeValidator(use_llm_extraction=True)
+validator.sources = []  # Skip all network queries
+result = validator.validate(tmp)
+# validate returns a ValidationReport dataclass (not a dict)
 assert hasattr(result, "verdicts"), f"Expected ValidationReport with verdicts attr, got: {{type(result)}}"
 assert isinstance(result.verdicts, list), f"verdicts should be a list, got: {{type(result.verdicts)}}"
 pathlib.Path(tmp).unlink(missing_ok=True)
-print("PASS")
+print(f"PASS:claims={{len(result.verdicts)}}")
 """
     ok, output = _run_py(script, timeout=120)
     if "PASS" in output:
