@@ -226,7 +226,8 @@ def test_g7_lancedb_no_duplicates() -> tuple[bool, str]:
 import sys, os
 sys.path.insert(0, r"{REPO_ROOT}")
 from dotenv import load_dotenv; load_dotenv(r"{REPO_ROOT}/.env", override=True)
-import lancedb, pandas as pd
+import lancedb
+from collections import Counter
 uri = os.environ.get("LANCEDB_PATH", "gs://qidistudio-lancedb/lancedb")
 db = lancedb.connect(uri)
 tables = db.table_names()
@@ -235,16 +236,20 @@ if not tname:
     print("SKIP:no knowledge table")
 else:
     t = db.open_table(tname)
-    df = t.to_pandas()
-    if "source_file" in df.columns:
-        # Check for exact duplicates in source_file + text combination
-        dup_count = df.duplicated(subset=["source_file", "text"]).sum() if "text" in df.columns \
-                    else df.duplicated(subset=["source_file"]).sum()
-        total = len(df)
-        dup_pct = dup_count / total * 100 if total > 0 else 0
-        print(f"DUPS:{{dup_count}} of {{total}} ({{dup_pct:.1f}}%)")
-    else:
-        print("SKIP:no source_file column")
+    # Use pyarrow (lancedb dep) \u2014 no pandas required
+    try:
+        tbl = t.to_arrow()
+        if "source_file" in tbl.schema.names:
+            source_files = tbl.column("source_file").to_pylist()
+            total = len(source_files)
+            counts = Counter(source_files)
+            dup_count = sum(v - 1 for v in counts.values() if v > 1)
+            dup_pct = dup_count / total * 100 if total > 0 else 0
+            print(f"DUPS:{{dup_count}} of {{total}} ({{dup_pct:.1f}}%)")
+        else:
+            print("SKIP:no source_file column")
+    except Exception as e:
+        print(f"SKIP:arrow failed ({{e.__class__.__name__}})")
 """
     ok, output = _run_py(script, timeout=60)
     if "SKIP:" in output:
