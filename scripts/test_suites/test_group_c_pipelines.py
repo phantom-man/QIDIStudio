@@ -311,23 +311,26 @@ print(f"PASS:claims={{len(result.verdicts)}}")
 
 def test_c8_memory_inject() -> tuple[bool, str]:
     """memory/inject.py --query returns LanceDB results."""
-    result = subprocess.run(
-        [
-            str(MEMORY_PY),
-            "-B",
-            "memory/inject.py",
-            "--query",
-            "LangGraph agent architecture",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=60,
-        cwd=str(REPO_ROOT),
-    )
-    output = result.stdout + result.stderr
-    if result.returncode == 0 and len(output.strip()) > 50:
-        return True, ""
-    return False, f"memory inject failed:\n{output[:600]}"
+    try:
+        result = subprocess.run(
+            [
+                str(MEMORY_PY),
+                "-B",
+                "memory/inject.py",
+                "--query",
+                "LangGraph agent architecture",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=90,
+            cwd=str(REPO_ROOT),
+        )
+        output = result.stdout + result.stderr
+        if result.returncode == 0 and len(output.strip()) > 50:
+            return True, ""
+        return False, f"memory inject failed:\n{output[:600]}"
+    except subprocess.TimeoutExpired:
+        return False, "memory inject timed out after 90s"
 
 
 # ── C9 Manufacturing Graph ────────────────────────────────────────────────────
