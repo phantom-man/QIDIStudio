@@ -38,14 +38,33 @@ TEST_PNG_DIR = REPO_ROOT / "logs" / "phd_test_runs"
 
 
 def _run_py(script: str, timeout: int = 120) -> tuple[bool, str]:
-    result = subprocess.run(
+    """Run a Python snippet as a subprocess with reliable kill on timeout (Windows-safe)."""
+    import signal
+
+    flags = 0
+    if hasattr(subprocess, "CREATE_NEW_PROCESS_GROUP"):
+        flags = subprocess.CREATE_NEW_PROCESS_GROUP  # type: ignore[attr-defined]
+
+    proc = subprocess.Popen(
         [str(MEMORY_PY), "-B", "-c", script],
-        capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT)
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd=str(REPO_ROOT),
+        creationflags=flags,
     )
-    return result.returncode == 0, (result.stdout + result.stderr).strip()
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+        return proc.returncode == 0, (stdout + stderr).strip()
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.communicate()
+        return False, f"Subprocess timed out after {timeout}s"
 
 
-def _vision_assert(image_path: Path, assertion: str, min_confidence: float = 0.60) -> tuple[bool, str]:
+def _vision_assert(
+    image_path: Path, assertion: str, min_confidence: float = 0.60
+) -> tuple[bool, str]:
     """
     Calls the Gemini Vision agent to evaluate an assertion about an image.
     Uses the same read_image pathway as agents/tools.py but via standalone subprocess.
@@ -96,6 +115,7 @@ print(json.dumps(obj))
 
     # Parse last JSON-looking line
     import re
+
     lines = output.strip().splitlines()
     for line in reversed(lines):
         m = re.search(r"\{.*\}", line)
@@ -107,7 +127,10 @@ print(json.dumps(obj))
                 description = obj.get("description", "")
                 if verdict == "ok" and confidence >= min_confidence:
                     return True, description
-                return False, f"verdict={verdict} confidence={confidence:.2f} description={description}"
+                return (
+                    False,
+                    f"verdict={verdict} confidence={confidence:.2f} description={description}",
+                )
             except (json.JSONDecodeError, ValueError):
                 continue
     return False, f"Could not parse vision response:\n{output[:400]}"
@@ -139,6 +162,7 @@ print(f"SCREENSHOT_OK:{{sz}}")
 
 # ── Test functions ─────────────────────────────────────────────────────────────
 
+
 def test_f1_flat_plate_render() -> tuple[bool, str]:
     """Render flat_plate.stl and assert it looks like a flat 3D surface."""
     stl_path = REPO_ROOT / "scripts" / "flat_plate.stl"
@@ -150,7 +174,9 @@ def test_f1_flat_plate_render() -> tuple[bool, str]:
     if not ok:
         return False, f"Screenshot step failed: {err}"
 
-    return _vision_assert(out_png, "This image shows a 3D rendered flat rectangular plate or surface")
+    return _vision_assert(
+        out_png, "This image shows a 3D rendered flat rectangular plate or surface"
+    )
 
 
 def test_f2_beauty_review_png() -> tuple[bool, str]:
@@ -159,7 +185,10 @@ def test_f2_beauty_review_png() -> tuple[bool, str]:
     if not pngs:
         return False, f"No PNGs in beauty_review/: {BEAUTY_DIR}"
     latest = pngs[-1]
-    return _vision_assert(latest, "This image shows a 3D surface with visible texture or material rendering")
+    return _vision_assert(
+        latest,
+        "This image shows a 3D surface with visible texture or material rendering",
+    )
 
 
 def test_f3_perlin_texture_png() -> tuple[bool, str]:
@@ -167,7 +196,10 @@ def test_f3_perlin_texture_png() -> tuple[bool, str]:
     perlin_png = TEST_PNG_DIR / "test_texture_c5.png"
     if not perlin_png.exists():
         return False, f"Perlin PNG not found (run Group C first): {perlin_png}"
-    return _vision_assert(perlin_png, "This image shows a tileable texture pattern with repeating or procedural structure")
+    return _vision_assert(
+        perlin_png,
+        "This image shows a tileable texture pattern with repeating or procedural structure",
+    )
 
 
 def test_f4_quality_metrics_jsonl() -> tuple[bool, str]:
@@ -192,7 +224,10 @@ def test_f4_quality_metrics_jsonl() -> tuple[bool, str]:
     required_keys = {"uniformity", "seam_score", "beauty_score"}
     valid = [r for r in records if required_keys.issubset(r.keys())]
     if not valid:
-        return False, f"No records have required keys {required_keys}. Found keys: {list(records[0].keys())}"
+        return (
+            False,
+            f"No records have required keys {required_keys}. Found keys: {list(records[0].keys())}",
+        )
 
     return True, f"{len(valid)} valid metric records found"
 
@@ -238,12 +273,28 @@ def test_f6_splash_logo() -> tuple[bool, str]:
 # ── Test registry ─────────────────────────────────────────────────────────────
 
 TESTS: list[tuple[str, str, callable]] = [
-    ("F.flat_plate_render",    "Render flat_plate.stl → assert flat 3D surface",  test_f1_flat_plate_render),
-    ("F.beauty_review_png",    "beauty_review PNG shows textured 3D surface",      test_f2_beauty_review_png),
-    ("F.perlin_texture_png",   "Perlin texture PNG shows repeating pattern",       test_f3_perlin_texture_png),
-    ("F.quality_metrics_jsonl","quality_metrics.jsonl has valid metric records",   test_f4_quality_metrics_jsonl),
-    ("F.autonomy_score",       "Latest quality score ≥ 0.40",                     test_f5_autonomy_score),
-    ("F.splash_logo_svg",      "splash_logo.svg is valid SVG",                    test_f6_splash_logo),
+    (
+        "F.flat_plate_render",
+        "Render flat_plate.stl → assert flat 3D surface",
+        test_f1_flat_plate_render,
+    ),
+    (
+        "F.beauty_review_png",
+        "beauty_review PNG shows textured 3D surface",
+        test_f2_beauty_review_png,
+    ),
+    (
+        "F.perlin_texture_png",
+        "Perlin texture PNG shows repeating pattern",
+        test_f3_perlin_texture_png,
+    ),
+    (
+        "F.quality_metrics_jsonl",
+        "quality_metrics.jsonl has valid metric records",
+        test_f4_quality_metrics_jsonl,
+    ),
+    ("F.autonomy_score", "Latest quality score ≥ 0.40", test_f5_autonomy_score),
+    ("F.splash_logo_svg", "splash_logo.svg is valid SVG", test_f6_splash_logo),
 ]
 
 
@@ -257,13 +308,15 @@ def run_group_f() -> list[dict]:
         except Exception as exc:  # noqa: BLE001
             passed, error = False, str(exc)[:1000]
 
-        results.append({
-            "group_id": "F",
-            "test_id": test_id,
-            "test_name": test_name,
-            "passed": passed,
-            "error": error or None,
-        })
+        results.append(
+            {
+                "group_id": "F",
+                "test_id": test_id,
+                "test_name": test_name,
+                "passed": passed,
+                "error": error or None,
+            }
+        )
     return results
 
 

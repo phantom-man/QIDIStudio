@@ -238,8 +238,8 @@ import sys
 sys.path.insert(0, r"{REPO_ROOT}")
 from scripts.ai_beauty_scorer import analyse_skin_file
 result = analyse_skin_file(r"{test_img}")
-assert "beauty_score" in result, f"Missing beauty_score in result: {{result}}"
-bs = result["beauty_score"]
+# analyse_skin_file returns a BeautyReport dataclass — access attribute directly
+bs = result.beauty_score
 assert isinstance(bs, (int, float)), f"beauty_score is not numeric: {{bs}}"
 assert 0.0 <= bs <= 1.0, f"beauty_score out of range [0,1]: {{bs}}"
 print(f"PASS:score={{bs:.3f}}")
@@ -291,9 +291,9 @@ with tempfile.NamedTemporaryFile(suffix=".md", mode="w", delete=False) as f:
     tmp = f.name
 
 result = validate_document(tmp)
-assert isinstance(result, dict), f"Expected dict: {{result}}"
-assert "verdicts" in result or "summary" in result or "pass" in str(result).lower(), \
-    f"Unexpected result shape: {{list(result.keys())}}"
+# validate_document returns a ValidationReport dataclass (not a dict)
+assert hasattr(result, "verdicts"), f"Expected ValidationReport with verdicts attr, got: {{type(result)}}"
+assert isinstance(result.verdicts, list), f"verdicts should be a list, got: {{type(result.verdicts)}}"
 pathlib.Path(tmp).unlink(missing_ok=True)
 print("PASS")
 """

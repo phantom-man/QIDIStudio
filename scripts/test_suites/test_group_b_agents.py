@@ -124,7 +124,8 @@ import sys; sys.path.insert(0, r"{REPO_ROOT}")
 from dotenv import load_dotenv; load_dotenv(r"{REPO_ROOT}/.env", override=True)
 from agents.orchestrator import run
 result = run("reply with exactly the single word ONLINE — no other text")
-response = (result.get("final_response") or "").strip().upper()
+# orchestrator.run() returns a str directly (not a dict)
+response = (result.strip().upper() if isinstance(result, str) else str(result).upper())
 if "ONLINE" in response:
     print("PING_PASS")
 else:

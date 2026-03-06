@@ -55,9 +55,24 @@ from typing import Optional
 
 import numpy as np
 
+# ─── Optional AI beauty scorer ───────────────────────────────────────
+# Import lazily from the same scripts/ directory.  Fails gracefully if numpy or
+# scipy are absent — in that case the beauty-check loop is skipped and the first
+# generated texture is always accepted.
+try:
+    from ai_beauty_scorer import BEAUTY_GOOD, analyse_array as _beauty_analyse  # type: ignore
+
+    _BEAUTY_SCORER_AVAILABLE = True
+except (ImportError, Exception):
+    _BEAUTY_SCORER_AVAILABLE = False
+    BEAUTY_GOOD = 0.62  # local fallback so the constant is always defined
+
 log = logging.getLogger("text_to_texture")
-logging.basicConfig(format="%(asctime)s  %(levelname)-7s  %(message)s",
-                    datefmt="%H:%M:%S", level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s  %(levelname)-7s  %(message)s",
+    datefmt="%H:%M:%S",
+    level=logging.INFO,
+)
 
 # ─── Default Blender paths to search ─────────────────────────────────────────
 BLENDER_SEARCH_PATHS = [
@@ -70,6 +85,7 @@ BLENDER_SEARCH_PATHS = [
 
 
 # ─── Backend: Perlin noise (always available) ─────────────────────────────────
+
 
 def _perlin_fade(t: np.ndarray) -> np.ndarray:
     return t * t * t * (t * (t * 6 - 15) + 10)
@@ -106,9 +122,9 @@ def _perlin2d(size: int, scale: float = 4.0, seed: int = 0) -> np.ndarray:
     u = _perlin_fade(xf)
     v = _perlin_fade(yf)
 
-    n00 = _perlin_grad(p[p[xi    ] + yi    ], xf,     yf    )
-    n10 = _perlin_grad(p[p[xi + 1] + yi    ], xf - 1, yf    )
-    n01 = _perlin_grad(p[p[xi    ] + yi + 1], xf,     yf - 1)
+    n00 = _perlin_grad(p[p[xi] + yi], xf, yf)
+    n10 = _perlin_grad(p[p[xi + 1] + yi], xf - 1, yf)
+    n01 = _perlin_grad(p[p[xi] + yi + 1], xf, yf - 1)
     n11 = _perlin_grad(p[p[xi + 1] + yi + 1], xf - 1, yf - 1)
 
     return _perlin_lerp(_perlin_lerp(n00, n10, u), _perlin_lerp(n01, n11, u), v)
@@ -124,13 +140,14 @@ def generate_perlin(prompt: str, size: int, seed: int = 42) -> np.ndarray:
     # Hash words in prompt to choose a colour palette
     hv = hash(prompt.lower()) & 0xFFFFFF
     base_r = ((hv >> 16) & 0xFF) / 255.0
-    base_g = ((hv >> 8)  & 0xFF) / 255.0
-    base_b = (hv         & 0xFF) / 255.0
+    base_g = ((hv >> 8) & 0xFF) / 255.0
+    base_b = (hv & 0xFF) / 255.0
 
-    layers = [_perlin2d(size, scale=s, seed=seed + i)
-              for i, s in enumerate([4, 8, 16, 32])]
+    layers = [
+        _perlin2d(size, scale=s, seed=seed + i) for i, s in enumerate([4, 8, 16, 32])
+    ]
     noise = sum(layers[i] * (0.5 ** (i + 1)) for i in range(len(layers)))
-    noise = (noise - noise.min()) / (noise.ptp() + 1e-9)  # 0..1
+    noise = (noise - noise.min()) / ((noise.max() - noise.min()) + 1e-9)  # 0..1
 
     # Tint with prompt-derived colour + brightness variation
     r = np.clip(base_r + 0.4 * noise - 0.2, 0.0, 1.0)
@@ -143,7 +160,10 @@ def generate_perlin(prompt: str, size: int, seed: int = 42) -> np.ndarray:
 
 # ─── Backend: Stable Diffusion via diffusers ──────────────────────────────────
 
-def generate_stable_diffusion(prompt: str, size: int, model: str = "sd_turbo") -> Optional[np.ndarray]:
+
+def generate_stable_diffusion(
+    prompt: str, size: int, model: str = "sd_turbo"
+) -> Optional[np.ndarray]:
     """
     Generate image via HuggingFace diffusers.
     Returns RGBA uint8 numpy array or None on failure.
@@ -156,14 +176,14 @@ def generate_stable_diffusion(prompt: str, size: int, model: str = "sd_turbo") -
         return None
 
     MODEL_IDS = {
-        "sd_turbo":   "stabilityai/sd-turbo",
+        "sd_turbo": "stabilityai/sd-turbo",
         "sdxl_turbo": "stabilityai/sdxl-turbo",
     }
     model_id = MODEL_IDS.get(model, MODEL_IDS["sd_turbo"])
 
     try:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        dtype  = torch.float16 if device == "cuda" else torch.float32
+        dtype = torch.float16 if device == "cuda" else torch.float32
         log.info("Loading %s on %s …", model_id, device)
         pipe = AutoPipelineForText2Image.from_pretrained(model_id, torch_dtype=dtype)
         pipe = pipe.to(device)
@@ -172,14 +192,20 @@ def generate_stable_diffusion(prompt: str, size: int, model: str = "sd_turbo") -
             f"seamless tileable texture, {prompt}, "
             "PBR material, high-resolution, photorealistic, no shadows, flat lighting"
         )
-        neg_prompt = "seam, border, frame, text, watermark, cartoon, sketch, low quality"
+        neg_prompt = (
+            "seam, border, frame, text, watermark, cartoon, sketch, low quality"
+        )
 
         log.info("Generating image …")
         t0 = time.time()
-        result = pipe(full_prompt, negative_prompt=neg_prompt,
-                      num_inference_steps=4 if "turbo" in model else 20,
-                      guidance_scale=0.0 if "turbo" in model else 7.5,
-                      width=size, height=size)
+        result = pipe(
+            full_prompt,
+            negative_prompt=neg_prompt,
+            num_inference_steps=4 if "turbo" in model else 20,
+            guidance_scale=0.0 if "turbo" in model else 7.5,
+            width=size,
+            height=size,
+        )
         log.info("SD generation: %.1fs", time.time() - t0)
 
         pil_img = result.images[0]
@@ -192,6 +218,7 @@ def generate_stable_diffusion(prompt: str, size: int, model: str = "sd_turbo") -
 
 
 # ─── Backend: Gemini Imagen ───────────────────────────────────────────────────
+
 
 def generate_gemini(prompt: str, size: int) -> Optional[np.ndarray]:
     """
@@ -229,6 +256,7 @@ def generate_gemini(prompt: str, size: int) -> Optional[np.ndarray]:
             raw = resp.generated_images[0].image.image_bytes
             from PIL import Image  # type: ignore
             import io
+
             pil = Image.open(io.BytesIO(raw)).convert("RGBA").resize((size, size))
             return np.array(pil)
     except Exception as exc:
@@ -238,6 +266,7 @@ def generate_gemini(prompt: str, size: int) -> Optional[np.ndarray]:
 
 
 # ─── Tileability post-processing (offset-and-stitch) ─────────────────────────
+
 
 def make_tileable(rgba: np.ndarray) -> np.ndarray:
     """
@@ -254,24 +283,27 @@ def make_tileable(rgba: np.ndarray) -> np.ndarray:
     y = np.linspace(-1, 1, H)
     xv, yv = np.meshgrid(x, y)
     sigma = 0.3
-    mask = np.exp(-(xv ** 2 + yv ** 2) / (2 * sigma ** 2))
+    mask = np.exp(-(xv**2 + yv**2) / (2 * sigma**2))
     mask = mask[..., np.newaxis]  # (H, W, 1) for broadcasting
 
     original = rgba.astype(np.float32) / 255.0
-    offset   = shifted.astype(np.float32) / 255.0
-    blended  = original * (1 - mask) + offset * mask
+    offset = shifted.astype(np.float32) / 255.0
+    blended = original * (1 - mask) + offset * mask
     return (np.clip(blended, 0.0, 1.0) * 255).astype(np.uint8)
 
 
 # ─── Save helper ──────────────────────────────────────────────────────────────
 
+
 def _save_texture(rgba: np.ndarray, output_dir: Path, stem: str) -> Path:
     try:
         from PIL import Image  # type: ignore
+
         img = Image.fromarray(rgba, mode="RGBA")
     except ImportError:
         # Write raw PPM without PIL
         import struct
+
         pass
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -279,6 +311,7 @@ def _save_texture(rgba: np.ndarray, output_dir: Path, stem: str) -> Path:
 
     try:
         from PIL import Image  # type: ignore
+
         img = Image.fromarray(rgba, mode="RGBA")
         img.save(str(out_path))
     except ImportError:
@@ -296,6 +329,7 @@ def _save_texture(rgba: np.ndarray, output_dir: Path, stem: str) -> Path:
 
 # ─── Blender apply step ───────────────────────────────────────────────────────
 
+
 def _find_blender() -> Optional[str]:
     for p in BLENDER_SEARCH_PATHS:
         if Path(p).exists():
@@ -303,7 +337,9 @@ def _find_blender() -> Optional[str]:
     return None
 
 
-def apply_to_blender(texture_path: Path, mesh_path: Path, blender_exe: Optional[str]) -> bool:
+def apply_to_blender(
+    texture_path: Path, mesh_path: Path, blender_exe: Optional[str]
+) -> bool:
     blender = blender_exe or _find_blender()
     if not blender:
         log.warning("Blender not found — skipping apply step")
@@ -318,21 +354,27 @@ def apply_to_blender(texture_path: Path, mesh_path: Path, blender_exe: Optional[
         blender,
         "--background",
         str(mesh_path),
-        "--python", str(bpy_script),
+        "--python",
+        str(bpy_script),
         "--",
-        "--texture", str(texture_path),
-        "--output", str(texture_path.with_suffix("")),
+        "--texture",
+        str(texture_path),
+        "--output",
+        str(texture_path.with_suffix("")),
     ]
     log.info("Applying texture via Blender …")
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode == 0:
         log.info("Blender apply succeeded")
         return True
-    log.error("Blender apply failed (rc=%d):\n%s", result.returncode, result.stderr[-1000:])
+    log.error(
+        "Blender apply failed (rc=%d):\n%s", result.returncode, result.stderr[-1000:]
+    )
     return False
 
 
 # ─── Smoke test ───────────────────────────────────────────────────────────────
+
 
 def run_smoke_test(output_dir: Path) -> bool:
     log.info("=== Smoke test: Perlin noise backend ===")
@@ -356,29 +398,37 @@ def run_smoke_test(output_dir: Path) -> bool:
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
+
 def main() -> None:
     p = argparse.ArgumentParser(
         description="Text-to-Texture Generator (Phase 6.4)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    p.add_argument("--prompt",      default=None,
-                   help="Texture description")
-    p.add_argument("--size",        type=int, default=512, choices=[256, 512, 1024, 2048],
-                   help="Output resolution (default: 512)")
-    p.add_argument("--output-dir",  default="scripts/textures",
-                   help="Output directory")
-    p.add_argument("--backend",     default=None,
-                   choices=["sd_turbo", "sdxl_turbo", "gemini", "perlin"],
-                   help="Force a specific backend")
-    p.add_argument("--apply",       default=None,
-                   help="Mesh path to apply texture in Blender")
-    p.add_argument("--blender",     default=None,
-                   help="Blender executable path")
-    p.add_argument("--no-tile",     action="store_true",
-                   help="Skip tileability post-processing")
-    p.add_argument("--smoke-test",  action="store_true")
-    p.add_argument("--verbose",     action="store_true")
+    p.add_argument("--prompt", default=None, help="Texture description")
+    p.add_argument(
+        "--size",
+        type=int,
+        default=512,
+        choices=[256, 512, 1024, 2048],
+        help="Output resolution (default: 512)",
+    )
+    p.add_argument("--output-dir", default="scripts/textures", help="Output directory")
+    p.add_argument(
+        "--backend",
+        default=None,
+        choices=["sd_turbo", "sdxl_turbo", "gemini", "perlin"],
+        help="Force a specific backend",
+    )
+    p.add_argument(
+        "--apply", default=None, help="Mesh path to apply texture in Blender"
+    )
+    p.add_argument("--blender", default=None, help="Blender executable path")
+    p.add_argument(
+        "--no-tile", action="store_true", help="Skip tileability post-processing"
+    )
+    p.add_argument("--smoke-test", action="store_true")
+    p.add_argument("--verbose", action="store_true")
     args = p.parse_args()
 
     if args.verbose:
@@ -394,13 +444,16 @@ def main() -> None:
         p.error("--prompt is required (or use --smoke-test)")
 
     prompt = args.prompt.strip()
-    size   = args.size
+    size = args.size
 
     # ── Backend selection ────────────────────────────────────────────────────
     rgba: Optional[np.ndarray] = None
 
-    order = ([args.backend] if args.backend
-             else ["sdxl_turbo", "sd_turbo", "gemini", "perlin"])
+    order = (
+        [args.backend]
+        if args.backend
+        else ["sdxl_turbo", "sd_turbo", "gemini", "perlin"]
+    )
 
     for backend in order:
         if backend in ("sdxl_turbo", "sd_turbo"):
