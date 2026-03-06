@@ -1072,6 +1072,18 @@ class KnowledgeValidator:
         # 1. Parse
         text = self._parser.parse(path)
 
+        # Short-circuit: no sources configured → extract claims but skip network scoring
+        if not self.sources:
+            claims = self._extractor.extract(text)
+            log.info("sources=[] → %d claims extracted, skipping network scoring.", len(claims))
+            return ValidationReport(
+                source_path=path,
+                original_text=text,
+                corrected_text=text,
+                verdicts=[ClaimVerdict(claim=c, confidence=1.0, evidence=[]) for c in claims],
+                elapsed_seconds=time.monotonic() - t0,
+            )
+
         # 2. Extract claims
         claims = self._extractor.extract(text)
         if not claims:
