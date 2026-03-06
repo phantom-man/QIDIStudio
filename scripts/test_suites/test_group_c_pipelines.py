@@ -96,7 +96,7 @@ def test_c2_gcode_refiner() -> tuple[bool, str]:
 import sys
 sys.path.insert(0, r"{REPO_ROOT}")
 from GCodeRefiner.refiner import GcodeRefiner
-gcode = """
+gcode = '''
 ; Test G-code
 G28 ; home
 G1 Z5 F5000
@@ -104,7 +104,7 @@ G1 X0 Y0 F3000
 M104 S200
 G1 X10 Y10 E0.5 F1500
 M104 S0
-"""
+'''
 r = GcodeRefiner()
 result = r.refine(gcode, profile="quality")
 assert isinstance(result, str), "refine() must return str"

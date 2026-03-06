@@ -8,10 +8,10 @@ dispatched to the RectificationAgent for up to 3 fix attempts before
 being marked BLOCKED.
 
 Usage:
-    memory_env\Scripts\python.exe -B scripts/phd_test_pipeline.py
-    memory_env\Scripts\python.exe -B scripts/phd_test_pipeline.py --groups A,B,I
-    memory_env\Scripts\python.exe -B scripts/phd_test_pipeline.py --dry-run
-    memory_env\Scripts\python.exe -B scripts/phd_test_pipeline.py --no-rectify
+    memory_env\\Scripts\\python.exe -B scripts/phd_test_pipeline.py
+    memory_env\\Scripts\\python.exe -B scripts/phd_test_pipeline.py --groups A,B,I
+    memory_env\\Scripts\\python.exe -B scripts/phd_test_pipeline.py --dry-run
+    memory_env\\Scripts\\python.exe -B scripts/phd_test_pipeline.py --no-rectify
 
 Exit codes:
     0  All tests PASS

@@ -26,6 +26,7 @@
 | 13  | [Hardware Feedback Loop](#13-hardware-feedback-loop)    | `agents/hardware_feedback.py`    | `qidistudio-manufacturing` | LangSmith feedback · PyTorch JSONL               |
 | 14  | [Trajectory Evaluator](#14-trajectory-evaluator)        | `agents/trajectory_eval.py`      | `qidistudio-dev-fleet`     | LangSmith feedback                               |
 | 15  | [Print Monitor](#15-print-monitor)                      | `scripts/print_monitor.py`       | `qidistudio-agents`        | Klipper / Moonraker                              |
+| 16  | [PhD Test Pipeline](#16-phd-test-pipeline)              | `scripts/phd_test_pipeline.py`   | —                          | PG · LanceDB · JSONL                             |
 
 ---
 
@@ -598,6 +599,77 @@ Supports dual auth: `GOOGLE_API_KEY` (direct) or ADC (Vertex AI).
 
 ---
 
+## 16. PhD Test Pipeline
+
+**File:** `scripts/phd_test_pipeline.py`
+**Runtime:** `memory_env\Scripts\python.exe`
+**LangSmith project:** — (results written directly to Postgres + JSONL)
+
+### Architecture
+
+Autonomous multi-group test orchestrator. Runs all 9 test groups sequentially (or a
+specified subset), attempts autonomous rectification of failures via `dev_fleet.py`, and
+persists every result to Postgres + JSONL + LanceDB.
+
+```
+phd_test_pipeline.py
+  ├─ Group A: Python import / smoke tests (32 tests)
+  ├─ Group B: Agent fleet functional tests (6 tests)
+  ├─ Group C: Pipeline end-to-end tests (9 tests)
+  ├─ Group D: TypeScript / VS Code extension tests (8 tests)
+  ├─ Group E: C++ / CMake build-gate tests (9 tests)
+  ├─ Group F: Vision / aesthetic tests (6 tests)
+  ├─ Group G: Database integrity tests (7 tests)
+  ├─ Group H: API connectivity tests (8 tests)
+  └─ Group I: File / asset existence tests (80+ checks)
+
+Per-test flow:
+  run_group_X() → PASS → record ✅
+                → FAIL → RectificationAgent.attempt_fix() (up to 3×)
+                              ↓ dev_fleet.py dispatched → re-test
+                         PASS → record ✅  |  BLOCKED → record ❌
+
+RunSummary → persist_results()
+  ├─ Postgres: phd_test_results (one row per test)
+  ├─ JSONL:    logs/phd_test_runs/YYYY-MM-DD.jsonl
+  └─ LanceDB:  best-effort summary upsert (documents table)
+```
+
+### Usage
+
+```powershell
+# All groups
+memory_env\Scripts\python.exe -B scripts/phd_test_pipeline.py
+
+# Specific groups (fast smoke test)
+memory_env\Scripts\python.exe -B scripts/phd_test_pipeline.py --groups I,E,A --no-rectify
+
+# API + database only
+memory_env\Scripts\python.exe -B scripts/phd_test_pipeline.py --groups H,G --no-rectify
+
+# Plan only (no execution)
+memory_env\Scripts\python.exe -B scripts/phd_test_pipeline.py --dry-run
+
+# Include hardware-gated tests (npm/tsc required)
+memory_env\Scripts\python.exe -B scripts/phd_test_pipeline.py --groups D --include-hardware
+```
+
+### Stores
+
+- **PostgreSQL**: `phd_test_results` table (auto-created — group, test_id, status, duration, error)
+- **JSONL**: `logs/phd_test_runs/YYYY-MM-DD.jsonl` (one summary object per run)
+- **LanceDB**: `documents` table (best-effort upsert of run summary text)
+
+### Health Criteria
+
+- [ ] All Group I asset-existence checks pass (80+ files present)
+- [ ] All Group E C++ header/source/shader checks pass
+- [ ] All Group A Python import checks pass
+- [ ] Group G database: LanceDB ≥ 100 rows, Postgres `agent_runs` ≥ 1 row
+- [ ] Group H API: Gemini, LangSmith, GitHub, HuggingFace all reachable
+
+---
+
 ## Pipeline Dependency Map
 
 ```
@@ -610,8 +682,8 @@ Firestore ───────────────────── 5, 7 (
 BigQuery ────────────────────── 5, 6 (audit trail)
 GCS (qidistudio-filaments) ──── 5, 7 (raw dumps + checkpoints)
 Google Search (Gemini grounded) ── 1, 3, 5, 6 (web search via GOOGLE_API_KEY)
-GITHUB_TOKEN ────────────────── 7 (GitHub API for profile download)
-HF_TOKEN ────────────────────── 11 (sentence-transformers model download)
+GITHUB_TOKEN ────────────────── 7, 16 (GitHub API for profile download / H4 test)
+HF_TOKEN ────────────────────── 11, 16 (sentence-transformers model download / H5 test)
 ```
 
 ---
