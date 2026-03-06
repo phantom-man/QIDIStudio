@@ -36,12 +36,16 @@ MEMORY_PY = REPO_ROOT / "memory_env" / "Scripts" / "python.exe"
 def _run_py(script: str, timeout: int = 30) -> tuple[bool, str]:
     result = subprocess.run(
         [str(MEMORY_PY), "-B", "-c", script],
-        capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT)
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        cwd=str(REPO_ROOT),
     )
     return result.returncode == 0, (result.stdout + result.stderr).strip()
 
 
 # ── H1 Gemini Vertex AI ───────────────────────────────────────────────────────
+
 
 def test_h1_gemini_vertex() -> tuple[bool, str]:
     """Gemini Vertex AI (ADC) responds to a minimal generation request."""
@@ -75,6 +79,7 @@ else:
 
 # ── H2 Gemini direct API key ──────────────────────────────────────────────────
 
+
 def test_h2_gemini_api_key() -> tuple[bool, str]:
     """Gemini direct API key (GOOGLE_API_KEY) is valid."""
     script = f"""
@@ -100,11 +105,15 @@ else:
         return True, "GOOGLE_API_KEY valid"
     # Key may be set but limited to Vertex AI ADC — direct key failures are non-critical
     if os.environ.get("GOOGLE_API_KEY"):
-        return True, f"GOOGLE_API_KEY set (direct call unavailable — Vertex ADC is primary): {output[:120]}"
+        return (
+            True,
+            f"GOOGLE_API_KEY set (direct call unavailable — Vertex ADC is primary): {output[:120]}",
+        )
     return False, f"Gemini API key ping failed:\n{output[:400]}"
 
 
 # ── H3 LangSmith ──────────────────────────────────────────────────────────────
+
 
 def test_h3_langsmith() -> tuple[bool, str]:
     """LangSmith Client() authenticates and can list projects."""
@@ -127,6 +136,7 @@ print("PROJECTS:" + ";".join(names[:5]))
 
 
 # ── H4 GitHub rate limit ──────────────────────────────────────────────────────
+
 
 def test_h4_github() -> tuple[bool, str]:
     """GitHub API: GET /rate_limit with GITHUB_TOKEN returns non-zero remaining."""
@@ -161,6 +171,7 @@ print(f"GITHUB:{{remaining}}/{{limit}}")
 
 # ── H5 HuggingFace ────────────────────────────────────────────────────────────
 
+
 def test_h5_huggingface() -> tuple[bool, str]:
     """HuggingFace: GET /api/whoami-v2 with HF_TOKEN returns user info."""
     script = f"""
@@ -190,6 +201,7 @@ else:
 
 # ── H6 Tavily ─────────────────────────────────────────────────────────────────
 
+
 def test_h6_tavily() -> tuple[bool, str]:
     """Tavily API: TavilyClient.search('test') returns at least 1 result."""
     script = f"""
@@ -212,10 +224,14 @@ else:
     if "SKIP:" in output:
         return True, "Skipped (TAVILY_API_KEY not set)"
     # Tavily was replaced by Google Grounded Search (commit f14d3690) — failures are non-critical
-    return True, f"Tavily deprecated (replaced by Google Search, key configured but inactive): {output[:80]}"
+    return (
+        True,
+        f"Tavily deprecated (replaced by Google Search, key configured but inactive): {output[:80]}",
+    )
 
 
 # ── H7 PostgreSQL ─────────────────────────────────────────────────────────────
+
 
 def test_h7_postgres() -> tuple[bool, str]:
     """PostgreSQL: psycopg2 connect + SELECT 1 passes."""
@@ -240,6 +256,7 @@ print("PG_OK")
 
 # ── H8 GCS / LanceDB ─────────────────────────────────────────────────────────
 
+
 def test_h8_lancedb_gcs() -> tuple[bool, str]:
     """GCS LanceDB bucket is reachable via lancedb.connect()."""
     script = f"""
@@ -261,14 +278,14 @@ print("GCS_OK:" + str(len(tables)) + " tables")
 # ── Test registry ─────────────────────────────────────────────────────────────
 
 TESTS: list[tuple[str, str, callable]] = [
-    ("H.postgres",          "PostgreSQL SELECT 1 succeeds",               test_h7_postgres),
-    ("H.lancedb_gcs",       "GCS LanceDB bucket reachable",               test_h8_lancedb_gcs),
-    ("H.gemini_vertex",     "Gemini Vertex AI ping → ONLINE",             test_h1_gemini_vertex),
-    ("H.gemini_api_key",    "Gemini direct API key valid",                 test_h2_gemini_api_key),
-    ("H.langsmith",         "LangSmith Client() connects",                test_h3_langsmith),
-    ("H.github",            "GitHub API rate_limit responds",             test_h4_github),
-    ("H.huggingface",       "HuggingFace whoami-v2 responds",             test_h5_huggingface),
-    ("H.tavily",            "Tavily search returns results",              test_h6_tavily),
+    ("H.postgres", "PostgreSQL SELECT 1 succeeds", test_h7_postgres),
+    ("H.lancedb_gcs", "GCS LanceDB bucket reachable", test_h8_lancedb_gcs),
+    ("H.gemini_vertex", "Gemini Vertex AI ping → ONLINE", test_h1_gemini_vertex),
+    ("H.gemini_api_key", "Gemini direct API key valid", test_h2_gemini_api_key),
+    ("H.langsmith", "LangSmith Client() connects", test_h3_langsmith),
+    ("H.github", "GitHub API rate_limit responds", test_h4_github),
+    ("H.huggingface", "HuggingFace whoami-v2 responds", test_h5_huggingface),
+    ("H.tavily", "Tavily search returns results", test_h6_tavily),
 ]
 
 
@@ -282,13 +299,15 @@ def run_group_h() -> list[dict]:
         except Exception as exc:  # noqa: BLE001
             passed, error = False, str(exc)[:1000]
 
-        results.append({
-            "group_id": "H",
-            "test_id": test_id,
-            "test_name": test_name,
-            "passed": passed,
-            "error": error or None,
-        })
+        results.append(
+            {
+                "group_id": "H",
+                "test_id": test_id,
+                "test_name": test_name,
+                "passed": passed,
+                "error": error or None,
+            }
+        )
     return results
 
 

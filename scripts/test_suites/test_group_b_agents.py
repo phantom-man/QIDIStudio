@@ -14,6 +14,7 @@ They require GOOGLE_CLOUD_PROJECT, LANGSMITH_API_KEY, PG_DSN to be set.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -32,25 +33,42 @@ EXPECTED_AGENTS = [
     "scribe",
     "coder",
     "tester",
-    "orchestrator",
     "dev_fleet",
 ]
 
 
 def _run_py(script: str, timeout: int = 120) -> tuple[bool, str]:
-    """Run arbitrary Python in memory_env subprocess. Returns (ok, output)."""
-    result = subprocess.run(
+    """Run arbitrary Python in memory_env subprocess. Returns (ok, output).
+
+    Uses Popen + communicate(timeout) so that on TimeoutExpired the process
+    tree is forcibly killed. Plain subprocess.run() on Windows leaves orphaned
+    child processes alive which stalls the parent indefinitely.
+    """
+    # CREATE_NEW_PROCESS_GROUP lets us send CTRL_BREAK to the whole tree on Windows
+    cflags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
+    proc = subprocess.Popen(
         [str(MEMORY_PY), "-B", "-c", script],
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
-        timeout=timeout,
         cwd=str(REPO_ROOT),
+        creationflags=cflags,
     )
-    output = (result.stdout + result.stderr).strip()
-    return result.returncode == 0, output
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+        output = (stdout + stderr).strip()
+        return proc.returncode == 0, output
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        try:
+            proc.communicate(timeout=5)
+        except Exception:  # noqa: BLE001
+            pass
+        return False, f"Timeout after {timeout}s"
 
 
 # ── Individual test functions ──────────────────────────────────────────────────
+
 
 def test_b_agent_compile() -> tuple[bool, str]:
     """
@@ -64,11 +82,14 @@ from agents._agentcomms_check import main
 main()
 """
     success, output = _run_py(script, timeout=60)
-    # Health check prints "researcher : CompiledStateGraph" etc.
-    required_lines = [f"{a} :" for a in EXPECTED_AGENTS]
+    # Health check prints "OK   researcher   CompiledStateGraph" etc.
+    required_lines = [f"OK   {a}" for a in EXPECTED_AGENTS]
     missing = [line for line in required_lines if line not in output]
     if missing:
-        return False, f"Missing agents in health check: {missing}\nOutput:\n{output[:800]}"
+        return (
+            False,
+            f"Missing agents in health check: {missing}\nOutput:\n{output[:800]}",
+        )
     if "CompiledStateGraph" not in output:
         return False, f"No CompiledStateGraph found in output:\n{output[:800]}"
     return True, ""
@@ -141,8 +162,8 @@ def test_b_dev_fleet_compile() -> tuple[bool, str]:
     script = f"""
 import sys; sys.path.insert(0, r"{REPO_ROOT}")
 from dotenv import load_dotenv; load_dotenv(r"{REPO_ROOT}/.env", override=True)
-from agents.dev_fleet import build_graph
-g = build_graph()
+from agents.dev_fleet import build_fleet_graph
+g = build_fleet_graph()
 print(type(g).__name__)
 """
     success, output = _run_py(script, timeout=30)
@@ -184,12 +205,28 @@ else:
 # ── Test registry ─────────────────────────────────────────────────────────────
 
 TESTS: list[tuple[str, str, callable]] = [
-    ("B.agent_compile",       "All 8 LangGraph agents compile",           test_b_agent_compile),
-    ("B.langsmith_connection","LangSmith Client() connects",              test_b_langsmith_connection),
-    ("B.gemini_ping",         "Gemini Vertex AI ping → ONLINE",           test_b_gemini_vertex_ping),
-    ("B.dev_fleet_compile",   "dev_fleet CompiledStateGraph compiles",    test_b_dev_fleet_compile),
-    ("B.orchestrator_ping",   "Orchestrator ping → ONLINE (full round-trip)", test_b_orchestrator_ping),
-    ("B.postgres_agent_runs", "agent_runs table has ≥ 1 row after ping",  test_b_postgres_agent_runs),
+    ("B.agent_compile", "All 8 LangGraph agents compile", test_b_agent_compile),
+    (
+        "B.langsmith_connection",
+        "LangSmith Client() connects",
+        test_b_langsmith_connection,
+    ),
+    ("B.gemini_ping", "Gemini Vertex AI ping → ONLINE", test_b_gemini_vertex_ping),
+    (
+        "B.dev_fleet_compile",
+        "dev_fleet CompiledStateGraph compiles",
+        test_b_dev_fleet_compile,
+    ),
+    (
+        "B.orchestrator_ping",
+        "Orchestrator ping → ONLINE (full round-trip)",
+        test_b_orchestrator_ping,
+    ),
+    (
+        "B.postgres_agent_runs",
+        "agent_runs table has ≥ 1 row after ping",
+        test_b_postgres_agent_runs,
+    ),
 ]
 
 
@@ -203,13 +240,15 @@ def run_group_b() -> list[dict]:
         except Exception as exc:  # noqa: BLE001
             passed, error = False, str(exc)[:1000]
 
-        results.append({
-            "group_id": "B",
-            "test_id": test_id,
-            "test_name": test_name,
-            "passed": passed,
-            "error": error or None,
-        })
+        results.append(
+            {
+                "group_id": "B",
+                "test_id": test_id,
+                "test_name": test_name,
+                "passed": passed,
+                "error": error or None,
+            }
+        )
     return results
 
 
