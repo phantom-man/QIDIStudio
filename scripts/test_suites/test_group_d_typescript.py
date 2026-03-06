@@ -19,7 +19,8 @@ from dotenv import load_dotenv
 REPO_ROOT = Path(__file__).parents[2]
 load_dotenv(REPO_ROOT / ".env", override=True)
 
-EXTENSION_ROOT = REPO_ROOT / "nexusslicer-viewer"
+# nexusslicer-viewer lives in the parent repos/ folder, not inside QIDIStudio
+EXTENSION_ROOT = REPO_ROOT.parent / "nexusslicer-viewer"
 MEMORY_PY = REPO_ROOT / "memory_env" / "Scripts" / "python.exe"
 
 
@@ -46,6 +47,7 @@ def _file_exists(path: Path, min_bytes: int = 1) -> tuple[bool, str]:
 
 # ── D1 Extension root exists ──────────────────────────────────────────────────
 
+
 def test_d1_extension_root() -> tuple[bool, str]:
     """nexusslicer-viewer/ directory exists with package.json."""
     pkg = EXTENSION_ROOT / "package.json"
@@ -53,6 +55,7 @@ def test_d1_extension_root() -> tuple[bool, str]:
 
 
 # ── D2 TypeScript tsc compile ─────────────────────────────────────────────────
+
 
 def test_d2_tsc_compile() -> tuple[bool, str]:
     """
@@ -71,31 +74,49 @@ def test_d2_tsc_compile() -> tuple[bool, str]:
 
 # ── D3 npm test ───────────────────────────────────────────────────────────────
 
+
 def test_d3_npm_test() -> tuple[bool, str]:
     """npm test — all extension unit tests pass."""
+    import re
     ok, output = _run_shell(
         ["npm", "test", "--", "--reporter=spec"],
         cwd=EXTENSION_ROOT,
         timeout=180,
     )
-    # Look for test suite completion markers
-    failure_markers = ["FAIL", "failing", "Error", "AssertionError"]
-    pass_markers = ["passing", "PASS", "done", "OK"]
 
     output_lower = output.lower()
-    if ok or any(m.lower() in output_lower for m in pass_markers):
-        if not any(m.lower() in output_lower for m in failure_markers):
-            return True, ""
-    return False, f"Extension tests failed:\n{output[:800]}"
+
+    # Check for positive passing count (e.g. "63 passing")
+    passing_match = re.search(r"(\d+)\s+passing", output_lower)
+    # Reject if there are non-zero failures (e.g. "8 failing")
+    failing_match = re.search(r"([1-9]\d*)\s+failing", output_lower)
+    # Hard errors: process didn't even start tests
+    hard_errors = ["cannot find module", "syntaxerror", "exception during run"]
+
+    if passing_match and not failing_match and not any(h in output_lower for h in hard_errors):
+        n_passing = int(passing_match.group(1))
+        return True, f"{n_passing} tests passed"
+
+    if failing_match:
+        n_fail = int(failing_match.group(1))
+        return False, f"{n_fail} test(s) failed:\n{output[:1200]}"
+
+    # Exit code 0 with "done" heuristic (fallback for non-standard reporters)
+    if ok and ("done" in output_lower or "no tests" in output_lower):
+        return True, "npm test exited 0"
+
+    return False, f"Extension tests failed:\n{output[:1200]}"
 
 
 # ── D4 VSIX exists ────────────────────────────────────────────────────────────
 
+
 def test_d4_vsix_exists() -> tuple[bool, str]:
     """nexusslicer-viewer-*.vsix exists in extension root or repo root."""
     # Check both locations
-    candidates = list(EXTENSION_ROOT.glob("nexusslicer-viewer-*.vsix")) + \
-                 list(REPO_ROOT.glob("nexusslicer-viewer-*.vsix"))
+    candidates = list(EXTENSION_ROOT.glob("nexusslicer-viewer-*.vsix")) + list(
+        REPO_ROOT.glob("nexusslicer-viewer-*.vsix")
+    )
     if not candidates:
         return False, f"No VSIX found in {EXTENSION_ROOT} or {REPO_ROOT}"
     vsix = candidates[0]
@@ -106,6 +127,7 @@ def test_d4_vsix_exists() -> tuple[bool, str]:
 
 
 # ── D5 Key TypeScript source files ────────────────────────────────────────────
+
 
 def test_d5_ts_source_files() -> tuple[bool, str]:
     """All expected TypeScript source files exist."""
@@ -134,6 +156,7 @@ def test_d5_ts_source_files() -> tuple[bool, str]:
 
 # ── D6 Test suite files exist ─────────────────────────────────────────────────
 
+
 def test_d6_test_suite_files() -> tuple[bool, str]:
     """Key test files for the extension are present."""
     expected = [
@@ -150,6 +173,7 @@ def test_d6_test_suite_files() -> tuple[bool, str]:
 
 # ── D7 LicenseManager test count ─────────────────────────────────────────────
 
+
 def test_d7_license_manager_tests() -> tuple[bool, str]:
     """LicenseManager.ts test file has at least 17 test scenarios."""
     ts_file = EXTENSION_ROOT / "test" / "suite" / "licenseManager.test.ts"
@@ -164,6 +188,7 @@ def test_d7_license_manager_tests() -> tuple[bool, str]:
 
 
 # ── D8 Machinist's Bench source ───────────────────────────────────────────────
+
 
 def test_d8_machinists_bench() -> tuple[bool, str]:
     """Machinist's Bench TypeScript source files (CSGWorker, ToolController) exist."""
@@ -190,14 +215,30 @@ def test_d8_machinists_bench() -> tuple[bool, str]:
 # ── Test registry ─────────────────────────────────────────────────────────────
 
 TESTS: list[tuple[str, str, callable]] = [
-    ("D.extension_root",    "nexusslicer-viewer/ root + package.json exist",      test_d1_extension_root),
-    ("D.ts_source_files",   "All 11 TypeScript source files exist",                test_d5_ts_source_files),
-    ("D.test_suite_files",  "4 test suite .ts files exist",                        test_d6_test_suite_files),
-    ("D.vsix_exists",       "VSIX artefact ≥ 10 KB exists",                        test_d4_vsix_exists),
-    ("D.machinists_bench",  "Machinist's Bench TS source files exist",             test_d8_machinists_bench),
-    ("D.tsc_compile",       "TypeScript compiles with zero errors",                 test_d2_tsc_compile),
-    ("D.npm_test",          "npm test — all extension tests pass",                 test_d3_npm_test),
-    ("D.license_manager",   "LicenseManager test file has ≥ 17 cases",            test_d7_license_manager_tests),
+    (
+        "D.extension_root",
+        "nexusslicer-viewer/ root + package.json exist",
+        test_d1_extension_root,
+    ),
+    (
+        "D.ts_source_files",
+        "All 11 TypeScript source files exist",
+        test_d5_ts_source_files,
+    ),
+    ("D.test_suite_files", "4 test suite .ts files exist", test_d6_test_suite_files),
+    ("D.vsix_exists", "VSIX artefact ≥ 10 KB exists", test_d4_vsix_exists),
+    (
+        "D.machinists_bench",
+        "Machinist's Bench TS source files exist",
+        test_d8_machinists_bench,
+    ),
+    ("D.tsc_compile", "TypeScript compiles with zero errors", test_d2_tsc_compile),
+    ("D.npm_test", "npm test — all extension tests pass", test_d3_npm_test),
+    (
+        "D.license_manager",
+        "LicenseManager test file has ≥ 17 cases",
+        test_d7_license_manager_tests,
+    ),
 ]
 
 
@@ -211,18 +252,20 @@ def run_group_d() -> list[dict]:
         except Exception as exc:  # noqa: BLE001
             passed, error = False, str(exc)[:1000]
 
-        results.append({
-            "group_id": "D",
-            "test_id": test_id,
-            "test_name": test_name,
-            "passed": passed,
-            "error": error or None,
-        })
+        results.append(
+            {
+                "group_id": "D",
+                "test_id": test_id,
+                "test_name": test_name,
+                "passed": passed,
+                "error": error or None,
+            }
+        )
     return results
 
 
 if __name__ == "__main__":
     for r in run_group_d():
-        icon = "✅" if r["passed"] else "❌"
-        err = f"  → {r['error'][:80]}" if r.get("error") else ""
+        icon = "[PASS]" if r["passed"] else "[FAIL]"
+        err = f"  -> {r['error'][:80]}" if r.get("error") else ""
         print(f"  {icon} {r['test_id']:<44s}{err}")
