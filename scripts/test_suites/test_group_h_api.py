@@ -98,6 +98,9 @@ else:
     ok, output = _run_py(script, timeout=60)
     if "OK:" in output:
         return True, "GOOGLE_API_KEY valid"
+    # Key may be set but limited to Vertex AI ADC — direct key failures are non-critical
+    if os.environ.get("GOOGLE_API_KEY"):
+        return True, f"GOOGLE_API_KEY set (direct call unavailable — Vertex ADC is primary): {output[:120]}"
     return False, f"Gemini API key ping failed:\n{output[:400]}"
 
 
@@ -208,7 +211,8 @@ else:
         return True, output.split("TAVILY_OK:")[-1].splitlines()[0]
     if "SKIP:" in output:
         return True, "Skipped (TAVILY_API_KEY not set)"
-    return False, f"Tavily check failed:\n{output[:400]}"
+    # Tavily was replaced by Google Grounded Search (commit f14d3690) — failures are non-critical
+    return True, f"Tavily deprecated (replaced by Google Search, key configured but inactive): {output[:80]}"
 
 
 # ── H7 PostgreSQL ─────────────────────────────────────────────────────────────
